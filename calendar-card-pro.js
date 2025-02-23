@@ -78,11 +78,12 @@ class CalendarCardPro extends HTMLElement {
     this._hass = null;
     this.rendered = false;
     this.touchState = {
-      lastTap: 0,
-      lastTapX: 0,
-      lastTapY: 0,
-      holdTimer: null
+      touchStartY: 0,
+      touchStartX: 0,
+      holdTimer: null,
+      holdTriggered: false
     };
+    this.isLoading = true;  // Add loading state
   }
 
   /**
@@ -115,7 +116,12 @@ class CalendarCardPro extends HTMLElement {
   async updateEvents() {
     if (!this.isValidState()) return;
 
+    this.isLoading = true;
+    this.renderCard(); // Re-render to show loading state
+
     const { events, error } = await this.fetchEvents();
+    this.isLoading = false;
+    
     if (error) {
       console.error('Failed to fetch calendar events:', error);
       this.events = [];
@@ -129,7 +135,10 @@ class CalendarCardPro extends HTMLElement {
    * Check if component state is valid for updates
    */
   isValidState() {
-    return this._hass && this.config.entity;
+    if (!this._hass || !this.config.entity) {
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -329,7 +338,12 @@ class CalendarCardPro extends HTMLElement {
    */
   renderCard() {
     if (!this.isValidState()) {
-      this.renderError();
+      this.renderError('error');
+      return;
+    }
+
+    if (this.isLoading) {
+      this.renderError('loading');
       return;
     }
 
@@ -350,17 +364,20 @@ class CalendarCardPro extends HTMLElement {
   }
 
  /**
-   * Render error message when state is invalid
+   * Render error or loading message when needed
    */
- renderError() {
-  this.shadowRoot.innerHTML = `
-    <div class="card-content">
-      <p style="color: var(--error-color, red);">
-        Error: Calendar entity not found or improperly configured.
-      </p>
-    </div>
-  `;
-}
+  renderError(state) {
+    const messages = {
+      error: '<p style="color: var(--error-color, red);">Error: Calendar entity not found or improperly configured.</p>',
+      loading: '<p style="color: var(--secondary-text-color);">Loading calendar events...</p>'
+    };
+
+    this.shadowRoot.innerHTML = `
+      <div class="card-content">
+        ${messages[state]}
+      </div>
+    `;
+  }
 
 /**
  * Group events by day for display
@@ -573,13 +590,10 @@ handleTouchStart(e) {
   this.touchState = {
     touchStartY: touch.clientY,
     touchStartX: touch.clientX,
-    lastTapTime: 0,
-    lastTapX: touch.clientX,
-    lastTapY: touch.clientY,
-    holdTriggered: false,  // Track if hold was triggered
+    holdTriggered: false,
     holdTimer: setTimeout(() => {
       this.handleAction(e, this.config.hold_action);
-      this.touchState.holdTriggered = true;  // Set flag to avoid tap_action
+      this.touchState.holdTriggered = true;
     }, 500)
   };
 }
