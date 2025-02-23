@@ -19,6 +19,7 @@ class CalendarCardPro extends HTMLElement {
       language: 'en',
       days_to_show: 3,
       cache_duration: 300,
+      show_past_events: false,
       vertical_line_width: '2px',
       vertical_line_color: '#03a9f4',
       horizontal_line_width: '0px',
@@ -169,43 +170,56 @@ class CalendarCardPro extends HTMLElement {
 
   /**
    * Calculate time window for event fetching
+   * @returns {Object} - Object containing start and end dates
    */
   getTimeWindow() {
-    const start = new Date();
-    const end = new Date();
-    // Make sure we use the configured value as a number
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Start of today
+    const end = new Date(start);
     const daysToShow = parseInt(this.config.days_to_show) || 3;
-    // Add the configured number of days
     end.setDate(start.getDate() + daysToShow);
+    end.setHours(23, 59, 59, 999);
+    
     return { start, end };
   }
 
   /**
-   * Get cached events if available and valid
+   * Get cached events with error handling
+   * @returns {Array|null} - Cached events or null if no valid cache exists
    */
   getCachedEvents() {
     const cacheKey = `calendar_${this.config.entity}`;
-    const cache = JSON.parse(localStorage.getItem(cacheKey));
-    const cacheDuration = (this.config.cache_duration || 300) * 1000;
-    
-    // Track if cache has been used in this session
-    if (cache && (Date.now() - cache.timestamp < cacheDuration)) {
-      sessionStorage.setItem(cacheKey, "used");
-      return cache.events;
+    try {
+      const cache = JSON.parse(localStorage.getItem(cacheKey));
+      const cacheDuration = (this.config.cache_duration || 300) * 1000;
+      
+      if (cache && (Date.now() - cache.timestamp < cacheDuration)) {
+        sessionStorage.setItem(cacheKey, "used");
+        return cache.events;
+      }
+    } catch (error) {
+      console.warn('Calendar-Card-Pro: Failed to retrieve cached events:', error);
     }
-  
     return null;
   }
 
   /**
-   * Cache events in localStorage
+   * Cache events in localStorage with error handling
+   * @param {Array} events - Array of calendar events to cache
+   * @returns {boolean} - Success status of caching operation
    */
   cacheEvents(events) {
     const cacheKey = `calendar_${this.config.entity}`;
-    localStorage.setItem(cacheKey, JSON.stringify({
-      events,
-      timestamp: Date.now()
-    }));
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify({
+        events,
+        timestamp: Date.now()
+      }));
+      return true;
+    } catch (error) {
+      console.warn('Calendar-Card-Pro: Failed to cache events:', error);
+      return false;
+    }
   }
 
   /**
@@ -388,11 +402,31 @@ class CalendarCardPro extends HTMLElement {
  */
 groupEventsByDay() {
   let eventsByDay = {};
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayEnd = new Date(todayStart);
+  todayEnd.setHours(23, 59, 59, 999);
   
   this.events.forEach(event => {
     const startDate = new Date(event.start.dateTime || event.start.date);
     const eventDateKey = startDate.toISOString().split('T')[0];
-    
+    const isAllDayEvent = !event.start.dateTime;
+    const isEventToday = startDate >= todayStart && startDate <= todayEnd;
+    const isFutureEvent = startDate > todayEnd;
+
+    // Skip past days' events
+    if (!isEventToday && !isFutureEvent) {
+      return;
+    }
+
+    // Handle today's events
+    if (isEventToday && !isAllDayEvent && !this.config.show_past_events) {
+      if (startDate < now) {
+        return;
+      }
+    }
+
+    // Add event to the appropriate day
     if (!eventsByDay[eventDateKey]) {
       eventsByDay[eventDateKey] = {
         weekday: this.translations.daysOfWeek[startDate.getDay()],
@@ -404,7 +438,6 @@ groupEventsByDay() {
     }
 
     let location = this.formatLocation(event.location);
-    
     eventsByDay[eventDateKey].events.push({
       summary: event.summary,
       time: this.formatEventTime(event),
@@ -416,7 +449,7 @@ groupEventsByDay() {
   const daysToShow = parseInt(this.config.days_to_show) || 3;
   return Object.values(eventsByDay)
     .sort((a, b) => a.timestamp - b.timestamp)
-    .slice(0, daysToShow); // Use parsed daysToShow value
+    .slice(0, daysToShow);
 }
 
 /**
