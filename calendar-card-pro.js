@@ -115,21 +115,26 @@ class CalendarCardPro extends HTMLElement {
    */
   async updateEvents() {
     if (!this.isValidState()) return;
-
+    
+    const cachedData = this.getCachedEvents();
+    if (cachedData) {
+        this.events = cachedData;
+        this.renderCard(); // Render with cached events
+    }
+    
     this.isLoading = true;
-    this.renderCard(); // Re-render to show loading state
-
     const { events, error } = await this.fetchEvents();
     this.isLoading = false;
     
     if (error) {
-      console.error('Failed to fetch calendar events:', error);
-      this.events = [];
+        console.error('Failed to fetch calendar events:', error);
+        this.events = cachedData || []; // Use cached events if available
     } else {
-      this.events = events;
+        this.events = events;
+        this.cacheEvents(events);
     }
-    this.renderCard();
-  }
+    this.renderCard(); // Render with new events
+}
 
   /**
    * Check if component state is valid for updates
@@ -338,30 +343,29 @@ class CalendarCardPro extends HTMLElement {
    */
   renderCard() {
     if (!this.isValidState()) {
-      this.renderError('error');
-      return;
+        this.renderError('error');
+        return;
     }
-
-    if (this.isLoading) {
-      this.renderError('loading');
-      return;
+    
+    if (this.isLoading && !this.events.length) {
+        this.renderError('loading');
+        return;
     }
-
+    
     const eventsByDay = this.groupEventsByDay();
     const calendarContent = this.generateCalendarContent(eventsByDay);
     
     this.shadowRoot.innerHTML = `
-      <style>${this.getStyles()}</style>
-      <div class="card-container">
-        <div class="card-content">
-          ${this.config.title ? `<div class="title">${this.config.title}</div>` : ''}
-          ${calendarContent}
+        <style>${this.getStyles()}</style>
+        <div class="card-container">
+            <div class="card-content">
+                ${this.config.title ? `<div class="title">${this.config.title}</div>` : ''}
+                ${calendarContent}
+            </div>
         </div>
-      </div>
     `;
-
     this.setupEventListeners();
-  }
+}
 
  /**
    * Render error or loading message when needed
