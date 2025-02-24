@@ -1,23 +1,35 @@
 /**
- * CalendarCardPro - An enhanced calendar card component for Home Assistant
- * Provides a customizable calendar view with support for multiple languages,
- * caching, and progressive loading.
+ * Calendar Card Pro for Home Assistant
  * 
+ * A custom Lovelace card that provides a sleek and performant calendar view
+ * with support for multiple calendars, individual styling, and smart caching.
+ * 
+ * @author Alex Pfau <https://github.com/alexpfau>
  * @license MIT
  * @version 1.0.0
+ * @since 2025-02-25
+ * 
+ * Features:
+ * - Multiple calendar support with individual color styling
+ * - Real-time updates via WebSocket
+ * - Smart caching with progressive loading
+ * - Multi-language support (en/de)
+ * - Customizable styling and layout
+ * - Touch and mouse gesture support
+ * - Location formatting with country removal
  */
 class CalendarCardPro extends HTMLElement {
-  /**
-   * Section comments to better organize code
-   */
   
   //=============================================================================
   // Static Configuration & Properties
   //=============================================================================
 
   /**
-   * Default configuration options for the calendar card
+   * Default configuration options for the calendar card.
+   * These values can be overridden by user configuration.
+   * 
    * @static
+   * @returns {Object} Default configuration object
    */
   static get DEFAULT_CONFIG() {
     return {
@@ -57,9 +69,11 @@ class CalendarCardPro extends HTMLElement {
   }
 
   /**
-   * Language translations for calendar elements
-   * Supports English (en) and German (de)
+   * Language translations for the calendar interface.
+   * Currently supports English (en) and German (de).
+   * 
    * @static
+   * @returns {Object} Translation strings by language code
    */
   static get TRANSLATIONS() {
     return {
@@ -83,8 +97,14 @@ class CalendarCardPro extends HTMLElement {
   }
 
   /**
-   * Performance monitoring thresholds for optimizing render cycles
+   * Performance monitoring thresholds and settings.
+   * Used to optimize rendering and provide performance warnings.
+   * 
    * @static
+   * @returns {Object} Performance configuration
+   * @property {number} RENDER_TIME - Maximum acceptable render time in ms
+   * @property {number} CHUNK_SIZE - Number of events to render in each chunk
+   * @property {number} RENDER_DELAY - Delay between chunks in ms
    */
   static get PERFORMANCE_THRESHOLDS() {
     return {
@@ -564,19 +584,22 @@ class CalendarCardPro extends HTMLElement {
    * @param {TouchEvent} e Touch event object
    */
   handleTouchStart(e) {
-    // Prevent default to avoid unwanted scrolls/clicks
+    // Prevent default scrolling behavior
     e.preventDefault();
     e.stopPropagation();
-
+    
     const touch = e.touches[0];
     this.touchState = {
       touchStartY: touch.clientY,
       touchStartX: touch.clientX,
       holdTriggered: false,
       scrolling: false,
+      originalEvent: e,
       holdTimer: setTimeout(() => {
-        this.handleAction(e, this.config.hold_action);
-        this.touchState.holdTriggered = true;
+        if (this.config.hold_action) {
+          this.handleAction(this.touchState.originalEvent, this.config.hold_action);
+          this.touchState.holdTriggered = true;
+        }
       }, 500)
     };
   }
@@ -588,22 +611,29 @@ class CalendarCardPro extends HTMLElement {
     const deltaY = Math.abs(touch.clientY - this.touchState.touchStartY);
     const deltaX = Math.abs(touch.clientX - this.touchState.touchStartX);
 
-    // Mark as scrolling if significant movement
-    if (deltaY > 5 || deltaX > 5) {
+    // Clear hold timer and mark as scrolling if significant movement
+    if (deltaY > 10 || deltaX > 10) {
       this.touchState.scrolling = true;
-      clearTimeout(this.touchState.holdTimer);
+      if (this.touchState.holdTimer) {
+        clearTimeout(this.touchState.holdTimer);
+      }
     }
   }
 
   handleTouchEnd(e) {
     if (!this.touchState) return;
+
+    // Stop event propagation
     e.preventDefault();
     e.stopPropagation();
 
-    clearTimeout(this.touchState.holdTimer);
+    // Clear the hold timer
+    if (this.touchState.holdTimer) {
+      clearTimeout(this.touchState.holdTimer);
+    }
 
-    // Don't trigger tap if we were scrolling or hold was triggered
-    if (!this.touchState.scrolling && !this.touchState.holdTriggered) {
+    // Only trigger tap if we weren't scrolling and hold wasn't triggered
+    if (!this.touchState.scrolling && !this.touchState.holdTriggered && this.config.tap_action) {
       this.handleAction(e, this.config.tap_action);
     }
 
@@ -613,29 +643,91 @@ class CalendarCardPro extends HTMLElement {
   handleTouchCancel() {
     if (this.touchState?.holdTimer) {
       clearTimeout(this.touchState.holdTimer);
+      this.touchState = null;
     }
   }
 
   handleClick(e) {
-    this.handleAction(e, this.config.tap_action);
+    // Only handle click if no touch or hold events were triggered
+    if (!this.touchState && !this.mouseState?.holdTriggered && this.config.tap_action) {
+      this.handleAction(e, this.config.tap_action);
+    }
   }
 
   handleMouseDown(e) {
-    this.mouseHoldTimer = setTimeout(() => {
-      this.handleAction(e, this.config.hold_action);
-    }, 500);
+    // Stop event propagation
+    e.preventDefault();
+    e.stopPropagation();
+
+    this.mouseState = {
+      holdTriggered: false,
+      originalEvent: e,
+      holdTimer: setTimeout(() => {
+        if (this.config.hold_action) {
+          this.handleAction(e, this.config.hold_action);
+          this.mouseState.holdTriggered = true;
+        }
+      }, 500)
+    };
   }
 
-  handleMouseUp() {
-    if (this.mouseHoldTimer) {
-      clearTimeout(this.mouseHoldTimer);
+  handleMouseUp(e) {
+    if (!this.mouseState) return;
+
+    // Stop event propagation
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Clear the hold timer
+    if (this.mouseState.holdTimer) {
+      clearTimeout(this.mouseState.holdTimer);
     }
+
+    // Only trigger tap if hold wasn't triggered
+    if (!this.mouseState.holdTriggered && this.config.tap_action) {
+      this.handleAction(e, this.config.tap_action);
+    }
+
+    this.mouseState = null;
   }
 
   handleMouseLeave() {
-    if (this.mouseHoldTimer) {
-      clearTimeout(this.mouseHoldTimer);
+    if (this.mouseState?.holdTimer) {
+      clearTimeout(this.mouseState.holdTimer);
+      this.mouseState = null;
     }
+  }
+
+  /**
+   * Set up event listeners for the card.
+   * Handles both touch and mouse events with proper cleanup.
+   * 
+   * @private
+   * @returns {void}
+   */
+  setupEventListeners() {
+    const cardContainer = this.shadowRoot.querySelector(".card-container");
+    if (!cardContainer) return;
+
+    // Remove existing listeners first
+    const events = [
+      "touchstart", "touchmove", "touchend", "touchcancel",
+      "click", "mousedown", "mouseup", "mouseleave"
+    ];
+    
+    events.forEach(event => {
+      cardContainer.removeEventListener(event, this[`handle${event.charAt(0).toUpperCase()}${event.slice(1)}`]);
+    });
+
+    // Add new listeners with proper binding and options
+    cardContainer.addEventListener("touchstart", this.handleTouchStart.bind(this), { passive: false });
+    cardContainer.addEventListener("touchmove", this.handleTouchMove.bind(this), { passive: true });
+    cardContainer.addEventListener("touchend", this.handleTouchEnd.bind(this), { passive: false });
+    cardContainer.addEventListener("touchcancel", this.handleTouchCancel.bind(this));
+    cardContainer.addEventListener("click", this.handleClick.bind(this));
+    cardContainer.addEventListener("mousedown", this.handleMouseDown.bind(this));
+    cardContainer.addEventListener("mouseup", this.handleMouseUp.bind(this));
+    cardContainer.addEventListener("mouseleave", this.handleMouseLeave.bind(this));
   }
   
   //=============================================================================
@@ -1252,9 +1344,13 @@ class CalendarCardPro extends HTMLElement {
   }
   
   /**
-   * Handle user interactions with the card
-   * @param {Event} event The triggering event
-   * @param {Object} actionConfig Configuration object for the action
+   * Handle user interactions (tap/click/hold) with the card.
+   * Supports navigation, more-info, service calls, and URL actions.
+   * 
+   * @private
+   * @param {Event} event - The triggering DOM event
+   * @param {Object} actionConfig - Action configuration from card config
+   * @returns {void}
    */
   handleAction(event, actionConfig) {
     if (!this._hass || !actionConfig) return;
@@ -1272,7 +1368,8 @@ class CalendarCardPro extends HTMLElement {
 
   fireMoreInfo() {
     const event = new Event("hass-more-info", { bubbles: true, composed: true });
-    event.detail = { entityId: this.config.entity };
+    // Use first entity from entities array instead of non-existent config.entity
+    event.detail = { entityId: this.config.entities[0].entity || this.config.entities[0] };
     this.dispatchEvent(event);
   }
 
@@ -1374,32 +1471,6 @@ class CalendarCardPro extends HTMLElement {
     const sum = this.performanceMetrics.renderTime.reduce((a, b) => a + b, 0);
     return sum / this.performanceMetrics.renderTime.length;
   }
-
-  /**
-   * Set up event listeners for user interactions
-   * @private
-   */
-  setupEventListeners() {
-    // Remove old listeners if they exist
-    this.removeEventListener('click', this.handleClick);
-    this.removeEventListener('touchstart', this.handleTouchStart);
-    this.removeEventListener('touchmove', this.handleTouchMove);
-    this.removeEventListener('touchend', this.handleTouchEnd);
-    this.removeEventListener('touchcancel', this.handleTouchCancel);
-    this.removeEventListener('mousedown', this.handleMouseDown);
-    this.removeEventListener('mouseup', this.handleMouseUp);
-    this.removeEventListener('mouseleave', this.handleMouseLeave);
-
-    // Add new listeners
-    this.addEventListener('click', this.handleClick.bind(this));
-    this.addEventListener('touchstart', this.handleTouchStart.bind(this));
-    this.addEventListener('touchmove', this.handleTouchMove.bind(this));
-    this.addEventListener('touchend', this.handleTouchEnd.bind(this));
-    this.addEventListener('touchcancel', this.handleTouchCancel.bind(this));
-    this.addEventListener('mousedown', this.handleMouseDown.bind(this));
-    this.addEventListener('mouseup', this.handleMouseUp.bind(this));
-    this.addEventListener('mouseleave', this.handleMouseLeave.bind(this));
-  }
 }
 
 // This is a placeholder for future UI editor implementation
@@ -1413,7 +1484,7 @@ class CalendarCardProEditor extends HTMLElement {
 // Register the custom element
 customElements.define('calendar-card-pro', CalendarCardPro);
 
-// Update the card registration to include better preview handling
+// Card registration for HACS and Home Assistant
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: 'calendar-card-pro',
