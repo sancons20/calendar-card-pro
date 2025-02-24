@@ -1,7 +1,7 @@
 # Calendar Card Pro for Home Assistant
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
-[![GitHub Release](https://img.shields.io/github/release/YOUR_USERNAME/calendar-card-pro.svg)](https://github.com/YOUR_USERNAME/calendar-card-pro/releases)
+[![GitHub Release](https://img.shields.io/github/release/alexpfau/calendar-card-pro.svg)](https://github.com/alexpfau/calendar-card-pro/releases)
 
 A sleek and performant calendar card for Home Assistant that supports multiple calendars with individual styling, real-time updates, and smart caching.
 
@@ -9,7 +9,21 @@ A sleek and performant calendar card for Home Assistant that supports multiple c
 
 ## About
 
-Calendar Card Pro was created with a specific vision in mind: to provide a clean, minimalist calendar interface while maintaining high performance and reliability. While there are other excellent calendar cards available (such as [atomic-calendar-revive](https://github.com/totaldebug/atomic-calendar-revive) which served as inspiration for some of our performance optimizations), this card focuses on a simplified aesthetic while incorporating modern web development best practices.
+Calendar Card Pro was inspired by a beautiful [calendar design using Hass calendar add-on and button-card](https://community.home-assistant.io/t/calendar-add-on-some-calendar-designs/385790) shared in the Home Assistant community. While I loved the clean aesthetic of that design, I found that implementing it with button-card and card-mod led to performance issues. This motivated me to create a dedicated custom card that would:
+
+- Maintain the sleek, minimalist design I admired
+- Optimize performance through native implementation
+- Provide extensive customization options
+- Work directly with Home Assistant's calendar integrations like CalDAV
+- Remove dependencies on external add-ons
+
+The result is Calendar Card Pro - a performant, customizable calendar card focused on doing one thing well: displaying your calendar events beautifully.
+
+## Dependencies
+
+This card requires one or more calendar entities in Home Assistant. While it should work with any calendar integration, I tested and recommend using the [CalDAV integration](https://www.home-assistant.io/integrations/caldav/) for the best experience. 
+
+⚠️ **Important**: Make sure you have at least one calendar integration set up in Home Assistant before using this card. Follow the [CalDAV setup instructions](https://www.home-assistant.io/integrations/caldav/) in the official Home Assistant documentation to get started.
 
 ## Features
 
@@ -25,27 +39,48 @@ Calendar Card Pro was created with a specific vision in mind: to provide a clean
 
 ## Installation
 
-### HACS Installation (Recommended)
+ ### Option 1: HACS (Recommended)
 
-1. Open HACS in your Home Assistant instance
-2. Click on "Frontend" section
-3. Click the three dots menu in the top right corner
-4. Select "Custom repositories"
-5. Add the URL `https://github.com/alexpfau/calendar-card-pro`
-6. Select "Lovelace" as the category
-7. Click "Add"
-8. Find "Calendar Card Pro" in the Frontend section and install it
+[![Open your Home Assistant instance and open this repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=alexpfau&repository=calendar-card-pro&category=plugin)
 
-### Manual Installation
+1. Install HACS if you don't have it already (see [HACS installation guide](https://hacs.xyz/docs/installation/prerequisites))
+2. Add this repository as a custom repository in HACS:
+   - Open HACS in your Home Assistant instance
+   - Go to the three dots menu in the top right corner
+   - Select "Custom repositories"
+   - Add `https://github.com/alexpfau/calendar-card-pro` as URL
+   - Select "Lovelace" as category
+3. Click Install
+4. Refresh your browser
 
-1. Download the `calendar-card-pro.js` file from the latest release
-2. Copy it to your `config/www/community/calendar-card-pro/` folder
-3. Add the resource in your dashboard:
+### Option 2: Manual Installation
+
+1. Download `calendar-card-pro.js` from the [latest release](https://github.com/alexpfau/calendar-card-pro/releases)
+2. Upload the downloaded file to your Home Assistant instance using one of these methods:
+   - Upload via Samba share to `/config/www/`
+   - Upload via SFTP to `/config/www/`
+   - Upload via File Editor: Create folder `/config/www/` if it doesn't exist, then upload the file
+3. Add the resource reference:
+   [![Open your Home Assistant instance and show your dashboard resources.](https://my.home-assistant.io/badges/lovelace_resources.svg)](https://my.home-assistant.io/redirect/lovelace_resources/)
    ```yaml
-   resources:
-     - url: /hacsfiles/calendar-card-pro/calendar-card-pro.js
-       type: module
+   url: /local/calendar-card-pro.js
+   type: module
    ```
+4. Refresh your browser
+
+## Usage
+
+1. Add a calendar integration to Home Assistant (Google Calendar, CalDav, etc.)
+2. Go to your dashboard
+3. Click the three dots menu (⋮) and click "Edit Dashboard"
+4. Click the "+" button to add a new card
+5. Search for "Calendar" or scroll to find "Calendar Card Pro"
+6. The card will be automatically configured with any available calendar entities
+7. Use the YAML editor to customize the card using the configuration options below
+
+**Preview:** The card will show a live preview in the card picker if you have calendar entities configured. If not, it will display instructions to add a calendar integration.
+
+**Configuration:** Currently, this card uses YAML configuration. A visual editor will be added in a future release.
 
 ## Configuration Options
 

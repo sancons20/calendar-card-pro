@@ -107,6 +107,46 @@ class CalendarCardPro extends HTMLElement {
     return this._dateObjects;
   }
 
+  /**
+   * Find the first available calendar entity in Home Assistant
+   * Used for preview and stub configuration
+   * @static
+   * @param {Object} hass Home Assistant instance
+   * @returns {string|null} First found calendar entity ID or null
+   */
+  static findCalendarEntity(hass) {
+    return Object.keys(hass.states).find(entityId => entityId.startsWith('calendar.'));
+  }
+
+  /**
+   * Get stub configuration for card initialization
+   * Provides default values and attempts to find a calendar entity
+   * @static
+   * @param {Object} hass Home Assistant instance
+   * @returns {Object} Initial configuration object
+   */
+  static getStubConfig(hass) {
+    const calendarEntity = this.findCalendarEntity(hass);
+    return {
+      type: "custom:calendar-card-pro",
+      entities: calendarEntity ? [calendarEntity] : [],
+      days_to_show: 3,
+      show_location: true,
+      _description: !calendarEntity ? 
+        "A calendar card that displays events from multiple calendars with individual styling. Add a calendar integration to Home Assistant to use this card." : 
+        undefined
+    };
+  }
+
+  /**
+   * Get card name for the UI
+   * @static
+   * @returns {string} Card display name
+   */
+  static get name() {
+    return 'Calendar Card Pro';
+  }
+
   //=============================================================================
   // Lifecycle Methods
   //=============================================================================
@@ -1236,5 +1276,23 @@ class CalendarCardPro extends HTMLElement {
   }
 }
 
+// This is a placeholder for future UI editor implementation
+// Currently not used since we removed getConfigElement
+class CalendarCardProEditor extends HTMLElement {
+  setConfig(config) {
+    // Will be implemented later when we build the UI editor
+  }
+}
+
 // Register the custom element
 customElements.define('calendar-card-pro', CalendarCardPro);
+
+// Update the card registration to include better preview handling
+window.customCards = window.customCards || [];
+window.customCards.push({
+  type: 'calendar-card-pro',
+  name: 'Calendar Card Pro',
+  preview: true,
+  description: 'A calendar card that supports multiple calendars with individual styling.',
+  documentationURL: 'https://github.com/alexpfau/calendar-card-pro'
+});
