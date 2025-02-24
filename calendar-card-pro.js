@@ -830,15 +830,115 @@ class CalendarCardPro extends HTMLElement {
   }
 
   /**
-   * Format location string based on configuration
-   * @param {string} location Raw location string
-   * @returns {string} Formatted location string with optional country removal
+   * Get list of country names for location formatting
+   * Uses a two-tier approach:
+   * 1. Fast access to common countries in English and their local names
+   * 2. Additional coverage via Intl.DisplayNames API
+   * 
+   * The first tier contains the most common countries with both their
+   * English names and local language names for accurate matching.
+   * The second tier adds support for more countries but only in English.
+   * 
+   * @static
+   * @returns {Set<string>} Set of country names in English and local languages
+   */
+  static get COUNTRY_NAMES() {
+    if (!this._countryNames) {
+      // First tier: Initialize with most common countries in English and their local names
+      // These are the countries most likely to appear in calendar locations
+      this._countryNames = new Set([
+        // Germany (English + German)
+        'Germany',
+        'Deutschland',
+        // Austria (English + German)
+        'Austria',
+        'Österreich',
+        // Switzerland (English + German)
+        'Switzerland',
+        'Schweiz',
+        // United States (variations)
+        'United States',
+        'United States of America',
+        'USA',
+        // United Kingdom (variations)
+        'United Kingdom',
+        'Great Britain',
+        // France (same in English and French)
+        'France',
+        // Italy (English + Italian)
+        'Italy',
+        'Italia',
+        // Spain (English + Spanish)
+        'Spain',
+        'España',
+        // Netherlands (English + Dutch)
+        'Netherlands',
+        'Nederland'
+      ]);
+
+      try {
+        // Second tier: Add additional countries from Intl API
+        // Use English only to keep the Set size manageable
+        const displayNames = new Intl.DisplayNames(['en'], { 
+          type: 'region',
+          fallback: 'none'
+        });
+
+        // Add support for additional common regions
+        // These are added in English only as they're less common
+        const commonRegions = [
+          // Primary regions (matching the first tier)
+          'DE', 'AT', 'CH', 'US', 'GB', 'FR', 'IT', 'ES', 'NL',
+          // Additional European countries
+          'BE', 'DK', 'SE', 'NO', 'FI', 'PT', 'IE', 'LU', 'PL',
+          // Major non-European countries
+          'CA', 'JP', 'AU', 'NZ', 'BR', 'RU', 'CN', 'IN'
+        ];
+
+        // Add each region's English name to the Set
+        commonRegions.forEach(code => {
+          try {
+            const name = displayNames.of(code);
+            if (name) this._countryNames.add(name);
+          } catch {} // Ignore invalid country codes
+        });
+      } catch {} // Graceful fallback to first tier if Intl API is unavailable
+    }
+    return this._countryNames;
+  }
+
+  /**
+   * Format location string by removing country names if configured
+   * Supports both comma-separated and space-separated formats
+   * Examples: 
+   * - "Berlin, Deutschland" -> "Berlin"
+   * - "Berlin Deutschland" -> "Berlin"
+   * - "New York, USA" -> "New York"
+   * 
+   * @param {string} location Raw location string from calendar event
+   * @returns {string} Formatted location string with country removed (if configured)
    */
   formatLocation(location) {
-    if (!location) return '';
-    return this.config.location_remove_country 
-      ? location.replace(/,\s*(Germany|Deutschland)$/i, '')
-      : location;
+    if (!location || !this.config.location_remove_country) return location;
+
+    const locationText = location.trim();
+    const countryNames = CalendarCardPro.COUNTRY_NAMES;
+
+    // Handle comma-separated format (e.g., "City, Country")
+    const parts = locationText.split(',').map(part => part.trim());
+    if (parts.length > 0 && countryNames.has(parts[parts.length - 1])) {
+      parts.pop();
+      return parts.join(', ');
+    }
+
+    // Handle space-separated format (e.g., "City Country")
+    const words = locationText.split(/\s+/);
+    if (words.length > 0 && countryNames.has(words[words.length - 1])) {
+      words.pop();
+      return words.join(' ');
+    }
+
+    return locationText;
   }
   
   //=============================================================================
@@ -1273,6 +1373,32 @@ class CalendarCardPro extends HTMLElement {
     if (!this.performanceMetrics.renderTime.length) return 0;
     const sum = this.performanceMetrics.renderTime.reduce((a, b) => a + b, 0);
     return sum / this.performanceMetrics.renderTime.length;
+  }
+
+  /**
+   * Set up event listeners for user interactions
+   * @private
+   */
+  setupEventListeners() {
+    // Remove old listeners if they exist
+    this.removeEventListener('click', this.handleClick);
+    this.removeEventListener('touchstart', this.handleTouchStart);
+    this.removeEventListener('touchmove', this.handleTouchMove);
+    this.removeEventListener('touchend', this.handleTouchEnd);
+    this.removeEventListener('touchcancel', this.handleTouchCancel);
+    this.removeEventListener('mousedown', this.handleMouseDown);
+    this.removeEventListener('mouseup', this.handleMouseUp);
+    this.removeEventListener('mouseleave', this.handleMouseLeave);
+
+    // Add new listeners
+    this.addEventListener('click', this.handleClick.bind(this));
+    this.addEventListener('touchstart', this.handleTouchStart.bind(this));
+    this.addEventListener('touchmove', this.handleTouchMove.bind(this));
+    this.addEventListener('touchend', this.handleTouchEnd.bind(this));
+    this.addEventListener('touchcancel', this.handleTouchCancel.bind(this));
+    this.addEventListener('mousedown', this.handleMouseDown.bind(this));
+    this.addEventListener('mouseup', this.handleMouseUp.bind(this));
+    this.addEventListener('mouseleave', this.handleMouseLeave.bind(this));
   }
 }
 
