@@ -21,6 +21,7 @@ class CalendarCardPro extends HTMLElement {
    */
   static get DEFAULT_CONFIG() {
     return {
+      entities: [],
       title: '',
       title_font_size: '20px',
       title_color: 'var(--primary-text-color)',
@@ -117,6 +118,8 @@ class CalendarCardPro extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
+    // Add unique instance ID for cache isolation
+    this.instanceId = Math.random().toString(36).substring(2, 15);
     this.initializeState();
     
     // Add performance monitoring
@@ -205,28 +208,166 @@ class CalendarCardPro extends HTMLElement {
     const previousHass = this._hass;
     this._hass = hass;
     
-    // Only update if calendar entity state has actually changed
-    if (!previousHass || 
-        previousHass.states[this.config.entity]?.state !== hass.states[this.config.entity]?.state) {
+    // Only update if any calendar entity state has actually changed
+    const entitiesChanged = this.config.entities.some(entity => 
+      !previousHass || previousHass.states[entity]?.state !== hass.states[entity]?.state
+    );
+    
+    if (entitiesChanged) {
       this.updateEvents();
     }
   }
 
   /**
    * Update component configuration and render
+   * Handles configuration changes and cache invalidation
    */
   setConfig(config) {
+    const previousConfig = this.config;
     this.config = { ...CalendarCardPro.DEFAULT_CONFIG, ...config };
-    this.renderCard(); // Only need to render once
+    this.config.entities = this.normalizeEntities(this.config.entities);
+    
+    // Force update if configuration changed meaningfully
+    if (this.hasConfigChanged(previousConfig, this.config)) {
+      this.invalidateCache();
+      this.updateEvents(true); // Force refresh
+    } else {
+      this.renderCard();
+    }
   }
-  
+
+  /**
+   * Validates and normalizes the entities configuration array.
+   * Converts string entries to full entity objects and ensures
+   * all entity objects have required properties.
+   * 
+   * @private
+   * @param {Array} entities Raw entities configuration from user
+   * @returns {Array} Array of normalized entity objects with color information
+   */
+  normalizeEntities(entities) {
+    if (!Array.isArray(entities)) {
+      return [];
+    }
+
+    return entities.map(item => {
+      if (typeof item === 'string') {
+        return {
+          entity: item,
+          color: 'var(--primary-text-color)'
+        };
+      }
+      if (typeof item === 'object' && item.entity) {
+        return {
+          entity: item.entity,
+          color: item.color || 'var(--primary-text-color)'
+        };
+      }
+      return null;
+    }).filter(Boolean);
+  }
+
+  /**
+   * Check if entities configuration has changed
+   * @private
+   * @param {Array} previous Previous entities array
+   * @param {Array} current Current entities array
+   * @returns {boolean} True if entities changed
+   */
+  hasEntitiesChanged(previous, current) {
+    if (previous.length !== current.length) return true;
+    return previous.some((entity, index) => entity !== current[index]);
+  }
+
+  /**
+   * Check if configuration has changed in a way that requires cache invalidation
+   * @private
+   * @param {Object} previous Previous configuration
+   * @param {Object} current Current configuration
+   * @returns {boolean} True if configuration changed meaningfully
+   */
+  hasConfigChanged(previous, current) {
+    if (!previous) return true;
+    
+    const relevantKeys = [
+      'entities',
+      'days_to_show',
+      'show_past_events',
+      'update_interval'
+    ];
+
+    return relevantKeys.some(key => 
+      JSON.stringify(previous[key]) !== JSON.stringify(current[key])
+    );
+  }
+
+  /**
+   * Invalidate cached data when configuration changes
+   * @private
+   */
+  invalidateCache() {
+    const cacheKeys = this.getAllCacheKeys();
+    cacheKeys.forEach(key => localStorage.removeItem(key));
+  }
+
+  /**
+   * Get all cache keys for current configuration
+   * @private
+   * @returns {Array<string>} Array of cache keys
+   */
+  getAllCacheKeys() {
+    const keys = [];
+    const baseKey = this.getBaseCacheKey();
+    
+    // Get all potential date variations for today and yesterday
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    [now, yesterday].forEach(date => {
+      keys.push(`${baseKey}_${date.toDateString()}`);
+    });
+    
+    return keys;
+  }
+
+  /**
+   * Generate cache key for current state
+   * @private
+   * @returns {string} Cache key
+   */
+  getCacheKey() {
+    return `${this.getBaseCacheKey()}_${new Date().toDateString()}`;
+  }
+
+  /**
+   * Generate base cache key incorporating all configuration parameters
+   * @private
+   * @returns {string} Base cache key
+   */
+  getBaseCacheKey() {
+    const { entities, days_to_show, show_past_events } = this.config;
+    const configHash = this.hashConfig(this.config);
+    return `calendar_${this.instanceId}_${entities.join('_')}_${days_to_show}_${show_past_events}_${configHash}`;
+  }
+
+  /**
+   * Create a hash of the configuration to ensure unique cache per config
+   * @private
+   * @param {Object} config Configuration object
+   * @returns {string} Configuration hash
+   */
+  hashConfig(config) {
+    return btoa(JSON.stringify(config)).substring(0, 8);
+  }
+
   /**
    * Validate required properties and configuration
    * @private
    * @returns {boolean} True if component is in valid state
    */
   isValidState() {
-    if (!this._hass || !this.config.entity) {
+    if (!this._hass || !this.config.entities.length) {
       return false;
     }
     return true;
@@ -253,9 +394,7 @@ class CalendarCardPro extends HTMLElement {
     this.renderCard(); // Show loading state immediately
 
     try {
-      const { events, error } = await this.fetchEvents();
-      if (error) throw error;
-      
+      const events = await this.fetchEvents();
       this.events = events;
       this.cacheEvents(events);
     } catch (error) {
@@ -273,39 +412,33 @@ class CalendarCardPro extends HTMLElement {
   }
 
   /**
-   * Fetch calendar events with retry logic
-   * @param {number} retryCount Maximum number of retry attempts
-   * @param {number} backoffDelay Initial delay for exponential backoff in ms
-   * @returns {Promise<{events?: Array, error?: Error}>} Events array or error
+   * Fetches and processes calendar events from all configured entities.
+   * Adds entity-specific configuration to each event for proper rendering.
+   * 
    * @private
+   * @returns {Promise<Array>} Combined and processed events from all calendars
    */
-  async fetchEvents(retryCount = 3, backoffDelay = 1000) {
+  async fetchEvents() {
     const timeWindow = this.getTimeWindow();
-    let lastError;
+    const allEvents = [];
 
-    for (let i = 0; i < retryCount; i++) {
+    for (const entityConfig of this.config.entities) {
       try {
         const events = await this._hass.callApi(
           'GET',
-          `calendars/${this.config.entity}?start=${timeWindow.start.toISOString()}&end=${timeWindow.end.toISOString()}`
+          `calendars/${entityConfig.entity}?start=${timeWindow.start.toISOString()}&end=${timeWindow.end.toISOString()}`
         );
-        return { events };
+        const processedEvents = events.map(event => ({
+          ...event,
+          _entityConfig: entityConfig
+        }));
+        allEvents.push(...processedEvents);
       } catch (error) {
-        lastError = error;
-        if (i === retryCount - 1) break;
-        
-        // Exponential backoff
-        await new Promise(resolve => setTimeout(resolve, backoffDelay * Math.pow(2, i)));
+        console.warn(`Calendar-Card-Pro: Failed to fetch events for ${entityConfig.entity}`, error);
       }
     }
 
-    // Try to recover with partial data if possible
-    const partialEvents = this.events.filter(event => {
-      const eventDate = new Date(event.start.dateTime || event.start.date);
-      return eventDate >= timeWindow.start && eventDate <= timeWindow.end;
-    });
-
-    return partialEvents.length ? { events: partialEvents } : { error: lastError };
+    return allEvents;
   }
 
   async fetchTodayEvents() {
@@ -372,11 +505,6 @@ class CalendarCardPro extends HTMLElement {
     }
   }
 
-  getCacheKey() {
-    const { entity, days_to_show, show_past_events } = this.config;
-    return `calendar_${entity}_${days_to_show}_${show_past_events}_${new Date().toDateString()}`;
-  }
-  
   //=============================================================================
   // Event Management
   //=============================================================================
@@ -532,7 +660,8 @@ class CalendarCardPro extends HTMLElement {
         time: this.formatEventTime(event),
         location: this.config.show_location ? this.formatLocation(event.location) : '',
         start: event.start,
-        end: event.end
+        end: event.end,
+        _entityConfig: event._entityConfig
       });
     });
 
@@ -830,7 +959,7 @@ class CalendarCardPro extends HTMLElement {
         ` : ''}
         <td class="event">
           <div class="event-content">
-            <div class="event-title">${event.summary}</div>
+            <div class="event-title" style="color: ${event._entityConfig?.color}">${event.summary}</div>
             <div class="time-location">
               <div class="time">
                 <ha-icon icon="hass:clock-outline"></ha-icon>

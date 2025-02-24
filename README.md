@@ -26,8 +26,19 @@ Calendar Card Pro was created with a specific vision in mind: to provide a clean
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
-| entity | string | Required | Calendar entity ID |
+| entities | array | Required | List of calendar entities with optional styling |
+| event_color | string | var(--primary-text-color) | Default color for events without specific color |
 | update_interval | number | 43200 | Safety fallback interval in seconds. Only used if real-time updates fail. Default: 12 hours |
+
+### Entity Configuration
+
+Each entity in the `entities` array can be either:
+- A string (entity ID only)
+- An object with the following properties:
+  - `entity`: Calendar entity ID (required)
+  - `color`: Custom color for events from this calendar (optional)
+
+### Example Configuration
 
 ## Update Mechanism
 
