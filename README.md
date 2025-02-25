@@ -19,9 +19,11 @@ Calendar Card Pro was inspired by a beautiful [calendar design using button-card
 
 The result is Calendar Card Pro - a performant, customizable calendar card focused on doing one thing well: displaying your calendar events beautifully.
 
+# To-Do: Incorporate the main purpose of this card in the section above => Goal is to provide a quick overview/glance of upcoming events in the calendar, ideal for use on a dashboard like on a smart home wall tablet.
+
 ## Dependencies
 
-This card requires one or more calendar entities in Home Assistant. While it should work with any calendar integration that creates calendar.* entities in Home Assistant, I tested it only with the CalDAV integration. For the best experience, follow the [CalDAV setup instructions](https://www.home-assistant.io/integrations/caldav/) in the official Home Assistant documentation to get started.
+This card requires one or more calendar entities in Home Assistant. While it should work with any calendar integration that creates *calendar.** entities in Home Assistant, I tested it only with CalDAV as well as Google Calendar integration. For the best experience, follow the [CalDAV setup instructions](https://www.home-assistant.io/integrations/caldav/) in the official Home Assistant documentation to get started.
 
 ⚠️ **Important**: Make sure you have at least one calendar integration set up in Home Assistant before using this card.
 
@@ -40,8 +42,6 @@ This card requires one or more calendar entities in Home Assistant. While it sho
 ## Installation
 
  ### Option 1: HACS (Recommended)
-
-
 
 1. Install HACS if you don't have it already (see [HACS installation guide](https://hacs.xyz/docs/installation/prerequisites))
 2. Add this repository as a custom repository in HACS:
@@ -77,6 +77,8 @@ This card requires one or more calendar entities in Home Assistant. While it sho
 Currently, this card uses YAML configuration. A visual editor may be added in a future release.
 
 The following variables are available:
+
+# TODO: Get rid of 'Required' column, update order of variables, maybe group into sections?!
 
 | Name | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
@@ -124,6 +126,8 @@ Each entity in the `entities` array can be either:
   - `color`: Custom color for events from this calendar (optional)
 
 ### Actions
+
+# TODO: Convert this section from a flat list into an array of options, or refer to standard HA documentation for available options in case they my card does 100% support all standard HA actions
 
 Both `tap_action` and `hold_action` support the following options:
 - `action`: The type of action (more-info, navigate, call-service, url)
@@ -233,23 +237,24 @@ hold_action:
 
 The following features are currently limited or not fully implemented:
 
-### Language Support
-- Currently supports English (en) and German (de)
-- Contributions for additional languages are welcome and encouraged
-- See CONTRIBUTING.md for guidelines on adding new languages
-
-### Configuration
-- No visual configuration editor yet (YAML only)
-
-### Calendar Support
-- Tested primarily with CalDAV integration
-- Other calendar integrations should work but are not extensively tested
+### Layout
+-  List view only, no day/week/month view
 
 ### Event Display
 - No support for recurring event indicators
 - No support for event categories/tags
 - No support for attendee information
 
-The card is open source and community-driven. If you need additional features or language support, please consider contributing to the project. Pull requests are welcome! See CONTRIBUTING.md for guidelines on how to contribute.
+### Calendar Support
+- Tested primarily with CalDAV and Google Calendar integration
+- Other calendar integrations that create *calendar.** entities should work but are not extensively tested
 
-Please feel free to open an issue on GitHub if you need any of these features or would like to contribute to their implementation.
+### Configuration
+- No visual configuration editor yet (YAML only)
+
+### Language Support
+- Currently supports English (en) and German (de)
+- Contributions for additional languages are welcome and encouraged
+- See CONTRIBUTING.md for guidelines on adding new languages
+
+The card is open source and community-driven. If you need additional features or language support, please consider contributing to the project. Pull requests are welcome! See CONTRIBUTING.md for guidelines on how to contribute.

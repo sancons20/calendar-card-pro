@@ -65,6 +65,9 @@ class CalendarCardPro extends HTMLElement {
       location_remove_country: true,
       location_font_size: '12px',
       location_color: 'var(--secondary-text-color)',
+      tap_action: { action: "more-info" },
+      hold_action: { action: "more-info" },
+      hold_time: 500,
     };
   }
 
@@ -569,165 +572,92 @@ class CalendarCardPro extends HTMLElement {
   // Event Management
   //=============================================================================
 
-  // Rename touchStartY/X to touchStartPosition for consistency
+  // Remove old action handling code and replace with these methods:
+  
   /**
-   * @typedef {Object} TouchState
-   * @property {number} touchStartPosition.y - Initial Y position of touch
-   * @property {number} touchStartPosition.x - Initial X position of touch
-   * @property {boolean} holdTriggered - Whether hold action was triggered
-   * @property {boolean} scrolling - Whether scrolling was detected
-   * @property {number|null} holdTimer - Timer for hold action
-   */
-
-  /**
-   * Handle touch start event
-   * @param {TouchEvent} e Touch event object
-   */
-  handleTouchStart(e) {
-    // Prevent default scrolling behavior
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const touch = e.touches[0];
-    this.touchState = {
-      touchStartY: touch.clientY,
-      touchStartX: touch.clientX,
-      holdTriggered: false,
-      scrolling: false,
-      originalEvent: e,
-      holdTimer: setTimeout(() => {
-        if (this.config.hold_action) {
-          this.handleAction(this.touchState.originalEvent, this.config.hold_action);
-          this.touchState.holdTriggered = true;
-        }
-      }, 500)
-    };
-  }
-
-  handleTouchMove(e) {
-    if (!this.touchState) return;
-
-    const touch = e.touches[0];
-    const deltaY = Math.abs(touch.clientY - this.touchState.touchStartY);
-    const deltaX = Math.abs(touch.clientX - this.touchState.touchStartX);
-
-    // Clear hold timer and mark as scrolling if significant movement
-    if (deltaY > 10 || deltaX > 10) {
-      this.touchState.scrolling = true;
-      if (this.touchState.holdTimer) {
-        clearTimeout(this.touchState.holdTimer);
-      }
-    }
-  }
-
-  handleTouchEnd(e) {
-    if (!this.touchState) return;
-
-    // Stop event propagation
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Clear the hold timer
-    if (this.touchState.holdTimer) {
-      clearTimeout(this.touchState.holdTimer);
-    }
-
-    // Only trigger tap if we weren't scrolling and hold wasn't triggered
-    if (!this.touchState.scrolling && !this.touchState.holdTriggered && this.config.tap_action) {
-      this.handleAction(e, this.config.tap_action);
-    }
-
-    this.touchState = null;
-  }
-
-  handleTouchCancel() {
-    if (this.touchState?.holdTimer) {
-      clearTimeout(this.touchState.holdTimer);
-      this.touchState = null;
-    }
-  }
-
-  handleClick(e) {
-    // Only handle click if no touch or hold events were triggered
-    if (!this.touchState && !this.mouseState?.holdTriggered && this.config.tap_action) {
-      this.handleAction(e, this.config.tap_action);
-    }
-  }
-
-  handleMouseDown(e) {
-    // Stop event propagation
-    e.preventDefault();
-    e.stopPropagation();
-
-    this.mouseState = {
-      holdTriggered: false,
-      originalEvent: e,
-      holdTimer: setTimeout(() => {
-        if (this.config.hold_action) {
-          this.handleAction(e, this.config.hold_action);
-          this.mouseState.holdTriggered = true;
-        }
-      }, 500)
-    };
-  }
-
-  handleMouseUp(e) {
-    if (!this.mouseState) return;
-
-    // Stop event propagation
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Clear the hold timer
-    if (this.mouseState.holdTimer) {
-      clearTimeout(this.mouseState.holdTimer);
-    }
-
-    // Only trigger tap if hold wasn't triggered
-    if (!this.mouseState.holdTriggered && this.config.tap_action) {
-      this.handleAction(e, this.config.tap_action);
-    }
-
-    this.mouseState = null;
-  }
-
-  handleMouseLeave() {
-    if (this.mouseState?.holdTimer) {
-      clearTimeout(this.mouseState.holdTimer);
-      this.mouseState = null;
-    }
-  }
-
-  /**
-   * Set up event listeners for the card.
-   * Handles both touch and mouse events with proper cleanup.
-   * 
+   * Handle user interactions (tap/click/hold) with the card
    * @private
-   * @returns {void}
+   * @param {Event} event - The triggering DOM event
+   * @param {Object} actionConfig - Action configuration from card config
    */
+  _handleAction(event, actionConfig) {
+    if (!this._hass || !actionConfig) return;
+
+    const actions = {
+      'more-info': () => this.fireMoreInfo(),
+      'navigate': () => this.handleNavigation(actionConfig),
+      'call-service': () => this.callService(actionConfig),
+      'url': () => this.openUrl(actionConfig)
+    };
+
+    const action = actions[actionConfig.action];
+    if (action) action();
+  }
+
+  fireMoreInfo() {
+    // Use first entity from entities array
+    const entityId = Array.isArray(this.config.entities) ? 
+      (typeof this.config.entities[0] === 'string' ? 
+        this.config.entities[0] : 
+        this.config.entities[0].entity) :
+      this.config.entities;
+
+    const event = new Event("hass-more-info", { 
+      bubbles: true, 
+      composed: true 
+    });
+    event.detail = { entityId };
+    this.dispatchEvent(event);
+  }
+
+  handleNavigation(actionConfig) {
+    if (actionConfig.navigation_path) {
+      window.history.pushState(null, "", actionConfig.navigation_path);
+      window.dispatchEvent(new Event("location-changed"));
+    }
+  }
+
+  callService(actionConfig) {
+    if (actionConfig.service) {
+      const [domain, service] = actionConfig.service.split(".");
+      this._hass.callService(domain, service, actionConfig.service_data || {});
+    }
+  }
+
+  openUrl(actionConfig) {
+    if (actionConfig.url_path) {
+      window.open(actionConfig.url_path, actionConfig.open_tab || "_blank");
+    }
+  }
+
+  // Update event handlers in setupEventListeners
   setupEventListeners() {
     const cardContainer = this.shadowRoot.querySelector(".card-container");
     if (!cardContainer) return;
 
-    // Remove existing listeners first
-    const events = [
-      "touchstart", "touchmove", "touchend", "touchcancel",
-      "click", "mousedown", "mouseup", "mouseleave"
-    ];
-    
-    events.forEach(event => {
-      cardContainer.removeEventListener(event, this[`handle${event.charAt(0).toUpperCase()}${event.slice(1)}`]);
+    let holdTimer;
+    let isHold = false;
+
+    cardContainer.addEventListener("pointerdown", (e) => {
+      isHold = false;
+      holdTimer = window.setTimeout(() => {
+        isHold = true;
+        if (this.config.hold_action) {
+          this._handleAction(e, this.config.hold_action);
+        }
+      }, this.config.hold_time || 500);
     });
 
-    // Add new listeners with proper binding and options
-    cardContainer.addEventListener("touchstart", this.handleTouchStart.bind(this), { passive: false });
-    cardContainer.addEventListener("touchmove", this.handleTouchMove.bind(this), { passive: true });
-    cardContainer.addEventListener("touchend", this.handleTouchEnd.bind(this), { passive: false });
-    cardContainer.addEventListener("touchcancel", this.handleTouchCancel.bind(this));
-    cardContainer.addEventListener("click", this.handleClick.bind(this));
-    cardContainer.addEventListener("mousedown", this.handleMouseDown.bind(this));
-    cardContainer.addEventListener("mouseup", this.handleMouseUp.bind(this));
-    cardContainer.addEventListener("mouseleave", this.handleMouseLeave.bind(this));
+    cardContainer.addEventListener("pointerup", (e) => {
+      clearTimeout(holdTimer);
+      if (!isHold && this.config.tap_action) {
+        this._handleAction(e, this.config.tap_action);
+      }
+    });
+
+    cardContainer.addEventListener("pointercancel", () => {
+      clearTimeout(holdTimer);
+    });
   }
   
   //=============================================================================
