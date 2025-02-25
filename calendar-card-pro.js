@@ -6,7 +6,7 @@
  * 
  * @author Alex Pfau <https://github.com/alexpfau>
  * @license MIT
- * @version 1.1.0
+ * @version 1.2.0
  * @since 2025-02-25
  * 
  * Features:
@@ -107,7 +107,10 @@ class CalendarCardPro extends HTMLElement {
         months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
         allDay: 'all-day',
         multiDay: 'until',
-        at: 'at'
+        at: 'at',
+        noEvents: 'No upcoming events',
+        loading: 'Loading calendar events...',
+        error: 'Error: Calendar entity not found or improperly configured'
       },
       de: {
         daysOfWeek: ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"],
@@ -115,7 +118,10 @@ class CalendarCardPro extends HTMLElement {
         months: ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"],
         allDay: 'ganztägig',
         multiDay: 'bis',
-        at: 'um'
+        at: 'um',
+        noEvents: 'Keine anstehenden Termine',
+        loading: 'Kalendereinträge werden geladen...',
+        error: 'Fehler: Kalender-Entity nicht gefunden oder falsch konfiguriert'
       }
     };
   }
@@ -716,29 +722,41 @@ class CalendarCardPro extends HTMLElement {
     const todayEnd = new Date(todayStart);
     todayEnd.setHours(23, 59, 59, 999);
     
-    this.events.forEach(event => {
-      if (!event?.start || !event?.end) return;
+    const upcomingEvents = this.events.filter(event => {
+      if (!event?.start || !event?.end) return false;
 
       const startDate = new Date(event.start.dateTime || event.start.date);
       const endDate = new Date(event.end.dateTime || event.end.date);
-      if (!startDate || !endDate) return;
+      if (!startDate || !endDate) return false;
 
-      const eventDateKey = startDate.toISOString().split('T')[0];
       const isAllDayEvent = !event.start.dateTime;
       const isEventToday = startDate >= todayStart && startDate <= todayEnd;
       const isFutureEvent = startDate > todayEnd;
 
-      // Skip past events and days
+      // Keep only current and future events
       if (!isEventToday && !isFutureEvent) {
-        return;
+        return false;
       }
 
-      // Handle current events - check if they've ended rather than started
+      // Filter out ended events if not showing past events
       if (!this.config.show_past_events) {
         if (!isAllDayEvent && endDate < now) {
-          return;
+          return false;
         }
       }
+
+      return true;
+    });
+
+    // Return early if no upcoming events
+    if (upcomingEvents.length === 0) {
+      return [];
+    }
+
+    // Process events into days
+    upcomingEvents.forEach(event => {
+      const startDate = new Date(event.start.dateTime || event.start.date);
+      const eventDateKey = startDate.toISOString().split('T')[0];
 
       if (!eventsByDay[eventDateKey]) {
         eventsByDay[eventDateKey] = {
@@ -763,46 +781,16 @@ class CalendarCardPro extends HTMLElement {
     // Sort events within each day
     Object.values(eventsByDay).forEach(day => {
       day.events.sort((a, b) => {
-        const aIsAllDay = !a.start.dateTime;
-        const bIsAllDay = !b.start.dateTime;
-        if (aIsAllDay !== bIsAllDay) return aIsAllDay ? -1 : 1;
-        return new Date(a.start.dateTime || a.start.date) - new Date(b.start.dateTime || b.start.date);
+        const aStart = new Date(a.start.dateTime || a.start.date);
+        const bStart = new Date(b.start.dateTime || b.start.date);
+        return aStart - bStart;
       });
     });
 
-    let result = Object.values(eventsByDay)
+    // Sort days and limit to configured number of days
+    return Object.values(eventsByDay)
       .sort((a, b) => a.timestamp - b.timestamp)
       .slice(0, this.config.days_to_show || 3);
-
-    // Apply max_events_to_show limit if set and not expanded
-    if (this.config.max_events_to_show && !this.isExpanded) {
-      let totalEvents = 0;
-      result = result.map(day => {
-        if (totalEvents >= this.config.max_events_to_show) {
-          return { ...day, events: [] };
-        }
-        const remainingSlots = this.config.max_events_to_show - totalEvents;
-        const limitedEvents = day.events.slice(0, remainingSlots);
-        totalEvents += limitedEvents.length;
-        return { ...day, events: limitedEvents };
-      }).filter(day => day.events.length > 0);
-    }
-
-    return result;
-  }
-
-  sortEvents(events) {
-    return events.sort((a, b) => {
-      // Sort all-day events first
-      const aIsAllDay = !a.start.dateTime;
-      const bIsAllDay = !b.start.dateTime;
-      if (aIsAllDay !== bIsAllDay) return aIsAllDay ? -1 : 1;
-
-      // Then sort by start time
-      const aTime = new Date(a.start.dateTime || a.start.date).getTime();
-      const bTime = new Date(b.start.dateTime || b.start.date).getTime();
-      return aTime - bTime;
-    });
   }
 
   /**
@@ -1057,8 +1045,18 @@ class CalendarCardPro extends HTMLElement {
         return;
     }
     
-    if (this.isLoading && !this.events.length) {
+    // Changed condition to check isLoading
+    if (this.isLoading) {
         this.renderError('loading');
+        this.endPerfMetrics(metrics);
+        return;
+    }
+
+    const eventsByDay = this.groupEventsByDay();
+
+    // Show empty state if we have no upcoming events
+    if (eventsByDay.length === 0) {
+        this.renderError('empty');
         this.endPerfMetrics(metrics);
         return;
     }
@@ -1076,7 +1074,6 @@ class CalendarCardPro extends HTMLElement {
       content.appendChild(title);
     }
 
-    const eventsByDay = this.groupEventsByDay();
     const calendarContent = await this.renderProgressively(eventsByDay);
     content.appendChild(calendarContent);
     
@@ -1097,10 +1094,99 @@ class CalendarCardPro extends HTMLElement {
     this.endPerfMetrics(metrics);
 }
 
+  /**
+   * Handle and display different card states
+   * @param {'loading' | 'empty' | 'error'} state - Current card state
+   * @private
+   */
   renderError(state) {
+    if (state === 'loading') {
+      const container = document.createElement('div');
+      container.className = 'card-container';
+      
+      const content = document.createElement('div');
+      content.className = 'card-content';
+      content.innerHTML = `
+        <div style="text-align: center; color: var(--primary-text-color);">
+          ${this.translations.loading}
+        </div>`;
+      
+      container.appendChild(content);
+
+      const style = document.createElement('style');
+      style.textContent = this.getStyles();
+
+      // Update shadow DOM
+      while (this.shadowRoot.firstChild) {
+        this.shadowRoot.removeChild(this.shadowRoot.firstChild);
+      }
+      
+      this.shadowRoot.appendChild(style);
+      this.shadowRoot.appendChild(container);
+      return;
+    }
+    
+    if (state === 'empty') {
+      // Create a card that looks like a regular calendar entry
+      const now = new Date();
+      const emptyDay = {
+        weekday: this.translations.daysOfWeek[now.getDay()],
+        day: now.getDate(),
+        month: this.translations.months[now.getMonth()],
+        events: [{
+          summary: this.translations.noEvents,
+          time: '',  // No time display
+          location: '', // No location
+          _entityConfig: { color: 'var(--secondary-text-color)' }
+        }]
+      };
+
+      const container = document.createElement('div');
+      container.className = 'card-container';
+      
+      const content = document.createElement('div');
+      content.className = 'card-content';
+      
+      // Modified the empty state to not show time icon
+      content.innerHTML = `
+        <table>
+          <tr>
+            <td class="date" rowspan="1">
+              <div class="date-content">
+                <div class="weekday">${emptyDay.weekday}</div>
+                <div class="day">${emptyDay.day}</div>
+                ${this.config.show_month ? `<div class="month">${emptyDay.month}</div>` : ''}
+              </div>
+            </td>
+            <td class="event">
+              <div class="event-content">
+                <div class="event-title" style="color: ${emptyDay.events[0]._entityConfig.color}">
+                  ${emptyDay.events[0].summary}
+                </div>
+              </div>
+            </td>
+          </tr>
+        </table>`;
+      
+      container.appendChild(content);
+
+      const style = document.createElement('style');
+      style.textContent = this.getStyles();
+
+      // Update shadow DOM
+      while (this.shadowRoot.firstChild) {
+        this.shadowRoot.removeChild(this.shadowRoot.firstChild);
+      }
+      
+      this.shadowRoot.appendChild(style);
+      this.shadowRoot.appendChild(container);
+      return;
+    }
+
+    // For other states (error/loading) use simple message display
     const messages = {
-      error: '<p style="color: var(--error-color, red);">Error: Calendar entity not found or improperly configured.</p>',
-      loading: '<p style="color: var(--secondary-text-color);">Loading calendar events...</p>'
+      error: `<p style="color: var(--error-color, red);">${this.translations.error}</p>`,
+      loading: `<p style="color: var(--secondary-text-color);">${this.translations.loading}</p>`,
     };
 
     this.shadowRoot.innerHTML = `
