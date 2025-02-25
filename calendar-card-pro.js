@@ -67,7 +67,7 @@ class CalendarCardPro extends HTMLElement {
       location_color: 'var(--secondary-text-color)',
       tap_action: { action: "more-info" },
       hold_action: { action: "more-info" },
-      hold_time: 500,
+      background_color: 'var(--ha-card-background)',
     };
   }
 
@@ -645,7 +645,7 @@ class CalendarCardPro extends HTMLElement {
         if (this.config.hold_action) {
           this._handleAction(e, this.config.hold_action);
         }
-      }, this.config.hold_time || 500);
+      }, 500); 
     });
 
     cardContainer.addEventListener("pointerup", (e) => {
@@ -1165,6 +1165,8 @@ class CalendarCardPro extends HTMLElement {
         --card-spacing-row: ${this.config.row_spacing};
         --card-spacing-additional: ${this.config.additional_card_spacing};
         --card-icon-size: ${this.config.time_location_icon_size};
+        --card-date-column-width: ${parseFloat(this.config.day_font_size) * 1.75}px;
+        --card-custom-background: ${this.config.background_color};
       }
     `;
 
@@ -1181,7 +1183,7 @@ class CalendarCardPro extends HTMLElement {
         height: 100%;
       }
       .card-content {
-        background: var(--ha-card-background, var(--card-background-color, #FFF));
+        background: var(--card-custom-background, var(--card-background-color, #FFF));
         border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, var(--divider-color));
         border-radius: var(--ha-card-border-radius, 10px);
         padding: 16px;
@@ -1210,7 +1212,7 @@ class CalendarCardPro extends HTMLElement {
         padding-bottom: var(--card-spacing-row);
       }
       .date {
-        width: ${parseFloat(this.config.day_font_size) * 1.75}px;
+        width: var(--card-date-column-width);
         text-align: center;
         padding-right: 12px;
         border-right: var(--card-line-width-vertical) solid var(--card-line-color-vertical);
