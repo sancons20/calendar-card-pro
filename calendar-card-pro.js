@@ -614,7 +614,8 @@ class CalendarCardPro extends HTMLElement {
       'navigate': () => this.handleNavigation(actionConfig),
       'call-service': () => this.callService(actionConfig),
       'url': () => this.openUrl(actionConfig),
-      'expand': () => this.toggleExpanded()
+      'expand': () => this.toggleExpanded(), // Ensure this is in actions
+      'none': () => {}
     };
 
     const action = actions[actionConfig.action];
@@ -663,8 +664,10 @@ class CalendarCardPro extends HTMLElement {
    * @private
    */
   toggleExpanded() {
-    this.isExpanded = !this.isExpanded;
-    this.renderCard();
+    if (this.config.max_events_to_show) {
+      this.isExpanded = !this.isExpanded;
+      this.renderCard();
+    }
   }
 
   // Update event handlers in setupEventListeners
@@ -788,9 +791,23 @@ class CalendarCardPro extends HTMLElement {
     });
 
     // Sort days and limit to configured number of days
-    return Object.values(eventsByDay)
+    let days = Object.values(eventsByDay)
       .sort((a, b) => a.timestamp - b.timestamp)
       .slice(0, this.config.days_to_show || 3);
+
+    // Apply max_events_to_show limit if configured and not expanded
+    if (this.config.max_events_to_show && !this.isExpanded) {
+      let totalEvents = 0;
+      days = days.filter(day => {
+        if (totalEvents >= this.config.max_events_to_show) {
+          return false;
+        }
+        totalEvents += day.events.length;
+        return true;
+      });
+    }
+
+    return days;
   }
 
   /**
