@@ -6,7 +6,7 @@
  * 
  * @author Alex Pfau <https://github.com/alexpfau>
  * @license MIT
- * @version 1.0.0
+ * @version 1.1.0
  * @since 2025-02-25
  * 
  * Features:
@@ -33,41 +33,62 @@ class CalendarCardPro extends HTMLElement {
    */
   static get DEFAULT_CONFIG() {
     return {
-      entities: [],
-      title: '',
-      title_font_size: '20px',
-      title_color: 'var(--primary-text-color)',
-      language: 'en',
-      days_to_show: 3,
-      update_interval: 43200,
-      show_past_events: false,
+      // Core Settings
+      // Essential configuration that defines what data to display
+      entities: [],                    // Calendar entities to display
+      days_to_show: 3,                // Number of days to show
+      max_events_to_show: undefined,   // Optional limit for compact mode
+      show_past_events: false,        // Show events that have ended
+      update_interval: 43200,         // Cache duration in seconds
+
+      // Display Mode & Localization
+      // How content is formatted and displayed
+      language: 'en',                 // Interface language
+      time_24h: true,                 // Time format
+      show_end_time: true,           // Show event end times
+      show_month: true,              // Show month names
+      show_location: true,           // Show event locations
+      location_remove_country: true,  // Remove country from location
+
+      // Card Layout
+      // Overall card structure and spacing
+      title: '',                      // Card title
+      additional_card_spacing: '0px', // Extra top/bottom padding for card
+      row_spacing: '5px',            // Space between day rows
+      background_color: 'var(--ha-card-background)',
+
+      // Visual Separators
+      // Lines and borders that divide content
       vertical_line_width: '2px',
       vertical_line_color: '#03a9f4',
       horizontal_line_width: '0px',
       horizontal_line_color: 'var(--secondary-text-color)',
-      additional_card_spacing: '0px',
-      row_spacing: '5px',
+
+      // Typography: Sizes
+      // Font size configuration for different elements
+      title_font_size: '20px',
       weekday_font_size: '14px',
-      weekday_color: 'var(--primary-text-color)',
       day_font_size: '26px',
-      day_color: 'var(--primary-text-color)',
-      show_month: true,
       month_font_size: '12px',
-      month_color: 'var(--primary-text-color)',
       event_font_size: '14px',
-      event_color: 'var(--primary-text-color)',
-      show_end_time: true,
-      time_location_icon_size: '16px',
-      time_24h: true,
       time_font_size: '12px',
-      time_color: 'var(--secondary-text-color)',
-      show_location: true,
-      location_remove_country: true,
       location_font_size: '12px',
+      time_location_icon_size: '16px',
+
+      // Typography: Colors
+      // Color configuration for different elements
+      title_color: 'var(--primary-text-color)',
+      weekday_color: 'var(--primary-text-color)',
+      day_color: 'var(--primary-text-color)',
+      month_color: 'var(--primary-text-color)',
+      event_color: 'var(--primary-text-color)',
+      time_color: 'var(--secondary-text-color)',
       location_color: 'var(--secondary-text-color)',
+
+      // Actions
+      // User interaction configuration
       tap_action: { action: "more-info" },
-      hold_action: { action: "more-info" },
-      background_color: 'var(--ha-card-background)',
+      hold_action: { action: "none" },
     };
   }
 
@@ -192,7 +213,6 @@ class CalendarCardPro extends HTMLElement {
       lastUpdate: Date.now()
     };
 
-    // Existing constructor code...
     this.debouncedUpdate = this.debounce(() => this.updateEvents(), 300);
     this.memoizedFormatTime = this.memoize(this.formatTime);
     this.memoizedFormatLocation = this.memoize(this.formatLocation);
@@ -213,7 +233,8 @@ class CalendarCardPro extends HTMLElement {
 
   /**
    * Initialize component state with default values
-   * Sets up initial configuration, events array, and touch state
+   * Sets up initial configuration, events array, touch state,
+   * loading state, and expansion state
    * @private
    */
   initializeState() {
@@ -227,7 +248,8 @@ class CalendarCardPro extends HTMLElement {
       holdTimer: null,
       holdTriggered: false
     };
-    this.isLoading = true;  // Add loading state
+    this.isLoading = true;
+    this.isExpanded = false; // Track expanded state
   }
 
   cleanup() {
@@ -572,8 +594,6 @@ class CalendarCardPro extends HTMLElement {
   // Event Management
   //=============================================================================
 
-  // Remove old action handling code and replace with these methods:
-  
   /**
    * Handle user interactions (tap/click/hold) with the card
    * @private
@@ -587,7 +607,8 @@ class CalendarCardPro extends HTMLElement {
       'more-info': () => this.fireMoreInfo(),
       'navigate': () => this.handleNavigation(actionConfig),
       'call-service': () => this.callService(actionConfig),
-      'url': () => this.openUrl(actionConfig)
+      'url': () => this.openUrl(actionConfig),
+      'expand': () => this.toggleExpanded()
     };
 
     const action = actions[actionConfig.action];
@@ -630,6 +651,16 @@ class CalendarCardPro extends HTMLElement {
     }
   }
 
+  /**
+   * Toggles between compact and expanded view states
+   * Only active when max_events_to_show is configured
+   * @private
+   */
+  toggleExpanded() {
+    this.isExpanded = !this.isExpanded;
+    this.renderCard();
+  }
+
   // Update event handlers in setupEventListeners
   setupEventListeners() {
     const cardContainer = this.shadowRoot.querySelector(".card-container");
@@ -666,6 +697,8 @@ class CalendarCardPro extends HTMLElement {
 
   /**
    * Process calendar events and group them by day
+   * When max_events_to_show is set and card is not expanded,
+   * limits the total number of events shown across all days
    * @typedef {Object} EventsByDay
    * @property {string} weekday - Translated weekday name
    * @property {number} day - Day of month
@@ -737,9 +770,25 @@ class CalendarCardPro extends HTMLElement {
       });
     });
 
-    return Object.values(eventsByDay)
+    let result = Object.values(eventsByDay)
       .sort((a, b) => a.timestamp - b.timestamp)
       .slice(0, this.config.days_to_show || 3);
+
+    // Apply max_events_to_show limit if set and not expanded
+    if (this.config.max_events_to_show && !this.isExpanded) {
+      let totalEvents = 0;
+      result = result.map(day => {
+        if (totalEvents >= this.config.max_events_to_show) {
+          return { ...day, events: [] };
+        }
+        const remainingSlots = this.config.max_events_to_show - totalEvents;
+        const limitedEvents = day.events.slice(0, remainingSlots);
+        totalEvents += limitedEvents.length;
+        return { ...day, events: limitedEvents };
+      }).filter(day => day.events.length > 0);
+    }
+
+    return result;
   }
 
   sortEvents(events) {
@@ -1167,6 +1216,7 @@ class CalendarCardPro extends HTMLElement {
         --card-icon-size: ${this.config.time_location_icon_size};
         --card-date-column-width: ${parseFloat(this.config.day_font_size) * 1.75}px;
         --card-custom-background: ${this.config.background_color};
+        --transition-duration: 0.3s;
       }
     `;
 
@@ -1189,6 +1239,7 @@ class CalendarCardPro extends HTMLElement {
         padding: 16px;
         padding-top: calc(16px + var(--card-spacing-additional));
         padding-bottom: calc(16px + var(--card-spacing-additional));
+        transition: max-height 0.3s ease-in-out;
       }
       .title {
         font-size: var(--card-font-size-title);

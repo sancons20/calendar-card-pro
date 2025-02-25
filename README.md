@@ -3,63 +3,53 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
 [![GitHub Release](https://img.shields.io/github/release/alexpfau/calendar-card-pro.svg)](https://github.com/alexpfau/calendar-card-pro/releases)
 
-A sleek and performant calendar card for Home Assistant that supports multiple calendars with individual styling, real-time updates, and smart caching.
+A streamlined calendar card that provides an at-a-glance view of your upcoming events. Perfect for wall-mounted displays and Home Assistant dashboards.
 
 <img src="docs/images/preview.png" alt="Calendar Card Pro Preview" width="400">
 
 ## About
 
-Calendar Card Pro was inspired by a beautiful [calendar design using button-card and Hass calendar add-on](https://community.home-assistant.io/t/calendar-add-on-some-calendar-designs/385790) shared in the Home Assistant community. While I loved the clean aesthetic of that design, I found that implementing it with button-card and card-mod led to performance issues. This motivated me to create a dedicated custom card that would:
+Calendar Card Pro was inspired by a beautiful [calendar design using button-card and Hass calendar add-on](https://community.home-assistant.io/t/calendar-add-on-some-calendar-designs/385790) shared in the Home Assistant community. While the original design was visually stunning, implementing it with button-card led to performance issues. This motivated me to create a dedicated card focused on doing one thing exceptionally well: displaying your upcoming events beautifully and efficiently.
 
-- Maintain the sleek, minimalist design I admired
-- Optimize performance through native implementation
-- Provide extensive customization options
-- Work directly with Home Assistant's calendar integrations like CalDAV
-- Remove dependencies on external add-ons
-
-The result is Calendar Card Pro - a performant, customizable calendar card focused on doing one thing well: displaying your calendar events beautifully.
-
-# To-Do: Incorporate the main purpose of this card in the section above => Goal is to provide a quick overview/glance of upcoming events in the calendar, ideal for use on a dashboard like on a smart home wall tablet.
+Built with performance in mind, the card uses WebSocket for real-time updates and smart caching to ensure smooth operation even with multiple calendars.
 
 ## Dependencies
 
-This card requires one or more calendar entities in Home Assistant. While it should work with any calendar integration that creates *calendar.** entities in Home Assistant, I tested it only with CalDAV as well as Google Calendar integration. For the best experience, follow the [CalDAV setup instructions](https://www.home-assistant.io/integrations/caldav/) in the official Home Assistant documentation to get started.
+This card requires one or more calendar entities in Home Assistant. It works with any calendar integration that creates calendar.* entities, with CalDAV and Google Calendar being the primary tested integrations.
 
 ⚠️ **Important**: Make sure you have at least one calendar integration set up in Home Assistant before using this card.
 
 ## Features
 
-- 🎨 Support for multiple calendars with individual color styling
-- 🔄 Real-time updates through Home Assistant WebSocket
-- 📱 Responsive and touch-friendly design
-- 🌍 Multi-language support (en/de)
+- 🎨 Multiple calendars with individual styling
+- 📊 Smart compact mode with expand/collapse functionality
+- 🔄 Real-time updates via WebSocket connection
 - ⚡ Optimized performance with smart caching
 - 🎯 Progressive loading for smooth rendering
+- 📱 Responsive and touch-friendly design
+- 🌍 Multi-language support (en/de)
 - 📍 Customizable location display
 - 🕒 Flexible time format options (12/24 hour)
-- 🎨 Highly customizable styling
+- 🎨 Extensive styling options
 
 ## Installation
 
- ### Option 1: HACS (Recommended)
+### HACS (Recommended)
+[![Open your Home Assistant instance and open this repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=alexpfau&repository=calendar-card-pro&category=plugin)
 
-1. Install HACS if you don't have it already (see [HACS installation guide](https://hacs.xyz/docs/installation/prerequisites))
-2. Add this repository as a custom repository in HACS:
+1. Install HACS if you haven't already
+2. Add this repository to HACS
+3. Install "Calendar Card Pro" from Frontend section
+4. Refresh your browser
 
-    [![Open your Home Assistant instance and open this repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=alexpfau&repository=calendar-card-pro&category=plugin)
-3. Search for "Calendar Card Pro" in the Frontend section of HACS
-4. Install it and refresh your browser
-
-### Option 2: Manual Installation
-
-1. Download `calendar-card-pro.js` from the [latest release](https://github.com/alexpfau/calendar-card-pro/releases)
-2. Copy the file to the `www` folder in your Home Assistant config directory
-3. Add the resource reference:
-   ```yaml
-   url: /local/calendar-card-pro.js
-   type: module
-   ```
-      [![Open your Home Assistant instance and show your dashboard resources.](https://my.home-assistant.io/badges/lovelace_resources.svg)](https://my.home-assistant.io/redirect/lovelace_resources/)
+### Manual Installation
+1. Download `calendar-card-pro.js` from [latest release](https://github.com/alexpfau/calendar-card-pro/releases)
+2. Copy to your `www` folder
+3. Add resource:
+```yaml
+url: /local/calendar-card-pro.js
+type: module
+```
 4. Refresh your browser
 
 ## Usage
@@ -76,46 +66,83 @@ This card requires one or more calendar entities in Home Assistant. While it sho
 
 Currently, this card uses YAML configuration. A visual editor may be added in a future release.
 
-The following variables are available:
+### Core Settings
+Essential configuration that defines what data to display.
 
-# TODO: Get rid of 'Required' column, update order of variables, maybe group into sections?!
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| entities | array | Required | List of calendar entities with optional styling |
+| days_to_show | number | 3 | Number of days to display |
+| max_events_to_show | number | - | Maximum number of events to show in compact mode |
+| show_past_events | boolean | false | Show today's events that have already ended |
+| update_interval | number | 43200 | Cache duration in seconds (12 hours) |
 
-| Name | Type | Required | Default | Description |
-|------|------|----------|---------|-------------|
-| entities | array | Yes | Required | List of calendar entities with optional styling |
-| title | string | No | - | Card title |
-| title_font_size | string | No | 20px | Card title font size |
-| title_color | string | No | --primary-text-color | Card title text color |
-| language | string | No | en | Interface language (en/de) |
-| days_to_show | number | No | 3 | Number of days to display |
-| update_interval | number | No | 43200 | Cache duration in seconds (12 hours) |
-| show_past_events | boolean | No | false | Show today's events that have already ended |
-| vertical_line_width | string | No | 2px | Width of vertical separator line |
-| vertical_line_color | string | No | #03a9f4 | Color of vertical separator line |
-| horizontal_line_width | string | No | 0px | Width of horizontal separator line |
-| horizontal_line_color | string | No | --secondary-text-color | Color of horizontal separator line |
-| additional_card_spacing | string | No | 0px | Additional top/bottom padding for the card |
-| row_spacing | string | No | 5px | Spacing between calendar day rows |
-| weekday_font_size | string | No | 14px | Weekday font size |
-| weekday_color | string | No | --primary-text-color | Weekday text color |
-| day_font_size | string | No | 26px | Day number font size |
-| day_color | string | No | --primary-text-color | Day number text color |
-| show_month | boolean | No | true | Show month names |
-| month_font_size | string | No | 12px | Month font size |
-| month_color | string | No | --primary-text-color | Month text color |
-| event_font_size | string | No | 14px | Event title font size |
-| event_color | string | No | --primary-text-color | Default event title color |
-| show_end_time | boolean | No | true | Show event end times |
-| time_location_icon_size | string | No | 16px | Size of time and location icons |
-| time_24h | boolean | No | true | Use 24-hour time format |
-| time_font_size | string | No | 12px | Event time font size |
-| time_color | string | No | --secondary-text-color | Event time text color |
-| show_location | boolean | No | true | Show event locations |
-| location_remove_country | boolean | No | true | Remove country from location |
-| location_font_size | string | No | 12px | Location text font size |
-| location_color | string | No | --secondary-text-color | Location text color |
-| tap_action | object | No | none | Action on tap/click (see Actions below) |
-| hold_action | object | No | none | Action on long press (see Actions below) |
+### Display Mode & Localization
+How content is formatted and displayed.
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| language | string | en | Interface language (en/de) |
+| time_24h | boolean | true | Use 24-hour time format |
+| show_end_time | boolean | true | Show event end times |
+| show_month | boolean | true | Show month names |
+| show_location | boolean | true | Show event locations |
+| location_remove_country | boolean | true | Remove country from location |
+
+### Card Layout
+Overall card structure and spacing.
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| title | string | - | Card title |
+| additional_card_spacing | string | 0px | Additional top/bottom padding for the card |
+| row_spacing | string | 5px | Spacing between calendar day rows |
+| background_color | string | var(--ha-card-background) | Card background color |
+
+### Visual Separators
+Lines and borders that divide content.
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| vertical_line_width | string | 2px | Width of vertical separator line |
+| vertical_line_color | string | #03a9f4 | Color of vertical separator line |
+| horizontal_line_width | string | 0px | Width of horizontal separator line |
+| horizontal_line_color | string | var(--secondary-text-color) | Color of horizontal separator line |
+
+### Typography: Sizes
+Font size configuration for different elements.
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| title_font_size | string | 20px | Card title font size |
+| weekday_font_size | string | 14px | Weekday font size |
+| day_font_size | string | 26px | Day number font size |
+| month_font_size | string | 12px | Month font size |
+| event_font_size | string | 14px | Event title font size |
+| time_font_size | string | 12px | Event time font size |
+| location_font_size | string | 12px | Location text font size |
+| time_location_icon_size | string | 16px | Size of time and location icons |
+
+### Typography: Colors
+Color configuration for different elements.
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| title_color | string | var(--primary-text-color) | Card title text color |
+| weekday_color | string | var(--primary-text-color) | Weekday text color |
+| day_color | string | var(--primary-text-color) | Day number text color |
+| month_color | string | var(--primary-text-color) | Month text color |
+| event_color | string | var(--primary-text-color) | Default event title color |
+| time_color | string | var(--secondary-text-color) | Event time text color |
+| location_color | string | var(--secondary-text-color) | Location text color |
+
+### Actions
+User interaction configuration.
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| tap_action | object | { action: "more-info" } | Action on tap/click |
+| hold_action | object | { action: "none" } | Action on long press |
 
 ### Entity Configuration
 
@@ -127,10 +154,13 @@ Each entity in the `entities` array can be either:
 
 ### Actions
 
-# TODO: Convert this section from a flat list into an array of options, or refer to standard HA documentation for available options in case they my card does 100% support all standard HA actions
-
 Both `tap_action` and `hold_action` support the following options:
-- `action`: The type of action (more-info, navigate, call-service, url)
+- `action`: The type of action
+  - `expand`: Toggle between compact and full view (when max_events_to_show is set)
+  - `more-info`: Show more information about the entity
+  - `navigate`: Navigate to a different view
+  - `call-service`: Call a Home Assistant service
+  - `url`: Open a URL
 - `navigation_path`: Path for navigate action
 - `url_path`: URL for url action
 - `service`: Service to call (for call-service action)
@@ -151,7 +181,7 @@ days_to_show: 5
 show_location: false
 ```
 
-### Multiple Calendars with Custom Colors
+### Multiple Calendars with Compact Mode
 ```yaml
 type: custom:calendar-card-pro
 title: My Calendars
@@ -163,13 +193,11 @@ entities:
   - entity: calendar.holidays
     color: '#2a9d8f'  # Green for holidays
 days_to_show: 7
+max_events_to_show: 3  # Show only 3 events initially
+tap_action:
+  action: expand      # Tap to expand/collapse
 show_location: true
 time_24h: false
-tap_action:
-  action: navigate
-  navigation_path: /lovelace/0
-hold_action:
-  action: more-info
 ```
 
 ### Complete Configuration with All Options
@@ -236,9 +264,6 @@ hold_action:
 ## Known Limitations
 
 The following features are currently limited or not fully implemented:
-
-### Layout
--  List view only, no day/week/month view
 
 ### Event Display
 - No support for recurring event indicators
