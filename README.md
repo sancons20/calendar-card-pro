@@ -67,7 +67,7 @@ type: module
 Currently, this card uses YAML configuration. A visual editor may be added in a future release.
 
 <style>
-table:nth-of-type(n) {
+table:nth-of-type(2) {
     display: table;
     width: 100%;
     table-layout: fixed;
