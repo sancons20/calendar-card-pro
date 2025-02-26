@@ -48,14 +48,14 @@ class CalendarCardPro extends HTMLElement {
       show_end_time: true,           // Show event end times
       show_month: true,              // Show month names
       show_location: true,           // Show event locations
-      location_remove_country: true,  // Remove country from location
+      remove_location_country: true,  // Remove country from location
 
       // Card Layout
       // Overall card structure and spacing
       title: '',                      // Card title
-      additional_card_spacing: '0px', // Extra top/bottom padding for card
+      background_color: 'var(--ha-card-background)', // Card background color
       row_spacing: '5px',            // Space between day rows
-      background_color: 'var(--ha-card-background)',
+      additional_card_spacing: '0px', // Extra top/bottom padding for card
 
       // Visual Separators
       // Lines and borders that divide content
@@ -87,7 +87,7 @@ class CalendarCardPro extends HTMLElement {
 
       // Actions
       // User interaction configuration
-      tap_action: { action: "more-info" },
+      tap_action: { action: "expand" },
       hold_action: { action: "none" },
     };
   }
@@ -995,7 +995,7 @@ class CalendarCardPro extends HTMLElement {
    * @returns {string} Formatted location string with country removed (if configured)
    */
   formatLocation(location) {
-    if (!location || !this.config.location_remove_country) return location;
+    if (!location || !this.config.remove_location_country) return location;
 
     const locationText = location.trim();
     const countryNames = CalendarCardPro.COUNTRY_NAMES;
@@ -1319,7 +1319,6 @@ class CalendarCardPro extends HTMLElement {
         --card-icon-size: ${this.config.time_location_icon_size};
         --card-date-column-width: ${parseFloat(this.config.day_font_size) * 1.75}px;
         --card-custom-background: ${this.config.background_color};
-        --transition-duration: 0.3s;
       }
     `;
 
@@ -1342,7 +1341,6 @@ class CalendarCardPro extends HTMLElement {
         padding: 16px;
         padding-top: calc(16px + var(--card-spacing-additional));
         padding-bottom: calc(16px + var(--card-spacing-additional));
-        transition: max-height 0.3s ease-in-out;
       }
       .title {
         font-size: var(--card-font-size-title);

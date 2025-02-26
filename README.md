@@ -75,7 +75,26 @@ Essential configuration that defines what data to display.
 | days_to_show | number | 3 | Number of days to display |
 | max_events_to_show | number | - | Maximum number of events to show in compact mode |
 | show_past_events | boolean | false | Show today's events that have already ended |
-| update_interval | number | 43200 | Cache duration in seconds (12 hours) |
+
+#### Entity Configuration
+
+Each entity in the `entities` array can be either:
+- A string (entity ID only)
+- An object with the following properties:
+  - `entity`: Calendar entity ID (required)
+  - `color`: Custom color for events from this calendar (optional)
+
+#### Compact Mode & Dynamic Event Display
+
+The card supports a compact mode that helps manage the card's visual footprint while ensuring you don't miss any upcoming events. This is particularly useful for dashboards where space is at a premium.
+
+When you set `max_events_to_show`, the card operates in two stages:
+1. First, it pulls all events according to your `days_to_show` setting
+2. Then, it displays only up to `max_events_to_show` events at a time
+
+As events pass, the card automatically refreshes and brings the next events from the queue into view. This creates a sliding window effect that always shows your most relevant upcoming events while maintaining a consistent card size.
+
+Users can optionally toggle between the compact and full views through tap or hold actions as explained below. This allows for easy access to all events when needed while maintaining a clean, space-efficient display by default.
 
 ### Display Mode & Localization
 How content is formatted and displayed.
@@ -87,7 +106,7 @@ How content is formatted and displayed.
 | show_end_time | boolean | true | Show event end times |
 | show_month | boolean | true | Show month names |
 | show_location | boolean | true | Show event locations |
-| location_remove_country | boolean | true | Remove country from location |
+| remove_location_country | boolean | true | Remove country from location |
 
 ### Card Layout
 Overall card structure and spacing.
@@ -95,9 +114,9 @@ Overall card structure and spacing.
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
 | title | string | - | Card title |
-| additional_card_spacing | string | 0px | Additional top/bottom padding for the card |
-| row_spacing | string | 5px | Spacing between calendar day rows |
 | background_color | string | var(--ha-card-background) | Card background color |
+| row_spacing | string | 5px | Spacing between calendar day rows |
+| additional_card_spacing | string | 0px | Additional top/bottom padding for the card |
 
 ### Visual Separators
 Lines and borders that divide content.
@@ -141,18 +160,8 @@ User interaction configuration.
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
-| tap_action | object | { action: "more-info" } | Action on tap/click |
+| tap_action | object | { action: "expand" } | Action on tap/click |
 | hold_action | object | { action: "none" } | Action on long press |
-
-### Entity Configuration
-
-Each entity in the `entities` array can be either:
-- A string (entity ID only)
-- An object with the following properties:
-  - `entity`: Calendar entity ID (required)
-  - `color`: Custom color for events from this calendar (optional)
-
-### Actions
 
 Both `tap_action` and `hold_action` support the following options:
 - `action`: The type of action
@@ -165,10 +174,6 @@ Both `tap_action` and `hold_action` support the following options:
 - `url_path`: URL for url action
 - `service`: Service to call (for call-service action)
 - `service_data`: Service data (for call-service action)
-
-### Update Interval
-
-The card primarily relies on real-time updates through Home Assistant's WebSocket connection and dashboard refreshes. The `update_interval` (12 hours) is only used as a fallback cache duration to prevent unnecessary API calls. It is not recommended to set a shorter interval as this could lead to excessive API calls without providing any benefits, since real-time updates are already handled through WebSocket. In normal operation, you'll see updates immediately as they happen in your calendars.
 
 ## Example Configurations
 
@@ -269,10 +274,6 @@ The following features are currently limited or not fully implemented:
 - No support for recurring event indicators
 - No support for event categories/tags
 - No support for attendee information
-
-### Calendar Support
-- Tested primarily with CalDAV and Google Calendar integration
-- Other calendar integrations that create *calendar.** entities should work but are not extensively tested
 
 ### Configuration
 - No visual configuration editor yet (YAML only)
