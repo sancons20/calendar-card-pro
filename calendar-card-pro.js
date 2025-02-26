@@ -1,22 +1,12 @@
 /**
  * Calendar Card Pro for Home Assistant
  * 
- * A custom Lovelace card that provides a sleek and performant calendar view
- * with support for multiple calendars, individual styling, and smart caching.
- * 
- * @author Alex Pfau <https://github.com/alexpfau>
  * @license MIT
+ * @copyright Copyright (c) 2025 Alex Pfau
  * @version 1.2.0
- * @since 2025-02-25
  * 
- * Features:
- * - Multiple calendar support with individual color styling
- * - Real-time updates via WebSocket
- * - Smart caching with progressive loading
- * - Multi-language support (en/de)
- * - Customizable styling and layout
- * - Touch and mouse gesture support
- * - Location formatting with country removal
+ * This project uses LitElement and related libraries which are released under the BSD-3-Clause license.
+ * Copyright 2019 Google LLC
  */
 class CalendarCardPro extends HTMLElement {
   

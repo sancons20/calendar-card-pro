@@ -66,24 +66,6 @@ type: module
 
 Currently, this card uses YAML configuration. A visual editor may be added in a future release.
 
-<style>
-table:nth-of-type(2) {
-    display: table;
-    width: 100%;
-    table-layout: fixed;
-}
-
-th:nth-child(1), td:nth-child(1) { width: 20%; }
-th:nth-child(2), td:nth-child(2) { width: 10%; }
-th:nth-child(3), td:nth-child(3) { width: 25%; }
-th:nth-child(4), td:nth-child(4) { width: 45%; }
-
-td, th {
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-}
-</style>
-
 ### Core Settings
 Essential configuration that defines what data to display.
 
