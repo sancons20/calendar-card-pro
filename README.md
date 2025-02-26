@@ -62,29 +62,37 @@ type: module
 6. The card will be automatically configured with any available calendar entity
 7. Use the YAML editor to customize the card using the configuration options below
 
-<style>
-table {
-    width: 100%;
-}
-th:nth-child(1), td:nth-child(1) { width: 20%; } /* Name column */
-th:nth-child(2), td:nth-child(2) { width: 10%; } /* Type column */
-th:nth-child(3), td:nth-child(3) { width: 25%; } /* Default column */
-th:nth-child(4), td:nth-child(4) { width: 45%; } /* Description column */
-</style>
-
 ## Configuration
 
 Currently, this card uses YAML configuration. A visual editor may be added in a future release.
 
+<style>
+table:nth-of-type(n) {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+}
+
+th:nth-child(1), td:nth-child(1) { width: 20%; }
+th:nth-child(2), td:nth-child(2) { width: 10%; }
+th:nth-child(3), td:nth-child(3) { width: 25%; }
+th:nth-child(4), td:nth-child(4) { width: 45%; }
+
+td, th {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+</style>
+
 ### Core Settings
 Essential configuration that defines what data to display.
 
-| Name | Type | Default | Description |
-|------|------|---------|-------------|
-| entities | array | Required | List of calendar entities with optional styling |
-| days_to_show | number | 3 | Number of days to display |
-| max_events_to_show | number | - | Maximum number of events to show in compact mode |
-| show_past_events | boolean | false | Show today's events that have already ended |
+| Name               | Type    | Default  | Description                                      |
+|--------------------|---------|----------|--------------------------------------------------|
+| entities           | array   | Required | List of calendar entities with optional styling  |
+| days_to_show       | number  | 3        | Number of days to display                        |
+| max_events_to_show | number  | -        | Maximum number of events to show in compact mode |
+| show_past_events   | boolean | false    | Show today's events that have already ended      |
 
 #### Entity Configuration
 
@@ -109,69 +117,69 @@ Users can optionally toggle between the compact and full views through tap or ho
 ### Display Mode & Localization
 How content is formatted and displayed.
 
-| Name | Type | Default | Description |
-|------|------|---------|-------------|
-| language | string | en | Interface language (en/de) |
-| time_24h | boolean | true | Use 24-hour time format |
-| show_end_time | boolean | true | Show event end times |
-| show_month | boolean | true | Show month names |
-| show_location | boolean | true | Show event locations |
-| remove_location_country | boolean | true | Remove country from location |
+| Name                    | Type    | Default | Description                  |
+|-------------------------|---------|---------|------------------------------|
+| language                | string  | en      | Interface language (en/de)   |
+| time_24h                | boolean | true    | Use 24-hour time format      |
+| show_end_time           | boolean | true    | Show event end times         |
+| show_month              | boolean | true    | Show month names             |
+| show_location           | boolean | true    | Show event locations         |
+| remove_location_country | boolean | true    | Remove country from location |
 
 ### Card Layout
 Overall card structure and spacing.
 
-| Name | Type | Default | Description |
-|------|------|---------|-------------|
-| title | string | - | Card title |
-| background_color | string | var(--ha-card-background) | Card background color |
-| row_spacing | string | 5px | Spacing between calendar day rows |
-| additional_card_spacing | string | 0px | Additional top/bottom padding for the card |
+| Name                    | Type   | Default                   | Description                                |
+|-------------------------|--------|---------------------------|--------------------------------------------|
+| title                   | string | -                         | Card title                                 |
+| background_color        | string | var(--ha-card-background) | Card background color                      |
+| row_spacing             | string | 5px                       | Spacing between calendar day rows          |
+| additional_card_spacing | string | 0px                       | Additional top/bottom padding for the card |
 
 ### Visual Separators
 Lines and borders that divide content.
 
-| Name | Type | Default | Description |
-|------|------|---------|-------------|
-| vertical_line_width | string | 2px | Width of vertical separator line |
-| vertical_line_color | string | #03a9f4 | Color of vertical separator line |
-| horizontal_line_width | string | 0px | Width of horizontal separator line |
+| Name                  | Type   | Default                     | Description                        |
+|-----------------------|--------|-----------------------------|------------------------------------|
+| vertical_line_width   | string | 2px                         | Width of vertical separator line   |
+| vertical_line_color   | string | #03a9f4                     | Color of vertical separator line   |
+| horizontal_line_width | string | 0px                         | Width of horizontal separator line |
 | horizontal_line_color | string | var(--secondary-text-color) | Color of horizontal separator line |
 
 ### Typography: Sizes
 Font size configuration for different elements.
 
-| Name | Type | Default | Description |
-|------|------|---------|-------------|
-| title_font_size | string | 20px | Card title font size |
-| weekday_font_size | string | 14px | Weekday font size |
-| day_font_size | string | 26px | Day number font size |
-| month_font_size | string | 12px | Month font size |
-| event_font_size | string | 14px | Event title font size |
-| time_font_size | string | 12px | Event time font size |
-| location_font_size | string | 12px | Location text font size |
-| time_location_icon_size | string | 16px | Size of time and location icons |
+| Name                    | Type   | Default | Description                     |
+|-------------------------|--------|---------|---------------------------------|
+| title_font_size         | string | 20px    | Card title font size            |
+| weekday_font_size       | string | 14px    | Weekday font size               |
+| day_font_size           | string | 26px    | Day number font size            |
+| month_font_size         | string | 12px    | Month font size                 |
+| event_font_size         | string | 14px    | Event title font size           |
+| time_font_size          | string | 12px    | Event time font size            |
+| location_font_size      | string | 12px    | Location text font size         |
+| time_location_icon_size | string | 16px    | Size of time and location icons |
 
 ### Typography: Colors
 Color configuration for different elements.
 
-| Name | Type | Default | Description |
-|------|------|---------|-------------|
-| title_color | string | var(--primary-text-color) | Card title text color |
-| weekday_color | string | var(--primary-text-color) | Weekday text color |
-| day_color | string | var(--primary-text-color) | Day number text color |
-| month_color | string | var(--primary-text-color) | Month text color |
-| event_color | string | var(--primary-text-color) | Default event title color |
-| time_color | string | var(--secondary-text-color) | Event time text color |
-| location_color | string | var(--secondary-text-color) | Location text color |
+| Name           | Type   | Default                     | Description               |
+|----------------|--------|-----------------------------|---------------------------|
+| title_color    | string | var(--primary-text-color)   | Card title text color     |
+| weekday_color  | string | var(--primary-text-color)   | Weekday text color        |
+| day_color      | string | var(--primary-text-color)   | Day number text color     |
+| month_color    | string | var(--primary-text-color)   | Month text color          |
+| event_color    | string | var(--primary-text-color)   | Default event title color |
+| time_color     | string | var(--secondary-text-color) | Event time text color     |
+| location_color | string | var(--secondary-text-color) | Location text color       |
 
 ### Actions
 User interaction configuration.
 
-| Name | Type | Default | Description |
-|------|------|---------|-------------|
-| tap_action | object | { action: "expand" } | Action on tap/click |
-| hold_action | object | { action: "none" } | Action on long press |
+| Name        | Type   | Default              | Description          |
+|-------------|--------|----------------------|----------------------|
+| tap_action  | object | { action: "expand" } | Action on tap/click  |
+| hold_action | object | { action: "none" }   | Action on long press |
 
 Both `tap_action` and `hold_action` support the following options:
 - `action`: The type of action
