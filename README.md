@@ -62,6 +62,16 @@ type: module
 6. The card will be automatically configured with any available calendar entity
 7. Use the YAML editor to customize the card using the configuration options below
 
+<style>
+table {
+    width: 100%;
+}
+th:nth-child(1), td:nth-child(1) { width: 20%; } /* Name column */
+th:nth-child(2), td:nth-child(2) { width: 10%; } /* Type column */
+th:nth-child(3), td:nth-child(3) { width: 25%; } /* Default column */
+th:nth-child(4), td:nth-child(4) { width: 45%; } /* Description column */
+</style>
+
 ## Configuration
 
 Currently, this card uses YAML configuration. A visual editor may be added in a future release.
