@@ -3,7 +3,7 @@
  *
  * @license MIT
  * @copyright Copyright (c) 2025 Alex Pfau
- * @version 1.2.0
+ * @version 0.1.0
  *
  * This project uses LitElement and related libraries which are released under the BSD-3-Clause license.
  * Copyright 2019 Google LLC
