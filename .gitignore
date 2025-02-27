@@ -1,0 +1,57 @@
+# Ignore dist/ folder
+dist/*
+
+# Ignore system-specific and editor-related files
+.DS_Store
+.vscode/*
+.idea/
+*.swp
+*.swo
+
+# Ignore logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignore package lock and dependencies
+package-lock.json
+yarn.lock
+node_modules/
+
+# Ignore runtime/process data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Ignore coverage and test-related data
+coverage/
+.nyc_output/
+lib-cov/
+
+# Ignore build-related files
+.lock-wscript
+build/
+build/Release/
+
+# Ignore cache and temporary files
+.cache/
+tmp/
+.undefined/
+*.tgz
+
+# Ignore environment variables
+.env
+.env.test
+
+# Ignore project-specific caches and artifacts
+.eslintcache
+.bower_components/
+.serverless/
+.fusebox/
+.dynamodb/
+
+# Ignore documentation build artifacts
+docs/_build/

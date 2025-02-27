@@ -1,24 +1,33 @@
 {
   "name": "calendar-card-pro-dev",
   "version": "1.0.0",
-  "description": "[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs) [![GitHub Release](https://img.shields.io/github/release/alexpfau/calendar-card-pro.svg)](https://github.com/alexpfau/calendar-card-pro/releases) [![Downloads](https://img.shields.io/github/downloads/alexpfau/calendar-card-pro/total.svg)](https://github.com/alexpfau/calendar-card-pro/releases)",
-  "main": "calendar-card-pro.js",
+  "description": "Custom Home Assistant calendar card",
+  "main": "dist/calendar-card-pro.js",
   "scripts": {
-    "dev": "rollup -c"
+    "dev": "rollup -c -w",
+    "build": "rollup -c"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alexpfau/calendar-card-pro-dev.git"
+    "url": "https://github.com/alexpfau/calendar-card-pro-dev.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "keywords": [
+    "calendar",
+    "card",
+    "home-assistant",
+    "homeassistant",
+    "hacs",
+    "lovelace",
+    "custom-card"
+  ],
+  "author": "Alex Pfau",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/alexpfau/calendar-card-pro-dev/issues"
   },
   "homepage": "https://github.com/alexpfau/calendar-card-pro-dev#readme",
   "devDependencies": {
+    "@rollup/plugin-node-resolve": "^16.0.0",
     "@rollup/plugin-terser": "^0.4.4",
     "rollup": "^4.34.8"
   }
