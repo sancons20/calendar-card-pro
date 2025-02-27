@@ -129,18 +129,28 @@ The `entities` array accepts either strings (entity IDs) or objects with extende
   - `entity`: Calendar entity ID (required)
   - `color`: Custom color for events from this calendar (optional)
 
-#### Compact Mode & Dynamic Event Display
+#### Event Display & Compact Mode
 
-The card supports a compact mode that helps manage the card's visual footprint while ensuring you don't miss any upcoming events. This is particularly useful for dashboards where space is at a premium.
+##### Default Behavior
 
-When you set `max_events_to_show`, the card operates in two stages:
+By default, the card displays all events for the next 3 days (including today), regardless of the number of events. This means:
 
-1. First, it pulls all events according to your `days_to_show` setting
-2. Then, it displays only up to `max_events_to_show` events at a time
+- If there are no events in the next 3 days, the card will show an empty state
+- If there are many events, all of them will be shown, potentially making the card quite tall
+- The card's height adapts dynamically to the content
+- By default, events that have ended today are hidden, but you can set `show_past_events: true` to keep displaying them
 
-As events pass, the card automatically refreshes and brings the next events from the queue into view. This creates a sliding window effect that always shows your most relevant upcoming events while maintaining a consistent card size.
+This flexible height works well for many dashboard layouts but might not be ideal for all use cases, particularly on wall-mounted tablets or dashboards with fixed-height cards.
 
-Users can optionally toggle between the compact and full views through tap or hold actions as explained below. This allows for easy access to all events when needed while maintaining a clean, space-efficient display by default.
+##### Compact Mode
+
+To better control the card's size, you can enable compact mode by setting the `max_events_to_show` option. This creates a sliding window of events that:
+
+- Shows up to the specified number of events within the configured time range
+- Maintains a consistent card height
+- Automatically updates as events pass
+
+The card supports toggling between compact and full views by tapping/clicking (default behavior) or through custom tap/hold actions. This provides easy access to all events while maintaining a clean, space-efficient display by default.
 
 #### Actions
 
@@ -165,8 +175,10 @@ Both `tap_action` and `hold_action` support the following options:
 type: custom:calendar-card-pro
 entities:
   - calendar.family
-days_to_show: 5
+days_to_show: 3
+show_end_time: true
 show_location: false
+show_month: false
 ```
 
 ### Multiple Calendars with Compact Mode
@@ -182,11 +194,9 @@ entities:
   - entity: calendar.holidays
     color: '#2a9d8f' # Green for holidays
 days_to_show: 7
-max_events_to_show: 3 # Show only 3 events initially
+max_events_to_show: 3 # Always only show 3 events
 tap_action:
   action: expand # Tap to expand/collapse
-show_location: true
-time_24h: false
 ```
 
 ### Complete Configuration with All Options

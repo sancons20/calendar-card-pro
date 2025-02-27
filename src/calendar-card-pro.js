@@ -32,7 +32,7 @@ class CalendarCardPro extends HTMLElement {
 
       // Display Mode & Localization
       // How content is formatted and displayed
-      language: undefined, // Using system language by default
+      language: 'en', // Interface language
       time_24h: true, // Time format
       show_end_time: true, // Show event end times
       show_month: true, // Show month names
@@ -216,7 +216,7 @@ class CalendarCardPro extends HTMLElement {
   static getStubConfig(hass) {
     const calendarEntity = this.findCalendarEntity(hass);
     return {
-      type: 'custom:calendar-card-pro',
+      type: 'custom:calendar-card-pro-dev',
       entities: calendarEntity ? [calendarEntity] : [],
       days_to_show: 3,
       show_location: true,
@@ -326,10 +326,7 @@ class CalendarCardPro extends HTMLElement {
   }
 
   get translations() {
-    // First try user config, then HA system language, fallback to English
-    const lang =
-      this.config.language ||
-      (this._hass?.language || 'en').split('-')[0].toLowerCase();
+    const lang = this.config.language || 'en';
     return (
       CalendarCardPro.TRANSLATIONS[lang] || CalendarCardPro.TRANSLATIONS.en
     );
@@ -1711,12 +1708,12 @@ class CalendarCardProEditor extends HTMLElement {
 }
 
 // Register the custom element
-customElements.define('calendar-card-pro', CalendarCardPro);
+customElements.define('calendar-card-pro-dev', CalendarCardPro);
 
 // Card registration for HACS and Home Assistant
 window.customCards = window.customCards || [];
 window.customCards.push({
-  type: 'calendar-card-pro',
+  type: 'calendar-card-pro-dev',
   name: 'Calendar Card Pro',
   preview: true,
   description:

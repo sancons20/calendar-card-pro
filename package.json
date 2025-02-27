@@ -4,7 +4,7 @@
   "description": "[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs) [![GitHub Release](https://img.shields.io/github/release/alexpfau/calendar-card-pro.svg)](https://github.com/alexpfau/calendar-card-pro/releases) [![Downloads](https://img.shields.io/github/downloads/alexpfau/calendar-card-pro/total.svg)](https://github.com/alexpfau/calendar-card-pro/releases)",
   "main": "calendar-card-pro.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "rollup -c"
   },
   "repository": {
     "type": "git",
@@ -17,5 +17,9 @@
   "bugs": {
     "url": "https://github.com/alexpfau/calendar-card-pro-dev/issues"
   },
-  "homepage": "https://github.com/alexpfau/calendar-card-pro-dev#readme"
+  "homepage": "https://github.com/alexpfau/calendar-card-pro-dev#readme",
+  "devDependencies": {
+    "@rollup/plugin-terser": "^0.4.4",
+    "rollup": "^4.34.8"
+  }
 }
