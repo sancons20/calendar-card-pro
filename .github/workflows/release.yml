@@ -43,7 +43,7 @@ jobs:
 
   build:
     name: Build Minified File
-    needs: lint-format # Ensures linting & formatting pass before building
+    needs: lint-format
     runs-on: ubuntu-latest
 
     steps:
@@ -72,12 +72,18 @@ jobs:
 
   release:
     name: Create GitHub Release
-    needs: build # Ensures release happens only after the build step succeeds
+    needs: build
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch Latest Tag
+        id: get_tag
+        run: echo "tag=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
 
       - name: Download Built File
         uses: actions/download-artifact@v4
@@ -93,14 +99,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish Release
+      - name: Create Draft Release
         uses: softprops/action-gh-release@v2
         with:
           files: dist/calendar-card-pro.js
-          tag_name: v${{ github.run_number }}
-          name: 'Calendar Card Pro v${{ github.run_number }}'
+          tag_name: ${{ env.tag }}
+          name: 'Calendar Card Pro ${{ env.tag }}'
           body: ${{ steps.generate_notes.outputs.body }}
-          draft: false
+          draft: true
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
