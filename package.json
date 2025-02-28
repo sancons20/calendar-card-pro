@@ -5,7 +5,9 @@
   "main": "dist/calendar-card-pro.js",
   "scripts": {
     "dev": "rollup -c -w",
-    "build": "rollup -c"
+    "build": "NODE_ENV=prod rollup -c",
+    "lint": "eslint 'src/**/*.ts' --fix --format stylish > logs/eslint.log 2>&1",
+    "format": "prettier --write 'src/**/*.ts'"
   },
   "repository": {
     "type": "git",
@@ -27,8 +29,20 @@
   },
   "homepage": "https://github.com/alexpfau/calendar-card-pro-dev#readme",
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.0",
     "@rollup/plugin-node-resolve": "^16.0.0",
+    "@rollup/plugin-replace": "^6.0.2",
     "@rollup/plugin-terser": "^0.4.4",
-    "rollup": "^4.34.8"
+    "@rollup/plugin-typescript": "^12.1.2",
+    "@types/node": "^22.13.5",
+    "@typescript-eslint/eslint-plugin": "^8.25.0",
+    "@typescript-eslint/parser": "^8.25.0",
+    "eslint": "^9.21.0",
+    "eslint-config-prettier": "^10.0.2",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-prettier": "^5.2.3",
+    "prettier": "^3.5.2",
+    "rollup": "^4.34.8",
+    "typescript": "^5.7.3"
   }
 }

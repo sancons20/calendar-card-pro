@@ -4,6 +4,8 @@
 [![GitHub Release](https://img.shields.io/github/release/alexpfau/calendar-card-pro.svg)](https://github.com/alexpfau/calendar-card-pro/releases)
 [![Downloads](https://img.shields.io/github/downloads/alexpfau/calendar-card-pro/total.svg)](https://github.com/alexpfau/calendar-card-pro/releases)
 
+[![hacs][hacs-validate]][hacs-url] ![Github last commit][git-last-commit-badge] ![git-download-all][git-download-all-badge] ![git-download-latest][git-download-latest-badge]
+
 <img src="docs/images/preview.png" alt="Calendar Card Pro Preview" width="100%" style="max-width: 600px;">
 
 ## 📑 Table of Contents
@@ -55,9 +57,12 @@ This card requires one or more calendar entities in Home Assistant. It works wit
 
 ### Manual Installation
 
-1. Download `calendar-card-pro.js` from [latest release](https://github.com/alexpfau/calendar-card-pro/releases)
-2. Copy to your `www` folder
-3. Add resource:
+<details>
+  <summary>Click to expand manual installation instructions</summary>
+
+1. Download [calendar-card-pro.js](https://github.com/alexpfau/calendar-card-pro/releases/latest)
+2. Copy it to the `config/www` folder of your Home Assistant installation
+3. In Home Assistant, go to `Configuration->Lovelace Dashboards->Resources` and add resource:
 
 ```yaml
 url: /local/calendar-card-pro.js
@@ -65,6 +70,8 @@ type: module
 ```
 
 4. Refresh your browser
+
+</details>
 
 ## 🛠️ Usage
 
@@ -280,3 +287,15 @@ The following features are currently limited or not fully implemented:
 - See CONTRIBUTING.md for guidelines on adding new languages
 
 The card is open source and community-driven. If you need additional features or language support, please consider contributing to the project. Pull requests are welcome! See CONTRIBUTING.md for guidelines on how to contribute.
+
+<!--Badges-->
+
+# TO BE UPDATED
+
+[hacs-validate]: https://github.com/ngocjohn/vehicle-status-card/actions/workflows/validate.yaml/badge.svg
+[hacs-url]: https://github.com/ngocjohn/vehicle-status-card/actions/workflows/validate.yaml
+[git-last-commit-badge]: https://img.shields.io/github/last-commit/ngocjohn/vehicle-status-card
+[git-download-all-badge]: https://img.shields.io/github/downloads/ngocjohn/vehicle-status-card/total?style=flat&logo=homeassistantcommunitystore&logoSize=auto&label=Downloads&color=%2318BCF2
+[git-download-latest-badge]: https://img.shields.io/github/downloads/ngocjohn/vehicle-status-card/latest/total?style=flat&logo=homeassistantcommunitystore&logoSize=auto
+
+<!--Urls-->
