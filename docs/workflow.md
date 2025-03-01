@@ -35,13 +35,11 @@ calendar-card-pro-dev/
 │── tsconfig.json                     # TypeScript configuration
 ```
 
-## 🛠 Development Workflow
-
-### 1️⃣ Local Development & Testing
+## 🛠 Local Development & Testing
 
 This section covers the process of **developing and testing** changes before they are pushed to GitHub.
 
-#### 1. Make Code Changes
+### 1️⃣ Make Code Changes
 
 - Modify files in the `src/` directory (TypeScript).
 - Run:
@@ -53,7 +51,7 @@ This section covers the process of **developing and testing** changes before the
 - This compiles the TypeScript code and builds the `calendar-card-pro.js` file in the `dist/` folder.
 - It also **watches for changes**, rebuilding automatically on file save.
 
-#### 2. Lint & Format Code
+### 2️⃣ Lint & Format Code
 
 - Ensure code quality by running:
 
@@ -62,9 +60,9 @@ This section covers the process of **developing and testing** changes before the
   ```
 
 - `lint` checks for code errors and applies automatic fixes.
-- `npm run format` is skipped since Prettier ensures consistent styling when it auto-runs in VS Code on save.
+- No need to run `npm run format` manually since Prettier auto-runs in VS Code on save (when configured) and ensures consistent styling.
 
-#### 3. Test in Home Assistant
+### 3️⃣ Test in Home Assistant
 
 1. Place the `dist/calendar-card-pro.js` file in:
 
@@ -89,146 +87,192 @@ This section covers the process of **developing and testing** changes before the
 
 ## 🚀 Releasing a New Version
 
-### 2️⃣ Preparing a Public Release
+This section describes the **step-by-step process** for releasing a new version of `calendar-card-pro`, ensuring that all **linting, formatting, and building** steps are completed successfully before a release is drafted.
 
-Once development is complete, a **release version** must be created and published.
+### 1️⃣ Prepare the Release Locally
 
-#### 1. Ensure Code is Clean
+Before pushing a new release, ensure that:
 
-- Run:
-
-  ```sh
-  npm run lint --fix  # Fixes linting errors
-  npm run build       # Creates production build
-  ```
-
-  _(`npm run format` is skipped since Prettier auto-runs in VS Code on save.)_
-
-- This compiles a **clean, minified** `calendar-card-pro.js` in `dist/`.
-
-#### 2. Commit & Push Changes
-
-- Push changes **from the private repo’s `dev` branch** to GitHub.
-
-#### 3. Push to Public Release Repo
-
-- Instead of maintaining a `main` branch in the **private repo**, we push directly to `main` **in the public repo**:
+- Your **dev branch** in the private repo is fully tested and working.
+- You have **run linting and formatting** locally:
 
   ```sh
-  git push public-repo dev:main
+  npm run lint
+  npm run format
   ```
 
-- **This ensures that only production-ready code is ever in the public repo.**
+  **Note:** The GitHub workflow will fail if there are any linting or formatting issues.
 
-#### 4. GitHub Actions Build & Release
+- You **build the minified file** to verify everything works:
 
-- The `release.yml` workflow in **GitHub Actions** automatically:
-  1. Installs dependencies.
-  2. Builds the **minified** `calendar-card-pro.js`.
-  3. Creates a new **GitHub Release**.
-  4. Uploads the release for **HACS** distribution.
+  ```sh
+  npm run build
+  ```
 
-## 🔄 Handling Pull Requests (PRs)
+- Your changes are **committed and pushed** to the **private dev branch**.
 
-### 3️⃣ Accepting Contributions
+### 2️⃣ Create a Release in the Public Repo
 
-This section explains how to **manage pull requests (PRs) from contributors** while keeping the private `dev` branch up to date.
+Once you're satisfied with your changes, follow these steps:
 
-#### Scenario 1: Accepting a Small Fix PR
+#### Step 1: Push Changes to Public Main
 
-1. **Review the PR** in the **public repo**.
-2. **Test the changes** locally if needed.
-3. **Merge the PR into `main` in the public repo.**
-4. **Sync the changes back to the private dev repo:**
+- From your **private `dev` branch**, push changes directly to `main` in the public repo:
+
+  ```sh
+  git push origin dev:main
+  ```
+
+- ⚠️ Always push from `private/dev` to `public/main` to maintain a clear separation between development and production..
+
+#### Step 2: Manually Create a Version Tag
+
+- In the **public repo**, create a new version tag matching the **semantic versioning** format (vX.Y.Z):
+
+  ```sh
+  git tag v1.2.3
+  git push origin v1.2.3
+  ```
+
+- Deciding the version number:
+
+  - If you **add new features** but don’t break anything, use **vX.Y+1.0** (minor).
+  - If you **introduce breaking changes**, use **vX+1.0.0** (major).
+
+- **This step triggers the automated release workflow.**
+
+### 3️⃣ GitHub Actions: Automated Release Workflow
+
+Once you push the version tag, GitHub Actions automatically runs the **Build & Release Workflow** (`.github/workflows/release.yml`), performing the following steps:
+
+<details>
+  <summary>✅ Linting & Formatting (lint-format job)</summary>
+
+1. Checks out the repository.
+2. Installs dependencies (`npm ci`).
+3. Runs **ESLint** and **Prettier**:
+   - If errors are found, the workflow fails, and the release is blocked.
+   - You must fix the issues manually before retrying.
+   </details>
+
+<details>
+  <summary>✅ Building (build job)</summary>
+
+1. Installs dependencies.
+2. Runs the build process (`npm run build`).
+3. Generates the **minified version** of `calendar-card-pro.js`.
+4. Uploads the artifact for later use.
+</details>
+
+<details>
+  <summary>✅ Drafting the Release (release job)</summary>
+
+1. Fetches the **latest tag** to determine the version number.
+2. Downloads the built `calendar-card-pro.js` from the previous step.
+3. **Generates release notes** based on PRs and commits (using `release-drafter`).
+4. **Creates a draft release** in GitHub.
+</details>
+
+Note: You must **manually confirm the release** before it becomes public.
+
+### 4️⃣ Confirm & Publish the Release
+
+1.  **Navigate to the draft release** on GitHub under **Releases**.
+2.  **Review the auto-generated release notes**:
+
+    - ✅ Does the changelog look correct?
+    - ✅ Are there any unexpected commits?
+    - ✅ Does the built JS file work in Home Assistant?
+
+3.  **Modify release notes manually** if needed.
+4.  Click "**Publish Release**" to make it live.
+5.  🚀 The release is now available via **HACS**.
+
+## 📌 Managing Releases & Handling Pull Requests
+
+This section covers best practices for **handling new releases and external contributions**.
+
+### 🔄 Keeping Track of Versions
+
+- Releases follow **semantic versioning** (vX.Y.Z format).
+- **Patch (vX.Y.Z)** – Bug fixes & minor changes.
+- **Minor (vX.Y)** – New features, backwards-compatible.
+- **Major (vX)** – Breaking changes.
+
+### 🌍 Handling External Contributions
+
+If a **pull request (PR) is opened in the public repo**, follow this workflow:
+
+#### 1️⃣ Review the PR in GitHub
+
+- Check if it follows **coding standards** (ESLint, Prettier).
+- Ensure it **does not introduce breaking changes** unless intentional.
+
+#### 2️⃣ Merge the PR into main (Public Repo)
+
+- **GitHub Actions will run automatically** to check formatting & linting.
+- If errors occur, ask the contributor to **fix them before merging**.
+
+#### 3️⃣ Sync the Changes to dev (Private Repo)
+
+- After merging, update your private dev repo:
+
+  ```sh
+  git checkout dev
+  git pull origin main
+  git push origin dev
+  ```
+
+- Now, your **private dev branch** is up-to-date with public contributions.
+
+### Handling PRs that conflict with ongoing dev work in the private repo
+
+If you are actively developing features in **private/dev** and a **PR is merged into public/main**, conflicts might arise. Here's how to handle that:
+
+#### Conflict Resolution Process:
+
+1. **Fetch latest changes** from the public repo:
 
    ```sh
    git fetch public-repo
-   git checkout dev
-   git merge public-repo/main
    ```
 
-5. Continue development as usual.
-
-#### Scenario 2: PR Conflicts with Ongoing Work
-
-If you have ongoing changes in `dev`, but a PR is merged into `main`:
-
-1. **Commit your unfinished work** (so it’s not lost).
-2. **Switch to `main` in the private repo**:
-
-   ```sh
-   git fetch public-repo
-   git checkout -b temp-merge-branch
-   git merge public-repo/main
-   ```
-
-3. **Resolve any conflicts manually.**
-4. **Merge into `dev`** and delete the temporary branch:
+2. Switch to your **private `dev` branch**:
 
    ```sh
    git checkout dev
-   git merge temp-merge-branch
-   git branch -d temp-merge-branch
    ```
 
-5. Continue working as normal.
+3. **Merge the latest changes** from public/`main` into private/`dev`:
 
-## 📌 Managing Releases & Versioning
+   ```sh
+   git merge public-repo/main
+   ```
 
-### 4️⃣ Releasing a New Version in GitHub
+4. If there are no conflicts, you’re good to go! **If conflicts appear**:
 
-Once your code is finalized and pushed to the **public repo's `main` branch**, a new **GitHub Release** must be created.
+   - **Manually resolve them** in your code editor.
+   - **Commit the resolved changes**:
+     ```sh
+     git add .
+     git commit -m "Resolve merge conflicts from public/main"
+     ```
 
-#### 1. Draft a Release
+5. **Push the merged changes back** to private repo:
+   ```sh
+   git push origin dev
+   ```
 
-- Navigate to **GitHub → Releases** in the public repo.
+#### ❗️ Handling Breaking Changes
 
-- Click **"Draft a new release"**.
-
-- Choose the latest commit **on the `main` branch**.
-
-- Set the **tag name** as the new version number (`vX.Y.Z`).
-
-- Add a **title** (e.g., `Calendar Card Pro vX.Y.Z`).
-
-- Write the **release notes** (see below).
-
-#### 2. Writing Release Notes
-
-- Use a consistent format:
-
-  ```markdown
-  ## 🚀 New in vX.Y.Z
-
-  - 🆕 Feature 1: Description
-  - 🔧 Fix: Description
-  - 💄 UI Improvement: Description
-  - 🛠️ Internal changes: Description
-  ```
-
-- Keep changes **clear and concise**.
-- **Link to related issues** (e.g., `Fixes #42`).
-- **Save & Publish** the release.
-
-#### 3. Automatic Deployment via GitHub Actions
-
-Once the release is published:
-
-- **GitHub Actions** (`release.yml`) automatically:
-
-  1. Builds the final **minified** `calendar-card-pro.js`.
-
-  2. **Uploads it to the release assets.**
-
-  3. Makes the release **available for HACS** users.
+- If a PR introduces breaking changes, communicate with the contributor before merging.
+- Consider creating a **separate feature branch** instead of merging directly into `main`.
 
 ## 📦 Managing HACS Releases
 
-### 5️⃣ Keeping HACS Updated
-
 HACS automatically picks up new releases **from GitHub**.
 
-#### 1. **Ensure `hacs.json` is up to date**
+### 1️⃣ **Ensure `hacs.json` is up to date**
 
 - Located in the public repo:
   ```json
@@ -239,81 +283,12 @@ HACS automatically picks up new releases **from GitHub**.
   ```
 - No version number required—HACS reads from **GitHub releases**.
 
-#### 2. Announcing a New Version
+### 2️⃣ Announcing a New Version
 
 After releasing a new version:
 
 - **Post in the Home Assistant forum thread** (if applicable).
 - Update the **README.md** with the latest changes.
-
-## 🛠 Handling Issues & Feature Requests
-
-### 6️⃣ Managing Bug Reports
-
-**Issues should be tracked in the public repo’s GitHub Issues.**
-
-#### 1. Triage New Issues
-
-- Label issues accordingly:
-  - 🐞 **Bug** → Something is broken.
-  - 💡 **Enhancement** → A suggested improvement.
-  - 📚 **Docs** → Documentation issue.
-- Check if it’s **already reported**.
-
-#### 2. Debugging & Fixing
-
-- Try **reproducing the issue** in your test setup.
-- If a fix is required:
-  - Create a **branch in the private repo**.
-  - Fix the issue.
-  - Push the fix **to `dev` in private** and **release via GitHub Actions**.
-
-## 🔄 Handling Pull Requests (Advanced)
-
-### 7️⃣ Managing PRs from Contributors
-
-#### 1. Review Process
-
-- Every PR in the public repo should be **reviewed before merging**.
-- Steps:
-  - **Check the code changes.**
-  - **Ensure it follows ESLint & Prettier rules.**
-  - **Manually test in Home Assistant.**
-
-#### 2. Merging a PR
-
-- If the PR is good to go:
-  - **Merge it into `main` in the public repo.**
-
-#### 3. Syncing the Changes Back to Private
-
-- After merging into `main` in the public repo:
-  ```sh
-  git fetch public-repo
-  git checkout dev
-  git merge public-repo/main
-  ```
-- This ensures **your private repo stays up to date**.
-
-#### 4. Handling Conflicts
-
-If there are conflicts:
-
-1. **Save your current dev work.**
-
-2. Create a **temporary merge branch:**
-   ```sh
-   git checkout -b temp-merge-branch
-   git merge public-repo/main
-   ```
-3. **Fix conflicts manually.**
-
-4. **Merge into `dev`:**
-   ```sh
-   git checkout dev
-   git merge temp-merge-branch
-   git branch -d temp-merge-branch
-   ```
 
 ## 🛠 Overview of Tools Used
 
@@ -332,24 +307,32 @@ If there are conflicts:
 
 1. **Develop & test locally:**
 
-   - `npm run dev`
+   ```sh
+   npm run dev
+   ```
 
 2. **Lint & format:**
-   - `npm run lint --fix`
-   - `npm run format`
+
+   ```sh
+   npm run lint --fix
+   npm run format
+   ```
+
 3. **Test in Home Assistant.**
 
 ### 🔹 Releasing a New Version
 
-1. Ensure the code is **clean & tested.**
+1. Ensure the **code passes all linting and testing** before pushing to production.
 
 2. Push from **private dev branch → public main**.
 
-```sh
-git push public-repo dev:main
-```
+   ```sh
+   git push origin dev:main
+   ```
 
 3. **GitHub Actions** builds & releases automatically.
+
+4. **Confirm & Publish** the Release
 
 ### 🔹 Handling PRs & Issues
 
@@ -397,3 +380,22 @@ This workflow ensures:
 - ✅ **Efficient handling of PRs & bug fixes**
 
 🚀 **Happy coding!**
+
+## 📉 Flowchart
+
+```mermaid
+graph TD;
+    A[Start Development] --> B[Make Code Changes in src/]
+    B --> C[Run npm run dev]
+    C --> D[Lint & Format Code]
+    D -->|Passes| E[Test in Home Assistant]
+    D -->|Fails| F[Fix Issues & Retry]
+    E --> G[Push to private/dev]
+    G --> H[Verify Code & Manually Tag Version]
+    H --> I[Push Tag to public/main]
+    I --> J[GitHub Actions Builds & Drafts Release]
+    J --> K[Review Draft Release & Edit Notes]
+    K -->|Approve| L[Publish Release on GitHub]
+    L --> M[HACS Updates & Release Complete 🎉]
+    K -->|Reject| N[Fix Issues & Retry]
+```
