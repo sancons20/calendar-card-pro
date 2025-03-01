@@ -5,18 +5,17 @@
  * @version 0.1.0
  */
 
-export {}; // Ensure this file is treated as a module
+// Import all types via namespace for cleaner imports
+import * as Types from './config/types';
+import * as Config from './config/config';
+
+// Ensure this file is treated as a module
+export {};
 
 // Add window interface extension for customCards
 declare global {
   interface Window {
-    customCards: Array<{
-      type: string;
-      name: string;
-      preview: boolean;
-      description: string;
-      documentationURL?: string;
-    }>;
+    customCards: Array<Types.CustomCard>;
   }
 
   // Add custom element interface
@@ -27,121 +26,14 @@ declare global {
 
   // Add improved DOM interfaces
   interface HTMLElementEventMap {
-    'hass-more-info': CustomEvent<{ entityId: string }>;
+    'hass-more-info': Types.HassMoreInfoEvent;
     'location-changed': Event;
   }
 }
 
-// Add more specific types for translations
-interface Translations {
-  daysOfWeek: string[];
-  fullDaysOfWeek: string[];
-  months: string[];
-  allDay: string;
-  multiDay: string;
-  at: string;
-  noEvents: string;
-  loading: string;
-  error: string;
-}
-
-// Add specific types for render metrics
-interface PerfMetrics {
-  startTime: number;
-  eventCount: number;
-}
-
-// Make existing interfaces more specific
-interface Config {
-  entities: Array<string | { entity: string; color?: string }>;
-  days_to_show: number;
-  max_events_to_show?: number;
-  show_past_events: boolean;
-  readonly update_interval: number;
-  language: string;
-  time_24h: boolean;
-  show_end_time: boolean;
-  show_month: boolean;
-  show_location: boolean;
-  remove_location_country: boolean;
-  title: string;
-  background_color: string;
-  row_spacing: string;
-  additional_card_spacing: string;
-  vertical_line_width: string;
-  vertical_line_color: string;
-  horizontal_line_width: string;
-  horizontal_line_color: string;
-  title_font_size: string;
-  weekday_font_size: string;
-  day_font_size: string;
-  month_font_size: string;
-  event_font_size: string;
-  time_font_size: string;
-  location_font_size: string;
-  time_location_icon_size: string;
-  title_color: string;
-  weekday_color: string;
-  day_color: string;
-  month_color: string;
-  event_color: string;
-  time_color: string;
-  location_color: string;
-  tap_action: { action: string };
-  hold_action: { action: string };
-}
-
-// Make event interface more specific
-interface CalendarEventData {
-  readonly start: { readonly dateTime?: string; readonly date?: string };
-  readonly end: { readonly dateTime?: string; readonly date?: string };
-  summary?: string;
-  location?: string;
-  _entityConfig?: { color: string; entity: string };
-  time?: string; // Add the 'time' property
-}
-
-interface Hass {
-  states: Record<string, { state: string }>;
-  callApi: (method: string, path: string) => Promise<unknown>;
-  callService: (domain: string, service: string, serviceData?: object) => void;
-}
-
-interface ActionConfig {
-  action: string;
-  navigation_path?: string;
-  service?: string;
-  service_data?: object;
-  url_path?: string;
-  open_tab?: string;
-}
-
-interface EventsByDay {
-  weekday: string;
-  day: number;
-  month: string;
-  timestamp: number;
-  events: CalendarEventData[];
-}
-
-// Add cache interface
-interface CacheEntry {
-  events: CalendarEventData[];
-  timestamp: number;
-}
-
-// Add performance monitoring interface
-interface PerformanceData {
-  readonly renderTime: number[];
-  eventCount: number;
-  readonly lastUpdate: number;
-}
-
-// Add strict type for memoization cache
-interface MemoCache<T> {
-  readonly cache: Map<string, T>;
-  clear(): void;
-}
+/******************************************************************************
+ * MAIN CARD CLASS
+ ******************************************************************************/
 
 // Make class properties more strictly typed
 class CalendarCardPro extends HTMLElement {
@@ -153,9 +45,9 @@ class CalendarCardPro extends HTMLElement {
   };
   private static _countryNames: Set<string>;
   private readonly instanceId: string;
-  private config!: Config;
-  private events: CalendarEventData[] = [];
-  private _hass: Hass | null = null;
+  private config!: Types.Config;
+  private events: Types.CalendarEventData[] = [];
+  private _hass: Types.Hass | null = null;
   private rendered = false;
   private touchState: {
     touchStartY: number;
@@ -170,63 +62,32 @@ class CalendarCardPro extends HTMLElement {
   };
   private isLoading = true;
   private isExpanded = false;
-  private readonly performanceMetrics: Readonly<PerformanceData> = {
+  private readonly performanceMetrics: Readonly<Types.PerformanceData> = {
     renderTime: [],
     eventCount: 0,
     lastUpdate: Date.now(),
   };
   private readonly debouncedUpdate: () => void;
-  private readonly memoizedFormatTime: (date: Date) => string & MemoCache<string>;
-  private readonly memoizedFormatLocation: (location: string) => string & MemoCache<string>;
+  private readonly memoizedFormatTime: (date: Date) => string & Types.MemoCache<string>;
+  private readonly memoizedFormatLocation: (location: string) => string & Types.MemoCache<string>;
   private readonly cleanupInterval: number;
   private renderTimeout?: number;
 
-  //=============================================================================
-  // Static Configuration & Properties
-  //=============================================================================
+  /******************************************************************************
+   * STATIC CONFIGURATION
+   * Imported from config/config.ts
+   ******************************************************************************/
 
-  static get DEFAULT_CONFIG(): Config {
-    return {
-      entities: [],
-      days_to_show: 3,
-      max_events_to_show: undefined,
-      show_past_events: false,
-      update_interval: 43200,
-      language: 'en',
-      time_24h: true,
-      show_end_time: true,
-      show_month: true,
-      show_location: true,
-      remove_location_country: true,
-      title: '',
-      background_color: 'var(--ha-card-background)',
-      row_spacing: '5px',
-      additional_card_spacing: '0px',
-      vertical_line_width: '2px',
-      vertical_line_color: '#03a9f4',
-      horizontal_line_width: '0px',
-      horizontal_line_color: 'var(--secondary-text-color)',
-      title_font_size: '20px',
-      weekday_font_size: '14px',
-      day_font_size: '26px',
-      month_font_size: '12px',
-      event_font_size: '14px',
-      time_font_size: '12px',
-      location_font_size: '12px',
-      time_location_icon_size: '16px',
-      title_color: 'var(--primary-text-color)',
-      weekday_color: 'var(--primary-text-color)',
-      day_color: 'var(--primary-text-color)',
-      month_color: 'var(--primary-text-color)',
-      event_color: 'var(--primary-text-color)',
-      time_color: 'var(--secondary-text-color)',
-      location_color: 'var(--secondary-text-color)',
-      tap_action: { action: 'expand' },
-      hold_action: { action: 'none' },
-    };
+  static get DEFAULT_CONFIG(): Types.Config {
+    return Config.DEFAULT_CONFIG;
   }
 
-  static get TRANSLATIONS(): Readonly<Record<string, Translations>> {
+  /******************************************************************************
+   * TRANSLATIONS
+   * Will be moved to translations/languages/*.json
+   ******************************************************************************/
+
+  static get TRANSLATIONS(): Readonly<Record<string, Types.Translations>> {
     return {
       en: {
         daysOfWeek: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
@@ -295,6 +156,11 @@ class CalendarCardPro extends HTMLElement {
     };
   }
 
+  /******************************************************************************
+   * PERFORMANCE CONSTANTS
+   * Will be moved to utils/helpers.ts
+   ******************************************************************************/
+
   private static readonly PERFORMANCE_THRESHOLDS = {
     RENDER_TIME: 100,
     CHUNK_SIZE: 10,
@@ -303,6 +169,11 @@ class CalendarCardPro extends HTMLElement {
 
   private static readonly CHUNK_SIZE = 10;
   private static readonly RENDER_DELAY = 50;
+
+  /******************************************************************************
+   * STATIC HELPER METHODS
+   * Will be moved to utils/helpers.ts
+   ******************************************************************************/
 
   static get DATE_OBJECTS() {
     if (!this._dateObjects) {
@@ -315,30 +186,32 @@ class CalendarCardPro extends HTMLElement {
     return this._dateObjects;
   }
 
-  static findCalendarEntity(hass: Hass): string | null {
-    return Object.keys(hass.states).find((entityId) => entityId.startsWith('calendar.')) || null;
+  /******************************************************************************
+   * CALENDAR ENTITY UTILITIES
+   * Will be moved to utils/event-utils.ts
+   ******************************************************************************/
+
+  static findCalendarEntity(hass: Types.Hass): string | null {
+    return Config.findCalendarEntity(hass.states);
   }
 
-  static getStubConfig(hass: Hass) {
-    const calendarEntity = this.findCalendarEntity(hass);
-    return {
-      type: 'custom:calendar-card-pro-dev',
-      entities: calendarEntity ? [calendarEntity] : [],
-      days_to_show: 3,
-      show_location: true,
-      _description: !calendarEntity
-        ? 'A calendar card that displays events from multiple calendars with individual styling. Add a calendar integration to Home Assistant to use this card.'
-        : undefined,
-    };
+  /******************************************************************************
+   * CONFIG UTILITIES
+   * Imported from config/config.ts
+   ******************************************************************************/
+
+  static getStubConfig(hass: Types.Hass) {
+    return Config.getStubConfig(hass.states);
   }
 
   static get displayName() {
     return 'Calendar Card Pro';
   }
 
-  //=============================================================================
-  // Lifecycle Methods
-  //=============================================================================
+  /******************************************************************************
+   * LIFECYCLE METHODS
+   * Will be moved to calendar-card-pro.ts (kept in main file)
+   ******************************************************************************/
 
   constructor() {
     super();
@@ -349,16 +222,11 @@ class CalendarCardPro extends HTMLElement {
     this.debouncedUpdate = this.debounce(() => this.updateEvents(), 300);
     this.memoizedFormatTime = this.memoize(this.formatTime) as unknown as (
       date: Date,
-    ) => string & MemoCache<string>;
+    ) => string & Types.MemoCache<string>;
     this.memoizedFormatLocation = this.memoize(this.formatLocation) as unknown as (
       location: string,
-    ) => string & MemoCache<string>;
+    ) => string & Types.MemoCache<string>;
     this.cleanupInterval = window.setInterval(() => this.cleanupCache(), 3600000);
-  }
-
-  formatLocation(location: string): string {
-    // Implement the formatLocation method
-    return location.replace(/, [^,]+$/, ''); // Example implementation
   }
 
   disconnectedCallback() {
@@ -366,12 +234,25 @@ class CalendarCardPro extends HTMLElement {
     this.cleanup();
   }
 
-  //=============================================================================
-  // State Management
-  //=============================================================================
+  /******************************************************************************
+   * BASIC UTILITY METHODS
+   * Will be moved to utils/format-utils.ts
+   ******************************************************************************/
+
+  formatLocation(location: string): string {
+    if (this.config.remove_location_country) {
+      return location.replace(/, [^,]+$/, '');
+    }
+    return location;
+  }
+
+  /******************************************************************************
+   * STATE MANAGEMENT
+   * Will be moved to utils/state-utils.ts
+   ******************************************************************************/
 
   initializeState() {
-    this.config = {} as Config;
+    this.config = {} as Types.Config;
     this.events = [];
     this._hass = null;
     this.rendered = false;
@@ -389,8 +270,8 @@ class CalendarCardPro extends HTMLElement {
     if (this.renderTimeout) {
       clearTimeout(this.renderTimeout);
     }
-    (this.memoizedFormatTime as unknown as MemoCache<string>).cache.clear();
-    (this.memoizedFormatLocation as unknown as MemoCache<string>).cache.clear();
+    (this.memoizedFormatTime as unknown as Types.MemoCache<string>).cache.clear();
+    (this.memoizedFormatLocation as unknown as Types.MemoCache<string>).cache.clear();
   }
 
   cleanupCache() {
@@ -417,7 +298,12 @@ class CalendarCardPro extends HTMLElement {
     return CalendarCardPro.TRANSLATIONS[lang] || CalendarCardPro.TRANSLATIONS.en;
   }
 
-  set hass(hass: Hass) {
+  /******************************************************************************
+   * HOME ASSISTANT INTEGRATION
+   * Will be moved to utils/event-utils.ts
+   ******************************************************************************/
+
+  set hass(hass: Types.Hass) {
     const previousHass = this._hass;
     this._hass = hass;
 
@@ -433,12 +319,17 @@ class CalendarCardPro extends HTMLElement {
     }
   }
 
-  setConfig(config: Partial<Config>) {
+  /******************************************************************************
+   * CONFIGURATION
+   * Using functions from config/config.ts
+   ******************************************************************************/
+
+  setConfig(config: Partial<Types.Config>) {
     const previousConfig = this.config;
     this.config = { ...CalendarCardPro.DEFAULT_CONFIG, ...config };
-    this.config.entities = this.normalizeEntities(this.config.entities);
+    this.config.entities = Config.normalizeEntities(this.config.entities);
 
-    if (this.hasConfigChanged(previousConfig, this.config)) {
+    if (Config.hasConfigChanged(previousConfig, this.config)) {
       this.invalidateCache();
       this.updateEvents(true);
     } else {
@@ -478,7 +369,7 @@ class CalendarCardPro extends HTMLElement {
     return previous.some((entity, index) => entity !== current[index]);
   }
 
-  hasConfigChanged(previous: Config, current: Config) {
+  hasConfigChanged(previous: Types.Config, current: Types.Config) {
     if (!previous) return true;
 
     const relevantKeys = ['entities', 'days_to_show', 'show_past_events', 'update_interval'];
@@ -487,6 +378,11 @@ class CalendarCardPro extends HTMLElement {
       (key) => JSON.stringify(previous[key]) !== JSON.stringify(current[key]),
     );
   }
+
+  /******************************************************************************
+   * CACHE MANAGEMENT
+   * Will be moved to utils/state-utils.ts
+   ******************************************************************************/
 
   invalidateCache() {
     const cacheKeys = this.getAllCacheKeys();
@@ -520,7 +416,9 @@ class CalendarCardPro extends HTMLElement {
     )}_${days_to_show}_${show_past_events}_${configHash}`;
   }
 
-  hashConfig(config: Config) {
+  hashConfig(config: Types.Config) {
+    // This is actually a general utility function
+    // Will be moved to utils/helpers.ts
     return btoa(JSON.stringify(config)).substring(0, 8);
   }
 
@@ -530,6 +428,11 @@ class CalendarCardPro extends HTMLElement {
     }
     return true;
   }
+
+  /******************************************************************************
+   * EVENT FETCHING & PROCESSING
+   * Will be moved to utils/event-utils.ts
+   ******************************************************************************/
 
   async updateEvents(force = false): Promise<void> {
     if (!this.isValidState()) return;
@@ -560,9 +463,9 @@ class CalendarCardPro extends HTMLElement {
     }
   }
 
-  async fetchEvents(): Promise<ReadonlyArray<CalendarEventData>> {
+  async fetchEvents(): Promise<ReadonlyArray<Types.CalendarEventData>> {
     const timeWindow = this.getTimeWindow();
-    const allEvents: CalendarEventData[] = [];
+    const allEvents: Types.CalendarEventData[] = [];
 
     for (const entityConfig of this.config.entities) {
       try {
@@ -572,16 +475,18 @@ class CalendarCardPro extends HTMLElement {
             typeof entityConfig === 'string' ? entityConfig : entityConfig.entity
           }?start=${timeWindow.start.toISOString()}&end=${timeWindow.end.toISOString()}`,
         );
-        const processedEvents = (events as CalendarEventData[]).map((event: CalendarEventData) => ({
-          ...event,
-          _entityConfig: {
-            entity: typeof entityConfig === 'string' ? entityConfig : entityConfig.entity,
-            color:
-              typeof entityConfig === 'string'
-                ? 'var(--primary-text-color)'
-                : entityConfig.color || 'var(--primary-text-color)',
-          },
-        }));
+        const processedEvents = (events as Types.CalendarEventData[]).map(
+          (event: Types.CalendarEventData) => ({
+            ...event,
+            _entityConfig: {
+              entity: typeof entityConfig === 'string' ? entityConfig : entityConfig.entity,
+              color:
+                typeof entityConfig === 'string'
+                  ? 'var(--primary-text-color)'
+                  : entityConfig.color || 'var(--primary-text-color)',
+            },
+          }),
+        );
         allEvents.push(...processedEvents);
       } catch (error) {
         console.warn(
@@ -594,7 +499,7 @@ class CalendarCardPro extends HTMLElement {
     return allEvents;
   }
 
-  async fetchTodayEvents(): Promise<CalendarEventData[] | null> {
+  async fetchTodayEvents(): Promise<Types.CalendarEventData[] | null> {
     try {
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -609,7 +514,7 @@ class CalendarCardPro extends HTMLElement {
             : this.config.entities[0].entity
         }?start=${start.toISOString()}&end=${end.toISOString()}`,
       );
-      return events as CalendarEventData[];
+      return events as Types.CalendarEventData[];
     } catch {
       return null;
     }
@@ -624,10 +529,15 @@ class CalendarCardPro extends HTMLElement {
     dates.todayEnd.setHours(23, 59, 59, 999);
   }
 
-  getCachedEvents(): ReadonlyArray<CalendarEventData> | null {
+  /******************************************************************************
+   * EVENT CACHING
+   * Will be moved to utils/state-utils.ts
+   ******************************************************************************/
+
+  getCachedEvents(): ReadonlyArray<Types.CalendarEventData> | null {
     const cacheKey = this.getCacheKey();
     try {
-      const cache = JSON.parse(localStorage.getItem(cacheKey)!) as CacheEntry;
+      const cache = JSON.parse(localStorage.getItem(cacheKey)!) as Types.CacheEntry;
       const cacheDuration = (this.config.update_interval || 300) * 1000;
 
       if (cache && Date.now() - cache.timestamp < cacheDuration) {
@@ -640,7 +550,7 @@ class CalendarCardPro extends HTMLElement {
     return null;
   }
 
-  cacheEvents(events: ReadonlyArray<CalendarEventData>): boolean {
+  cacheEvents(events: ReadonlyArray<Types.CalendarEventData>): boolean {
     const cacheKey = this.getCacheKey();
     try {
       localStorage.setItem(
@@ -657,11 +567,12 @@ class CalendarCardPro extends HTMLElement {
     }
   }
 
-  //=============================================================================
-  // Event Management
-  //=============================================================================
+  /******************************************************************************
+   * ACTION HANDLING
+   * Will be moved to utils/actions.ts
+   ******************************************************************************/
 
-  handleAction(actionConfig: ActionConfig) {
+  handleAction(actionConfig: Types.ActionConfig) {
     if (!this._hass || !actionConfig) return;
 
     const actions: Record<string, () => void> = {
@@ -694,21 +605,21 @@ class CalendarCardPro extends HTMLElement {
     this.dispatchEvent(event);
   }
 
-  handleNavigation(actionConfig: ActionConfig) {
+  handleNavigation(actionConfig: Types.ActionConfig) {
     if (actionConfig.navigation_path) {
       window.history.pushState(null, '', actionConfig.navigation_path);
       window.dispatchEvent(new Event('location-changed'));
     }
   }
 
-  callService(actionConfig: ActionConfig) {
+  callService(actionConfig: Types.ActionConfig) {
     if (actionConfig.service) {
       const [domain, service] = actionConfig.service.split('.');
       this._hass!.callService(domain, service, actionConfig.service_data || {});
     }
   }
 
-  openUrl(actionConfig: ActionConfig) {
+  openUrl(actionConfig: Types.ActionConfig) {
     if (actionConfig.url_path) {
       window.open(actionConfig.url_path, actionConfig.open_tab || '_blank');
     }
@@ -760,26 +671,20 @@ class CalendarCardPro extends HTMLElement {
     cardContainer.addEventListener('pointercancel', handlePointerCancel);
   }
 
-  //=============================================================================
-  // Calendar Event Processing
-  //=============================================================================
+  /******************************************************************************
+   * EVENT PROCESSING
+   * Will be moved to utils/event-utils.ts
+   ******************************************************************************/
 
   /**
    * Process calendar events and group them by day
    * When max_events_to_show is set and card is not expanded,
    * limits the total number of events shown across all days
-   * @typedef {Object} EventsByDay
-   * @property {string} weekday - Translated weekday name
-   * @property {number} day - Day of month
-   * @property {string} month - Translated month name
-   * @property {number} timestamp - Unix timestamp
-   * @property {Array} events - Array of processed events
-   *
-   * @returns {Array<EventsByDay>} Array of day objects containing grouped events
+   * @returns {Array<Types.EventsByDay>} Array of day objects containing grouped events
    */
   groupEventsByDay() {
-    /** @type {Record<string, EventsByDay>} */
-    const eventsByDay: Record<string, EventsByDay> = {};
+    /** @type {Record<string, Types.EventsByDay>} */
+    const eventsByDay: Record<string, Types.EventsByDay> = {};
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayEnd = new Date(todayStart);
@@ -897,7 +802,7 @@ class CalendarCardPro extends HTMLElement {
    * @param {Object} event Calendar event object
    * @returns {string} Formatted time string
    */
-  formatEventTime(event: CalendarEventData) {
+  formatEventTime(event: Types.CalendarEventData) {
     const startDate = new Date(event.start.dateTime || event.start.date || '');
     const endDate = new Date(event.end.dateTime || event.end.date || '');
     const isAllDayEvent = !event.start.dateTime;
@@ -986,9 +891,9 @@ class CalendarCardPro extends HTMLElement {
     return `${hours}:${minutes.toString().padStart(2, '0')}`;
   }
 
-  //=============================================================================
-  // Rendering & Display
-  //=============================================================================
+  /******************************************************************************
+   * RENDERING & DISPLAY
+   ******************************************************************************/
 
   /**
    * Render calendar card content progressively to optimize performance
@@ -996,7 +901,7 @@ class CalendarCardPro extends HTMLElement {
    * @param {Array} days Array of day objects to render
    * @returns {DocumentFragment} Fragment containing rendered content
    */
-  async renderProgressively(days: EventsByDay[]): Promise<DocumentFragment> {
+  async renderProgressively(days: Types.EventsByDay[]): Promise<DocumentFragment> {
     if (!days.length) {
       const fragment = document.createDocumentFragment();
       const noEventsDiv = document.createElement('div');
@@ -1011,7 +916,7 @@ class CalendarCardPro extends HTMLElement {
       const chunk = days.slice(startIdx, startIdx + CalendarCardPro.CHUNK_SIZE);
       if (!chunk.length) return;
 
-      chunk.forEach((day: EventsByDay) => {
+      chunk.forEach((day: Types.EventsByDay) => {
         if (day.events.length === 0) return;
         const table = document.createElement('table');
         table.innerHTML = this.generateDayContent(day);
@@ -1189,7 +1094,12 @@ class CalendarCardPro extends HTMLElement {
     `;
   }
 
-  generateCalendarContent(days: EventsByDay[]): string {
+  /******************************************************************************
+   * HTML GENERATION
+   * Will be moved to rendering/render.ts
+   ******************************************************************************/
+
+  generateCalendarContent(days: Types.EventsByDay[]): string {
     if (!days.length) {
       return '<div class="no-events">No upcoming events</div>';
     }
@@ -1200,7 +1110,7 @@ class CalendarCardPro extends HTMLElement {
 
         const eventRows = day.events
           .map(
-            (event: CalendarEventData, index: number) => `
+            (event: Types.CalendarEventData, index: number) => `
         <tr>
           ${
             index === 0
@@ -1246,10 +1156,10 @@ class CalendarCardPro extends HTMLElement {
       .join('');
   }
 
-  generateDayContent(day: EventsByDay): string {
+  generateDayContent(day: Types.EventsByDay): string {
     return day.events
       .map(
-        (event: CalendarEventData, index: number) => `
+        (event: Types.CalendarEventData, index: number) => `
       <tr>
         ${
           index === 0
@@ -1292,6 +1202,11 @@ class CalendarCardPro extends HTMLElement {
       )
       .join('');
   }
+
+  /******************************************************************************
+   * STYLING
+   * Will be moved to rendering/styles.ts
+   ******************************************************************************/
 
   getStyles(): string {
     // First define the custom properties
@@ -1385,7 +1300,7 @@ class CalendarCardPro extends HTMLElement {
         font-size: var(--card-font-size-month);
         line-height: var(--card-font-size-month);
         text-transform: uppercase;
-        color: var(--card-color-month);
+        color:var(--card-color-month);
       }
       .event {
         padding-left: 12px;
@@ -1428,6 +1343,11 @@ class CalendarCardPro extends HTMLElement {
     `;
   }
 
+  /******************************************************************************
+   * UTILITY FUNCTIONS
+   * Will be moved to utils/helpers.ts
+   ******************************************************************************/
+
   /**
    * Debounce helper to limit function call frequency
    * @param {Function} func Function to debounce
@@ -1456,7 +1376,7 @@ class CalendarCardPro extends HTMLElement {
    */
   memoize<T extends readonly unknown[], R>(
     func: (...args: T) => R,
-  ): ((...args: T) => R) & MemoCache<R> {
+  ): ((...args: T) => R) & Types.MemoCache<R> {
     const cache = new Map<string, R>();
     const memoizedFunc = (...args: T): R => {
       const key = JSON.stringify(args);
@@ -1471,15 +1391,16 @@ class CalendarCardPro extends HTMLElement {
     return Object.assign(memoizedFunc, { cache, clear: () => cache.clear() });
   }
 
-  //=============================================================================
-  // Utility Methods
-  //=============================================================================
+  /******************************************************************************
+   * PERFORMANCE MONITORING
+   * Will be moved to utils/helpers.ts
+   ******************************************************************************/
 
   /**
    * Performance monitoring utilities
    * @private
    */
-  beginPerfMetrics(): PerfMetrics {
+  beginPerfMetrics(): Types.PerfMetrics {
     return {
       startTime: performance.now(),
       eventCount: this.events.length,
@@ -1521,52 +1442,33 @@ class CalendarCardPro extends HTMLElement {
   }
 }
 
+/******************************************************************************
+ * EDITOR COMPONENT
+ * Will be moved to rendering/editor.ts
+ ******************************************************************************/
+
 // This is a placeholder for future UI editor implementation
 // Currently not used since we removed getConfigElement
 class CalendarCardProEditor extends HTMLElement {
-  public setConfig(_config: Readonly<Partial<Config>>): void {
+  public setConfig(_config: Readonly<Partial<Types.Config>>): void {
     // Will be implemented later when we build the UI editor
   }
 }
+
+/******************************************************************************
+ * ELEMENT REGISTRATION
+ * Will be kept in calendar-card-pro.ts (main entry point)
+ ******************************************************************************/
 
 // Register the custom element
 customElements.define('calendar-card-pro-dev', CalendarCardPro);
 customElements.define('calendar-card-pro-dev-editor', CalendarCardProEditor);
 
 // Card registration for HACS and Home Assistant
-(
-  window as unknown as {
-    customCards: Array<{
-      type: string;
-      name: string;
-      preview: boolean;
-      description: string;
-      documentationURL?: string;
-    }>;
-  }
-).customCards =
-  (
-    window as unknown as {
-      customCards: Array<{
-        type: string;
-        name: string;
-        preview: boolean;
-        description: string;
-        documentationURL?: string;
-      }>;
-    }
-  ).customCards || [];
-(
-  window as unknown as {
-    customCards: Array<{
-      type: string;
-      name: string;
-      preview: boolean;
-      description: string;
-      documentationURL?: string;
-    }>;
-  }
-).customCards.push({
+(window as unknown as { customCards: Array<Types.CustomCard> }).customCards =
+  (window as unknown as { customCards: Array<Types.CustomCard> }).customCards || [];
+
+(window as unknown as { customCards: Array<Types.CustomCard> }).customCards.push({
   type: 'calendar-card-pro-dev',
   name: 'Calendar Card Pro',
   preview: true,

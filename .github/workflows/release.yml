@@ -95,8 +95,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/calendar-card-pro.js
-          tag_name: ${{ env.tag }}
-          name: 'Calendar Card Pro ${{ env.tag }}'
+          tag_name: ${{ steps.get_tag.outputs.tag }}
+          name: 'Calendar Card Pro ${{ steps.get_tag.outputs.tag }}'
           body: ${{ steps.generate_notes.outputs.body }}
           draft: true
           prerelease: false

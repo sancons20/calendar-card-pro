@@ -14,6 +14,14 @@
     "experimentalDecorators": true,
     "sourceMap": true,
     "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "baseUrl": "src",
+    "paths": {
+      "@config/*": ["config/*"],
+      "@translations/*": ["translations/*"],
+      "@utils/*": ["utils/*"],
+      "@rendering/*": ["rendering/*"]
+    },
     "noEmit": true
   },
   "include": ["src/**/*"]
