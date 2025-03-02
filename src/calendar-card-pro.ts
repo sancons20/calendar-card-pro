@@ -15,6 +15,7 @@ import * as EventUtils from './utils/event-utils';
 import * as ActionUtils from './utils/actions';
 import * as Helpers from './utils/helpers';
 import * as Styles from './rendering/styles';
+import * as Render from './rendering/render';
 
 // Ensure this file is treated as a module
 export {};
@@ -527,35 +528,14 @@ class CalendarCardPro extends HTMLElement {
    * @returns {DocumentFragment} Fragment containing rendered content
    */
   async renderProgressively(days: Types.EventsByDay[]): Promise<DocumentFragment> {
-    if (!days.length) {
-      const fragment = document.createDocumentFragment();
-      const noEventsDiv = document.createElement('div');
-      noEventsDiv.className = 'no-events';
-      noEventsDiv.textContent = 'No upcoming events';
-      fragment.appendChild(noEventsDiv);
-      return fragment;
-    }
-
-    const fragment = document.createDocumentFragment();
-    const renderChunk = async (startIdx: number): Promise<void> => {
-      const chunk = days.slice(startIdx, startIdx + CalendarCardPro.CHUNK_SIZE);
-      if (!chunk.length) return;
-
-      chunk.forEach((day: Types.EventsByDay) => {
-        if (day.events.length === 0) return;
-        const table = document.createElement('table');
-        table.innerHTML = this.generateDayContent(day);
-        fragment.appendChild(table);
-      });
-
-      if (startIdx + CalendarCardPro.CHUNK_SIZE < days.length) {
-        await new Promise((resolve) => setTimeout(resolve, CalendarCardPro.RENDER_DELAY));
-        await renderChunk(startIdx + CalendarCardPro.CHUNK_SIZE);
-      }
-    };
-
-    await renderChunk(0);
-    return fragment;
+    return Render.renderProgressively(
+      days,
+      this.config,
+      (event) => this.formatEventTime(event),
+      (location) => this.formatLocation(location),
+      CalendarCardPro.CHUNK_SIZE,
+      CalendarCardPro.RENDER_DELAY,
+    );
   }
 
   async renderCard() {
@@ -627,219 +607,48 @@ class CalendarCardPro extends HTMLElement {
    * @private
    */
   renderError(state: 'loading' | 'empty' | 'error') {
-    if (state === 'loading') {
-      const container = document.createElement('div');
-      container.className = 'card-container';
+    const result = Render.renderErrorState(state, this.config);
 
-      const content = document.createElement('div');
-      content.className = 'card-content';
-      content.innerHTML = `
-        <div style="text-align: center; color: var(--primary-text-color);">
-          ${Localize.translateString(this.config.language, 'loading')}
-        </div>`;
-
-      container.appendChild(content);
-
-      const style = document.createElement('style');
-      style.textContent = this.getStyles();
-
-      // Update shadow DOM
-      while (this.shadowRoot?.firstChild) {
-        this.shadowRoot.removeChild(this.shadowRoot.firstChild);
-      }
-
-      this.shadowRoot?.appendChild(style);
-      this.shadowRoot?.appendChild(container);
-      return;
+    // Clear shadow DOM
+    while (this.shadowRoot?.firstChild) {
+      this.shadowRoot.removeChild(this.shadowRoot.firstChild);
     }
 
-    if (state === 'empty') {
-      // Create a card that looks like a regular calendar entry
-      const now = new Date();
-      const emptyDay = {
-        weekday: Localize.getDayName(this.config.language, now.getDay()),
-        day: now.getDate(),
-        month: Localize.getMonthName(this.config.language, now.getMonth()),
-        events: [
-          {
-            summary: Localize.translateString(this.config.language, 'noEvents'),
-            time: '', // No time display
-            location: '', // No location
-            _entityConfig: { color: 'var(--secondary-text-color)' },
-          },
-        ],
-      };
-
-      const container = document.createElement('div');
-      container.className = 'card-container';
-
-      const content = document.createElement('div');
-      content.className = 'card-content';
-
-      // Modified the empty state to not show time icon
-      content.innerHTML = `
-        <table>
-          <tr>
-            <td class="date" rowspan="1">
-              <div class="date-content">
-                <div class="weekday">${emptyDay.weekday}</div>
-                <div class="day">${emptyDay.day}</div>
-                ${this.config.show_month ? `<div class="month">${emptyDay.month}</div>` : ''}
-              </div>
-            </td>
-            <td class="event">
-              <div class="event-content">
-                <div class="event-title" style="color: ${emptyDay.events[0]._entityConfig.color}">
-                  ${emptyDay.events[0].summary}
-                </div>
-              </div>
-            </td>
-          </tr>
-        </table>`;
-
-      container.appendChild(content);
-
-      const style = document.createElement('style');
-      style.textContent = this.getStyles();
-
-      // Update shadow DOM
-      while (this.shadowRoot?.firstChild) {
-        this.shadowRoot.removeChild(this.shadowRoot.firstChild);
-      }
-
-      this.shadowRoot?.appendChild(style);
-      this.shadowRoot?.appendChild(container);
-      return;
+    // Check which type of result we got back
+    if ('container' in result && 'style' in result) {
+      // Handle DOM element result
+      this.shadowRoot?.appendChild(result.style);
+      this.shadowRoot?.appendChild(result.container);
+    } else {
+      // Handle HTML string result
+      this.shadowRoot!.innerHTML = `
+        <style>${result.styleText}</style>
+        ${result.html}
+      `;
     }
-
-    // For other states (error/loading) use simple message display
-    const messages = {
-      error: `<p style="color: var(--error-color, red);">${Localize.translateString(
-        this.config.language,
-        'error',
-      )}</p>`,
-      loading: `<p style="color: var(--secondary-text-color);">${Localize.translateString(
-        this.config.language,
-        'loading',
-      )}</p>`,
-    };
-
-    // Use the simplified error styles for error messages
-    this.shadowRoot!.innerHTML = `
-      <style>${Styles.getErrorStyles()}</style>
-      <div class="card-content">
-        ${messages[state]}
-      </div>
-    `;
   }
 
   /******************************************************************************
    * HTML GENERATION
-   * Will be moved to rendering/render.ts
+   * Moved to rendering/render.ts
    ******************************************************************************/
 
   generateCalendarContent(days: Types.EventsByDay[]): string {
-    if (!days.length) {
-      return '<div class="no-events">No upcoming events</div>';
-    }
-
-    return days
-      .map((day) => {
-        if (day.events.length === 0) return '';
-
-        const eventRows = day.events
-          .map(
-            (event: Types.CalendarEventData, index: number) => `
-        <tr>
-          ${
-            index === 0
-              ? `
-            <td class="date" rowspan="${day.events.length}">
-              <div class="date-content">
-                <div class="weekday">${day.weekday}</div>
-                <div class="day">${day.day}</div>
-                ${this.config.show_month ? `<div class="month">${day.month}</div>` : ''}
-              </div>
-            </td>
-          `
-              : ''
-          }
-          <td class="event">
-            <div class="event-content">
-              <div class="event-title">${event.summary}</div>
-              <div class="time-location">
-                <div class="time">
-                  <ha-icon icon="hass:clock-outline"></ha-icon>
-                  <span>${this.formatEventTime(event)}</span>
-                </div>
-                ${
-                  event.location
-                    ? `
-                  <div class="location">
-                    <ha-icon icon="hass:map-marker"></ha-icon>
-                    <span>${this.formatLocation(event.location)}</span>
-                  </div>
-                `
-                    : ''
-                }
-              </div>
-            </div>
-          </td>
-        </tr>
-      `,
-          )
-          .join('');
-
-        return `<table>${eventRows}</table>`;
-      })
-      .join('');
+    return Render.generateCalendarContent(
+      days,
+      this.config,
+      (event) => this.formatEventTime(event),
+      (location) => this.formatLocation(location),
+    );
   }
 
   generateDayContent(day: Types.EventsByDay): string {
-    return day.events
-      .map(
-        (event: Types.CalendarEventData, index: number) => `
-      <tr>
-        ${
-          index === 0
-            ? `
-          <td class="date" rowspan="${day.events.length}">
-            <div class="date-content">
-              <div class="weekday">${day.weekday}</div>
-              <div class="day">${day.day}</div>
-              ${this.config.show_month ? `<div class="month">${day.month}</div>` : ''}
-            </div>
-          </td>
-        `
-            : ''
-        }
-        <td class="event">
-          <div class="event-content">
-            <div class="event-title" style="color: ${
-              event._entityConfig?.color
-            }">${event.summary}</div>
-            <div class="time-location">
-              <div class="time">
-                <ha-icon icon="hass:clock-outline"></ha-icon>
-                <span>${this.formatEventTime(event)}</span>
-              </div>
-              ${
-                event.location
-                  ? `
-                <div class="location">
-                  <ha-icon icon="hass:map-marker"></ha-icon>
-                  <span>${this.formatLocation(event.location)}</span>
-                </div>
-              `
-                  : ''
-              }
-            </div>
-          </div>
-        </td>
-      </tr>
-    `,
-      )
-      .join('');
+    return Render.generateDayContent(
+      day,
+      this.config,
+      (event) => this.formatEventTime(event),
+      (location) => this.formatLocation(location),
+    );
   }
 
   /******************************************************************************
