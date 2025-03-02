@@ -13,6 +13,7 @@ import * as Localize from './translations/localize';
 import * as FormatUtils from './utils/format-utils';
 import * as EventUtils from './utils/event-utils';
 import * as ActionUtils from './utils/actions';
+import * as Helpers from './utils/helpers';
 
 // Ensure this file is treated as a module
 export {};
@@ -98,17 +99,12 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * PERFORMANCE CONSTANTS
-   * Will be moved to utils/helpers.ts
+   * Moved to utils/helpers.ts
    ******************************************************************************/
 
-  private static readonly PERFORMANCE_THRESHOLDS = {
-    RENDER_TIME: 100,
-    CHUNK_SIZE: 10,
-    RENDER_DELAY: 50,
-  } as const;
-
-  private static readonly CHUNK_SIZE = 10;
-  private static readonly RENDER_DELAY = 50;
+  private static readonly PERFORMANCE_THRESHOLDS = Helpers.PERFORMANCE_CONSTANTS;
+  private static readonly CHUNK_SIZE = Helpers.PERFORMANCE_CONSTANTS.CHUNK_SIZE;
+  private static readonly RENDER_DELAY = Helpers.PERFORMANCE_CONSTANTS.RENDER_DELAY;
 
   /******************************************************************************
    * STATIC HELPER METHODS
@@ -156,18 +152,21 @@ class CalendarCardPro extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
-    this.instanceId = Math.random().toString(36).substring(2, 15);
+    this.instanceId = Helpers.generateInstanceId();
     this.initializeState();
 
-    this.debouncedUpdate = this.debounce(() => this.updateEvents(), 300);
+    // Use the helper functions
+    this.debouncedUpdate = Helpers.debounce(() => this.updateEvents(), 300);
 
-    // Fix: Use arrow functions to call utility functions instead of accessing non-existent class methods
-    this.memoizedFormatTime = this.memoize((date: Date) =>
-      FormatUtils.formatTime(date, this.config.time_24h),
+    this.memoizedFormatTime = Helpers.memoize(
+      (date: Date) => FormatUtils.formatTime(date, this.config.time_24h),
+      this,
     ) as unknown as (date: Date) => string & Types.MemoCache<string>;
 
-    this.memoizedFormatLocation = this.memoize((location: string) =>
-      FormatUtils.formatLocation(location, this.config.remove_location_country),
+    this.memoizedFormatLocation = Helpers.memoize(
+      (location: string) =>
+        FormatUtils.formatLocation(location, this.config.remove_location_country),
+      this,
     ) as unknown as (location: string) => string & Types.MemoCache<string>;
 
     this.cleanupInterval = window.setInterval(() => this.cleanupCache(), 3600000);
@@ -337,16 +336,10 @@ class CalendarCardPro extends HTMLElement {
 
   getBaseCacheKey() {
     const { entities, days_to_show, show_past_events } = this.config;
-    const configHash = this.hashConfig(this.config);
+    const configHash = Helpers.hashConfig(this.config);
     return `calendar_${this.instanceId}_${entities.join(
       '_',
     )}_${days_to_show}_${show_past_events}_${configHash}`;
-  }
-
-  hashConfig(config: Types.Config) {
-    // This is actually a general utility function
-    // Will be moved to utils/helpers.ts
-    return btoa(JSON.stringify(config)).substring(0, 8);
   }
 
   isValidState() {
@@ -995,15 +988,7 @@ class CalendarCardPro extends HTMLElement {
     func: T,
     wait: number,
   ): (...args: Parameters<T>) => void {
-    let timeout: number;
-    return (...args: Parameters<T>): void => {
-      const later = () => {
-        clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = window.setTimeout(later, wait);
-    };
+    return Helpers.debounce(func, wait);
   }
 
   /**
@@ -1014,23 +999,12 @@ class CalendarCardPro extends HTMLElement {
   memoize<T extends readonly unknown[], R>(
     func: (...args: T) => R,
   ): ((...args: T) => R) & Types.MemoCache<R> {
-    const cache = new Map<string, R>();
-    const memoizedFunc = (...args: T): R => {
-      const key = JSON.stringify(args);
-      if (cache.has(key)) return cache.get(key)!;
-
-      // Use call with spread operator instead of apply with array
-      const result = func.call(this, ...args);
-
-      cache.set(key, result);
-      return result;
-    };
-    return Object.assign(memoizedFunc, { cache, clear: () => cache.clear() });
+    return Helpers.memoize(func, this);
   }
 
   /******************************************************************************
    * PERFORMANCE MONITORING
-   * Will be moved to utils/helpers.ts
+   * Moved to utils/helpers.ts
    ******************************************************************************/
 
   /**
@@ -1038,10 +1012,7 @@ class CalendarCardPro extends HTMLElement {
    * @private
    */
   beginPerfMetrics(): Types.PerfMetrics {
-    return {
-      startTime: performance.now(),
-      eventCount: this.events.length,
-    };
+    return Helpers.beginPerfMetrics(this.events.length);
   }
 
   /**
@@ -1049,33 +1020,19 @@ class CalendarCardPro extends HTMLElement {
    * @param {Object} metrics Metrics object from beginPerfMetrics
    */
   endPerfMetrics(metrics: { startTime: number; eventCount: number }) {
-    const duration = performance.now() - metrics.startTime;
-    this.performanceMetrics.renderTime.push(duration);
-    // this.performanceMetrics.eventCount = metrics.eventCount; // Avoid assigning to read-only property
-
-    // Keep only last 10 measurements
-    if (this.performanceMetrics.renderTime.length > 10) {
-      this.performanceMetrics.renderTime.shift();
-    }
-
-    // Log if performance is poor
-    const avgRenderTime = this.getAverageRenderTime();
-    if (avgRenderTime > CalendarCardPro.PERFORMANCE_THRESHOLDS.RENDER_TIME) {
-      console.warn('Calendar-Card-Pro: Poor rendering performance detected', {
-        averageRenderTime: avgRenderTime,
-        eventCount: this.performanceMetrics.eventCount,
-      });
-    }
+    Helpers.endPerfMetrics(
+      metrics,
+      this.performanceMetrics,
+      Helpers.PERFORMANCE_CONSTANTS.RENDER_TIME_THRESHOLD,
+    );
   }
 
   getAverageRenderTime() {
-    if (!this.performanceMetrics.renderTime.length) return 0;
-    const sum = this.performanceMetrics.renderTime.reduce((a, b) => a + b, 0);
-    return sum / this.performanceMetrics.renderTime.length;
+    return Helpers.getAverageRenderTime(this.performanceMetrics);
   }
 
   private handleError(error: unknown): void {
-    console.error('Calendar-Card-Pro:', error instanceof Error ? error.message : String(error));
+    Helpers.handleError(error);
   }
 }
 
