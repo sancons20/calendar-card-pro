@@ -10,6 +10,8 @@
 import * as Config from './config/config';
 import * as Types from './config/types';
 import * as Localize from './translations/localize';
+import * as FormatUtils from './utils/format-utils';
+import * as EventUtils from './utils/event-utils';
 
 // Ensure this file is treated as a module
 export {};
@@ -157,12 +159,16 @@ class CalendarCardPro extends HTMLElement {
     this.initializeState();
 
     this.debouncedUpdate = this.debounce(() => this.updateEvents(), 300);
-    this.memoizedFormatTime = this.memoize(this.formatTime) as unknown as (
-      date: Date,
-    ) => string & Types.MemoCache<string>;
-    this.memoizedFormatLocation = this.memoize(this.formatLocation) as unknown as (
-      location: string,
-    ) => string & Types.MemoCache<string>;
+
+    // Fix: Use arrow functions to call utility functions instead of accessing non-existent class methods
+    this.memoizedFormatTime = this.memoize((date: Date) =>
+      FormatUtils.formatTime(date, this.config.time_24h),
+    ) as unknown as (date: Date) => string & Types.MemoCache<string>;
+
+    this.memoizedFormatLocation = this.memoize((location: string) =>
+      FormatUtils.formatLocation(location, this.config.remove_location_country),
+    ) as unknown as (location: string) => string & Types.MemoCache<string>;
+
     this.cleanupInterval = window.setInterval(() => this.cleanupCache(), 3600000);
   }
 
@@ -173,14 +179,11 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * BASIC UTILITY METHODS
-   * Will be moved to utils/format-utils.ts
+   * Moved to utils/format-utils.ts
    ******************************************************************************/
 
   formatLocation(location: string): string {
-    if (this.config.remove_location_country) {
-      return location.replace(/, [^,]+$/, '');
-    }
-    return location;
+    return FormatUtils.formatLocation(location, this.config.remove_location_country);
   }
 
   /******************************************************************************
@@ -212,22 +215,8 @@ class CalendarCardPro extends HTMLElement {
   }
 
   cleanupCache() {
-    const now = Date.now();
     const cachePrefix = `calendar_${this.config.entities.join('_')}`;
-
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key?.startsWith(cachePrefix)) {
-        try {
-          const cache = JSON.parse(localStorage.getItem(key)!);
-          if (now - cache.timestamp > 86400000) {
-            localStorage.removeItem(key);
-          }
-        } catch {
-          localStorage.removeItem(key);
-        }
-      }
-    }
+    EventUtils.cleanupCache(cachePrefix);
   }
 
   get translations() {
@@ -323,7 +312,7 @@ class CalendarCardPro extends HTMLElement {
 
   invalidateCache() {
     const cacheKeys = this.getAllCacheKeys();
-    cacheKeys.forEach((key) => localStorage.removeItem(key));
+    EventUtils.invalidateCache(cacheKeys);
   }
 
   getAllCacheKeys() {
@@ -360,21 +349,21 @@ class CalendarCardPro extends HTMLElement {
   }
 
   isValidState() {
-    if (!this._hass || !this.config.entities.length) {
-      return false;
-    }
-    return true;
+    return EventUtils.isValidState(this._hass, this.config.entities);
   }
 
   /******************************************************************************
    * EVENT FETCHING & PROCESSING
-   * Will be moved to utils/event-utils.ts
+   * Moved to utils/event-utils.ts
    ******************************************************************************/
 
   async updateEvents(force = false): Promise<void> {
     if (!this.isValidState()) return;
 
-    const cachedData = !force && this.getCachedEvents();
+    const cacheKey = this.getCacheKey();
+    const cacheDuration = (this.config.update_interval || 300) * 1000;
+
+    const cachedData = !force && EventUtils.getCachedEvents(cacheKey, cacheDuration);
     if (cachedData) {
       this.events = [...cachedData];
       this.renderCard();
@@ -385,122 +374,30 @@ class CalendarCardPro extends HTMLElement {
     this.renderCard();
 
     try {
-      const events = await this.fetchEvents();
+      // Convert string entities to EntityConfig objects for EventUtils
+      const entities = this.config.entities.map((entity) => {
+        return typeof entity === 'string' ? { entity, color: 'var(--primary-text-color)' } : entity;
+      });
+
+      const timeWindow = EventUtils.getTimeWindow(this.config.days_to_show);
+      const events = await EventUtils.fetchEvents(this._hass!, entities, timeWindow);
       this.events = [...events];
-      this.cacheEvents(events);
+      EventUtils.cacheEvents(cacheKey, events);
     } catch (error: unknown) {
       if (this.events.length === 0) {
-        const partialEvents = await this.fetchTodayEvents();
+        // Try to fetch at least today's events as fallback
+        const firstEntity =
+          typeof this.config.entities[0] === 'string'
+            ? this.config.entities[0]
+            : this.config.entities[0].entity;
+
+        const partialEvents = await EventUtils.fetchTodayEvents(this._hass!, firstEntity);
         this.events = partialEvents ? [...partialEvents] : [];
       }
       this.handleError(error);
     } finally {
       this.isLoading = false;
       this.renderCard();
-    }
-  }
-
-  async fetchEvents(): Promise<ReadonlyArray<Types.CalendarEventData>> {
-    const timeWindow = this.getTimeWindow();
-    const allEvents: Types.CalendarEventData[] = [];
-
-    for (const entityConfig of this.config.entities) {
-      try {
-        const events = await this._hass!.callApi(
-          'GET',
-          `calendars/${
-            typeof entityConfig === 'string' ? entityConfig : entityConfig.entity
-          }?start=${timeWindow.start.toISOString()}&end=${timeWindow.end.toISOString()}`,
-        );
-        const processedEvents = (events as Types.CalendarEventData[]).map(
-          (event: Types.CalendarEventData) => ({
-            ...event,
-            _entityConfig: {
-              entity: typeof entityConfig === 'string' ? entityConfig : entityConfig.entity,
-              color:
-                typeof entityConfig === 'string'
-                  ? 'var(--primary-text-color)'
-                  : entityConfig.color || 'var(--primary-text-color)',
-            },
-          }),
-        );
-        allEvents.push(...processedEvents);
-      } catch (error) {
-        console.warn(
-          `Calendar-Card-Pro: Failed to fetch events for ${typeof entityConfig === 'string' ? entityConfig : entityConfig.entity}`,
-          error,
-        );
-      }
-    }
-
-    return allEvents;
-  }
-
-  async fetchTodayEvents(): Promise<Types.CalendarEventData[] | null> {
-    try {
-      const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const end = new Date(start);
-      end.setHours(23, 59, 59, 999);
-
-      const events = await this._hass!.callApi(
-        'GET',
-        `calendars/${
-          typeof this.config.entities[0] === 'string'
-            ? this.config.entities[0]
-            : this.config.entities[0].entity
-        }?start=${start.toISOString()}&end=${end.toISOString()}`,
-      );
-      return events as Types.CalendarEventData[];
-    } catch {
-      return null;
-    }
-  }
-
-  updateDateObjects() {
-    const dates = CalendarCardPro.DATE_OBJECTS;
-    dates.now = new Date();
-    dates.todayStart.setTime(dates.now.getTime());
-    dates.todayStart.setHours(0, 0, 0, 0);
-    dates.todayEnd.setTime(dates.todayStart.getTime());
-    dates.todayEnd.setHours(23, 59, 59, 999);
-  }
-
-  /******************************************************************************
-   * EVENT CACHING
-   * Will be moved to utils/state-utils.ts
-   ******************************************************************************/
-
-  getCachedEvents(): ReadonlyArray<Types.CalendarEventData> | null {
-    const cacheKey = this.getCacheKey();
-    try {
-      const cache = JSON.parse(localStorage.getItem(cacheKey)!) as Types.CacheEntry;
-      const cacheDuration = (this.config.update_interval || 300) * 1000;
-
-      if (cache && Date.now() - cache.timestamp < cacheDuration) {
-        sessionStorage.setItem(cacheKey, 'used');
-        return cache.events;
-      }
-    } catch (error) {
-      console.warn('Calendar-Card-Pro: Failed to retrieve cached events:', error);
-    }
-    return null;
-  }
-
-  cacheEvents(events: ReadonlyArray<Types.CalendarEventData>): boolean {
-    const cacheKey = this.getCacheKey();
-    try {
-      localStorage.setItem(
-        cacheKey,
-        JSON.stringify({
-          events,
-          timestamp: Date.now(),
-        }),
-      );
-      return true;
-    } catch (error) {
-      console.error('Failed to cache events:', error);
-      return false;
     }
   }
 
@@ -620,117 +517,12 @@ class CalendarCardPro extends HTMLElement {
    * @returns {Array<Types.EventsByDay>} Array of day objects containing grouped events
    */
   groupEventsByDay() {
-    /** @type {Record<string, Types.EventsByDay>} */
-    const eventsByDay: Record<string, Types.EventsByDay> = {};
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayEnd = new Date(todayStart);
-    todayEnd.setHours(23, 59, 59, 999);
-
-    const upcomingEvents = this.events.filter((event) => {
-      if (!event?.start || !event?.end) return false;
-
-      const startDate = event.start.dateTime
-        ? new Date(event.start.dateTime)
-        : event.start.date
-          ? new Date(event.start.date)
-          : null;
-      const endDate = event.end.dateTime
-        ? new Date(event.end.dateTime)
-        : event.end.date
-          ? new Date(event.end.date)
-          : null;
-      if (!startDate || !endDate) return false;
-
-      const isAllDayEvent = !event.start.dateTime;
-      const isEventToday = startDate >= todayStart && startDate <= todayEnd;
-      const isFutureEvent = startDate > todayEnd;
-
-      // Keep only current and future events
-      if (!isEventToday && !isFutureEvent) {
-        return false;
-      }
-
-      // Filter out ended events if not showing past events
-      if (!this.config.show_past_events) {
-        if (!isAllDayEvent && endDate < now) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-
-    // Return early if no upcoming events
-    if (upcomingEvents.length === 0) {
-      return [];
-    }
-
-    // Process events into days
-    upcomingEvents.forEach((event) => {
-      const startDate = event.start.dateTime
-        ? new Date(event.start.dateTime)
-        : event.start.date
-          ? new Date(event.start.date)
-          : null;
-      if (!startDate) return;
-      const eventDateKey = startDate.toISOString().split('T')[0];
-
-      if (!eventsByDay[eventDateKey]) {
-        eventsByDay[eventDateKey] = {
-          weekday: this.translations.daysOfWeek[startDate.getDay()],
-          day: startDate.getDate(),
-          month: this.translations.months[startDate.getMonth()],
-          timestamp: startDate.getTime(),
-          events: [],
-        };
-      }
-
-      eventsByDay[eventDateKey].events.push({
-        summary: event.summary || '',
-        time: this.formatEventTime(event),
-        location: this.config.show_location ? this.formatLocation(event.location || '') : '',
-        start: event.start,
-        end: event.end,
-        _entityConfig: event._entityConfig,
-      });
-    });
-
-    // Sort events within each day
-    Object.values(eventsByDay).forEach((day) => {
-      day.events.sort((a, b) => {
-        const aStart = a.start.dateTime
-          ? new Date(a.start.dateTime).getTime()
-          : a.start.date
-            ? new Date(a.start.date).getTime()
-            : 0;
-        const bStart = b.start.dateTime
-          ? new Date(b.start.dateTime).getTime()
-          : b.start.date
-            ? new Date(b.start.date).getTime()
-            : 0;
-        return aStart - bStart;
-      });
-    });
-
-    // Sort days and limit to configured number of days
-    let days = Object.values(eventsByDay)
-      .sort((a, b) => a.timestamp - b.timestamp)
-      .slice(0, this.config.days_to_show || 3);
-
-    // Apply max_events_to_show limit if configured and not expanded
-    if (this.config.max_events_to_show && !this.isExpanded) {
-      let totalEvents = 0;
-      days = days.filter((day) => {
-        if (totalEvents >= (this.config.max_events_to_show ?? 0)) {
-          return false;
-        }
-        totalEvents += day.events.length;
-        return true;
-      });
-    }
-
-    return days;
+    return EventUtils.groupEventsByDay(
+      this.events,
+      this.config,
+      this.isExpanded,
+      this.config.language,
+    );
   }
 
   /**
@@ -740,59 +532,19 @@ class CalendarCardPro extends HTMLElement {
    * @returns {string} Formatted time string
    */
   formatEventTime(event: Types.CalendarEventData) {
-    const startDate = new Date(event.start.dateTime || event.start.date || '');
-    const endDate = new Date(event.end.dateTime || event.end.date || '');
-    const isAllDayEvent = !event.start.dateTime;
-
-    if (isAllDayEvent) {
-      const adjustedEndDate = new Date(endDate);
-      adjustedEndDate.setDate(adjustedEndDate.getDate() - 1);
-
-      if (startDate.toDateString() !== adjustedEndDate.toDateString()) {
-        return this.formatMultiDayAllDayTime(adjustedEndDate);
-      }
-      return this.translations.allDay;
-    }
-
-    if (startDate.toDateString() !== endDate.toDateString()) {
-      return this.formatMultiDayTime(startDate, endDate);
-    }
-
-    return this.formatSingleDayTime(startDate, endDate);
+    return FormatUtils.formatEventTime(event, this.config, this.config.language);
   }
 
   formatMultiDayAllDayTime(endDate: Date) {
-    const endDay = endDate.getDate();
-    const endMonthName = Localize.getMonthName(this.config.language, endDate.getMonth());
-    const dayFormat = this.config.language === 'de' ? `${endDay}.` : endDay;
-
-    return `${this.translations.allDay}, ${this.translations.multiDay} ${dayFormat} ${endMonthName}`;
+    return FormatUtils.formatMultiDayAllDayTime(endDate, this.config.language);
   }
 
   formatMultiDayTime(startDate: Date, endDate: Date) {
-    const endDay = endDate.getDate();
-    const endMonthName = Localize.getMonthName(this.config.language, endDate.getMonth());
-    const endWeekday = Localize.getDayName(this.config.language, endDate.getDay(), true);
-    const dayFormat = this.config.language === 'de' ? `${endDay}.` : endDay;
-
-    const startTimeStr = this.formatTime(startDate);
-    const endTimeStr = this.formatTime(endDate);
-
-    return [
-      startTimeStr,
-      Localize.translateString(this.config.language, 'multiDay'),
-      endWeekday + ',',
-      dayFormat,
-      endMonthName,
-      Localize.translateString(this.config.language, 'at'),
-      endTimeStr,
-    ].join(' ');
+    return FormatUtils.formatMultiDayTime(startDate, endDate, this.config, this.config.language);
   }
 
   formatSingleDayTime(startDate: Date, endDate: Date) {
-    return this.config.show_end_time
-      ? `${this.formatTime(startDate)} - ${this.formatTime(endDate)}`
-      : this.formatTime(startDate);
+    return FormatUtils.formatSingleDayTime(startDate, endDate, this.config);
   }
 
   /**
@@ -800,32 +552,7 @@ class CalendarCardPro extends HTMLElement {
    * @returns {Object} Object containing start and end dates for the calendar window
    */
   getTimeWindow(): { start: Date; end: Date } {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Start of today
-    const end = new Date(start);
-    const daysToShow = parseInt(this.config.days_to_show.toString()) || 3;
-    end.setDate(start.getDate() + daysToShow);
-    end.setHours(23, 59, 59, 999);
-
-    return { start, end };
-  }
-
-  /**
-   * Format time according to 12/24 hour setting
-   * @param {Date} date Date object to format
-   * @returns {string} Formatted time string
-   */
-  formatTime(date: Date): string {
-    let hours = date.getHours();
-    let minutes = date.getMinutes();
-
-    if (!this.config.time_24h) {
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12 || 12;
-      return `${hours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
-    }
-
-    return `${hours}:${minutes.toString().padStart(2, '0')}`;
+    return EventUtils.getTimeWindow(this.config.days_to_show);
   }
 
   /******************************************************************************
@@ -885,7 +612,13 @@ class CalendarCardPro extends HTMLElement {
       return;
     }
 
-    const eventsByDay = this.groupEventsByDay();
+    // Call the extracted utility function
+    const eventsByDay = EventUtils.groupEventsByDay(
+      this.events,
+      this.config,
+      this.isExpanded,
+      this.config.language,
+    );
 
     // Show empty state if we have no upcoming events
     if (eventsByDay.length === 0) {

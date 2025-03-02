@@ -15,6 +15,7 @@
 - [🛠️ Usage](#usage)
 - [📚 Configuration Guide](#configuration-guide)
 - [💡 Examples](#examples)
+- [🤝 Contributing](#contributing)
 - [❗ Known Limitations](#known-limitations)
 
 ## 🎯 Overview
@@ -265,6 +266,17 @@ tap_action:
 hold_action:
   action: more-info
 ```
+
+## 🤝 Contributing
+
+Calendar Card Pro is an open-source project, and contributions are welcome and appreciated!
+
+- **Code Contributions**: Bug fixes, new features, and improvements
+- **Translations**: Help translate to your language
+- **Documentation**: Improve or expand the documentation
+- **Bug Reports**: Report issues or suggest enhancements
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on how to contribute.
 
 ## ❗ Known Limitations
 
