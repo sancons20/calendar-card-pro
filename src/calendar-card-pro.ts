@@ -20,6 +20,8 @@ import * as Helpers from './utils/helpers';
 import * as StateUtils from './utils/state-utils';
 import * as Styles from './rendering/styles';
 import * as Render from './rendering/render';
+import * as DomUtils from './utils/dom-utils';
+import * as ErrorUtils from './utils/error-utils';
 import { CalendarCardProEditor } from './rendering/editor';
 
 // Ensure this file is treated as a module
@@ -258,49 +260,6 @@ class CalendarCardPro extends HTMLElement {
     }
   }
 
-  // Helper methods for entities and configuration
-  normalizeEntities(entities: Array<string | { entity: string; color?: string }>) {
-    if (!Array.isArray(entities)) {
-      return [];
-    }
-
-    return entities
-      .map((item) => {
-        if (typeof item === 'string') {
-          return {
-            entity: item,
-            color: 'var(--primary-text-color)',
-          };
-        }
-        if (typeof item === 'object' && item.entity) {
-          return {
-            entity: item.entity,
-            color: item.color || 'var(--primary-text-color)',
-          };
-        }
-        return null;
-      })
-      .filter(Boolean) as Array<{ entity: string; color: string }>;
-  }
-
-  hasEntitiesChanged(
-    previous: Array<string | { entity: string; color?: string }>,
-    current: Array<string | { entity: string; color?: string }>,
-  ) {
-    if (previous.length !== current.length) return true;
-    return previous.some((entity, index) => entity !== current[index]);
-  }
-
-  hasConfigChanged(previous: Types.Config, current: Types.Config) {
-    if (!previous) return true;
-
-    const relevantKeys = ['entities', 'days_to_show', 'show_past_events', 'update_interval'];
-
-    return relevantKeys.some(
-      (key) => JSON.stringify(previous[key]) !== JSON.stringify(current[key]),
-    );
-  }
-
   /******************************************************************************
    * CACHE MANAGEMENT
    ******************************************************************************/
@@ -346,45 +305,40 @@ class CalendarCardPro extends HTMLElement {
    * EVENT FETCHING & PROCESSING
    ******************************************************************************/
 
+  /**
+   * Fetches and updates calendar events from Home Assistant or cache
+   *
+   * @param force - Force refresh ignoring cache
+   */
   async updateEvents(force = false): Promise<void> {
-    if (!this.isValidState()) return;
-
-    const cacheKey = this.getCacheKey();
-    const cacheDuration = (this.config.update_interval || 300) * 1000;
-
-    const cachedData = !force && EventUtils.getCachedEvents(cacheKey, cacheDuration);
-    if (cachedData) {
-      this.events = [...cachedData];
+    // Set loading state if we don't already have events
+    const wasEmpty = this.events.length === 0;
+    if (wasEmpty) {
+      this.isLoading = true;
       this.renderCard();
-      return;
     }
 
-    this.isLoading = true;
-    this.renderCard();
-
     try {
-      // Convert string entities to EntityConfig objects for EventUtils
-      const entities = this.config.entities.map((entity) => {
-        return typeof entity === 'string' ? { entity, color: 'var(--primary-text-color)' } : entity;
-      });
+      // Use the extracted update function
+      const result = await EventUtils.updateCalendarEvents(
+        this._hass,
+        this.config,
+        this.instanceId,
+        force,
+        this.events,
+      );
 
-      const timeWindow = EventUtils.getTimeWindow(this.config.days_to_show);
-      const events = await EventUtils.fetchEvents(this._hass!, entities, timeWindow);
-      this.events = [...events];
-      EventUtils.cacheEvents(cacheKey, events);
-    } catch (error: unknown) {
-      if (this.events.length === 0) {
-        // Try to fetch at least today's events as fallback
-        const firstEntity =
-          typeof this.config.entities[0] === 'string'
-            ? this.config.entities[0]
-            : this.config.entities[0].entity;
-
-        const partialEvents = await EventUtils.fetchTodayEvents(this._hass!, firstEntity);
-        this.events = partialEvents ? [...partialEvents] : [];
+      // Update component state with the result
+      if (result.events) {
+        this.events = result.events;
       }
-      this.handleError(error);
+
+      // Handle any errors that occurred
+      if (result.error) {
+        ErrorUtils.logError(result.error, 'Event update');
+      }
     } finally {
+      // Always update loading state and render
       this.isLoading = false;
       this.renderCard();
     }
@@ -464,40 +418,12 @@ class CalendarCardPro extends HTMLElement {
    ******************************************************************************/
 
   /**
-   * Process calendar events and group them by day
-   * When max_events_to_show is set and card is not expanded,
-   * limits the total number of events shown across all days
-   * @returns {Array<Types.EventsByDay>} Array of day objects containing grouped events
-   */
-  groupEventsByDay() {
-    return EventUtils.groupEventsByDay(
-      this.events,
-      this.config,
-      this.isExpanded,
-      this.config.language,
-    );
-  }
-
-  /**
    * Format event time based on event type and configuration
-   * Handles all-day events, multi-day events, and time formats
    * @param {Object} event Calendar event object
    * @returns {string} Formatted time string
    */
   formatEventTime(event: Types.CalendarEventData): string {
     return FormatUtils.formatEventTime(event, this.config, this.config.language);
-  }
-
-  formatMultiDayAllDayTime(endDate: Date) {
-    return FormatUtils.formatMultiDayAllDayTime(endDate, this.config.language);
-  }
-
-  formatMultiDayTime(startDate: Date, endDate: Date) {
-    return FormatUtils.formatMultiDayTime(startDate, endDate, this.config, this.config.language);
-  }
-
-  formatSingleDayTime(startDate: Date, endDate: Date) {
-    return FormatUtils.formatSingleDayTime(startDate, endDate, this.config);
   }
 
   /**
@@ -513,38 +439,24 @@ class CalendarCardPro extends HTMLElement {
    ******************************************************************************/
 
   /**
-   * Render calendar card content progressively to optimize performance
-   * Uses chunking to avoid blocking the main thread
-   * @param {Array} days Array of day objects to render
-   * @returns {DocumentFragment} Fragment containing rendered content
+   * Main rendering method that orchestrates the display of the calendar card
    */
-  async renderProgressively(days: Types.EventsByDay[]): Promise<DocumentFragment> {
-    return Render.renderProgressively(
-      days,
-      this.config,
-      (event) => this.formatEventTime(event),
-      (location) => this.formatLocation(location),
-      CalendarCardPro.CHUNK_SIZE,
-      CalendarCardPro.RENDER_DELAY,
-    );
-  }
-
   async renderCard() {
     const metrics = this.beginPerfMetrics();
+
     if (!this.isValidState()) {
-      this.renderError('error');
+      Render.renderErrorToDOM(this.shadowRoot!, 'error', this.config);
       this.endPerfMetrics(metrics);
       return;
     }
 
-    // Changed condition to check isLoading
     if (this.isLoading) {
-      this.renderError('loading');
+      Render.renderErrorToDOM(this.shadowRoot!, 'loading', this.config);
       this.endPerfMetrics(metrics);
       return;
     }
 
-    // Call the extracted utility function
+    // Get events grouped by day
     const eventsByDay = EventUtils.groupEventsByDay(
       this.events,
       this.config,
@@ -554,37 +466,23 @@ class CalendarCardPro extends HTMLElement {
 
     // Show empty state if we have no upcoming events
     if (eventsByDay.length === 0) {
-      this.renderError('empty');
+      Render.renderErrorToDOM(this.shadowRoot!, 'empty', this.config);
       this.endPerfMetrics(metrics);
       return;
     }
 
-    const container = document.createElement('div');
-    container.className = 'card-container';
-
-    const content = document.createElement('div');
-    content.className = 'card-content';
-
-    if (this.config.title) {
-      const title = document.createElement('div');
-      title.className = 'title';
-      title.textContent = this.config.title;
-      content.appendChild(title);
-    }
-
-    const calendarContent = await this.renderProgressively(eventsByDay);
-    content.appendChild(calendarContent);
-
-    container.appendChild(content);
-
-    const style = document.createElement('style');
-    style.textContent = this.getStyles();
+    // Render the calendar card using the render module
+    const { container, style } = await Render.renderCalendarCard(
+      this.config,
+      eventsByDay,
+      (event) => this.formatEventTime(event),
+      (location) => this.formatLocation(location),
+      CalendarCardPro.CHUNK_SIZE,
+      CalendarCardPro.RENDER_DELAY,
+    );
 
     // Update shadow DOM
-    while (this.shadowRoot?.firstChild) {
-      this.shadowRoot.removeChild(this.shadowRoot.firstChild);
-    }
-
+    DomUtils.clearShadowRoot(this.shadowRoot!);
     this.shadowRoot?.appendChild(style);
     this.shadowRoot?.appendChild(container);
 
@@ -598,25 +496,7 @@ class CalendarCardPro extends HTMLElement {
    * @private
    */
   renderError(state: 'loading' | 'empty' | 'error') {
-    const result = Render.renderErrorState(state, this.config);
-
-    // Clear shadow DOM
-    while (this.shadowRoot?.firstChild) {
-      this.shadowRoot.removeChild(this.shadowRoot.firstChild);
-    }
-
-    // Check which type of result we got back
-    if ('container' in result && 'style' in result) {
-      // Handle DOM element result
-      this.shadowRoot?.appendChild(result.style);
-      this.shadowRoot?.appendChild(result.container);
-    } else {
-      // Handle HTML string result
-      this.shadowRoot!.innerHTML = `
-        <style>${result.styleText}</style>
-        ${result.html}
-      `;
-    }
+    Render.renderErrorToDOM(this.shadowRoot!, state, this.config);
   }
 
   /******************************************************************************
@@ -706,7 +586,7 @@ class CalendarCardPro extends HTMLElement {
   }
 
   private handleError(error: unknown): void {
-    Helpers.handleError(error);
+    ErrorUtils.logError(error);
   }
 }
 

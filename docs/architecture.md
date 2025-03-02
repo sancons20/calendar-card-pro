@@ -14,9 +14,12 @@ src/
 │       ├── en.json               # English translations
 │       └── de.json               # German translations
 ├── utils/                        # Utility functions
-│   ├── event-utils.ts            # Event processing & formatting
+│   ├── event-utils.ts            # Event processing, caching & formatting
 │   ├── format-utils.ts           # Date & location formatting
+│   ├── dom-utils.ts              # DOM creation and manipulation
+│   ├── error-utils.ts            # Error handling and logging
 │   ├── actions.ts                # Tap/hold action handling
+│   ├── state-utils.ts            # Component state management
 │   └── helpers.ts                # Generic utilities (debounce, memoize)
 └── rendering/                    # UI rendering code
     ├── render.ts                 # HTML generation & rendering logic
@@ -55,7 +58,10 @@ src/
 - **Key Files**:
   - `event-utils.ts`: Calendar event fetching, processing, caching
   - `format-utils.ts`: Formatting dates, times, and locations
+  - `dom-utils.ts`: DOM element creation and manipulation utilities
+  - `error-utils.ts`: Standardized error handling and logging
   - `actions.ts`: Handling user interactions (tap/hold)
+  - `state-utils.ts`: Component state initialization and management
   - `helpers.ts`: Generic utilities like debounce, memoize, performance monitoring
 
 ### Rendering (`rendering/`)
@@ -77,9 +83,13 @@ graph TD
     A --> F[Action Utils]
     A --> G[Helpers]
     A --> H[Rendering]
+    A --> I[DOM Utils]
+    A --> J[Error Utils]
+    A --> K[State Utils]
     D --> C
     E --> C
     H --> E
+    H --> I
     H --> C
     F --> D
 ```
@@ -87,25 +97,25 @@ graph TD
 1. **Initialization Flow**:
 
    - Main component initializes
-   - Loads configuration, creates events cache
+   - `State Utils` set up initial component state
    - Establishes connection to Home Assistant
 
 2. **Event Processing Flow**:
 
    - `hass` setter detects entity changes
-   - `updateEvents()` calls EventUtils to fetch data
+   - `updateEvents()` calls `Event Utils` to fetch and process data
    - Events are cached and formatted for display
 
 3. **Rendering Flow**:
 
-   - `renderCard()` organizes events by day
-   - Calls rendering utilities to generate HTML
+   - `renderCard()` coordinates rendering process
+   - `Event Utils` organize events by day
+   - `Render` module generates HTML with `DOM Utils`
    - Uses progressive rendering for performance
-   - Applies styles based on configuration
+   - `Styles` module applies CSS based on configuration
 
 4. **Interaction Flow**:
    - User interactions trigger action handlers
-   - Actions are processed by ActionUtils
    - UI is updated based on actions
 
 ## Key Design Principles

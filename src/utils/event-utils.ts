@@ -10,101 +10,103 @@ import * as Localize from '../translations/localize';
 import * as FormatUtils from './format-utils';
 import * as Helpers from './helpers';
 
+// HIGH-LEVEL API FUNCTIONS FIRST
+
 /**
- * Fetch calendar events from Home Assistant API
+ * Updates calendar events with caching and error handling
  *
  * @param hass - Home Assistant interface
- * @param entities - Calendar entities to fetch events for
- * @param timeWindow - Time window to fetch events in
- * @returns Array of calendar events
+ * @param config - Card configuration
+ * @param instanceId - Component instance ID for cache keying
+ * @param force - Force refresh ignoring cache
+ * @param currentEvents - Current events array for fallback
+ * @returns Object with events and status information
  */
-export async function fetchEvents(
-  hass: Types.Hass,
-  entities: Array<Types.EntityConfig>,
-  timeWindow: { start: Date; end: Date },
-): Promise<ReadonlyArray<Types.CalendarEventData>> {
-  const allEvents: Types.CalendarEventData[] = [];
-
-  for (const entityConfig of entities) {
-    try {
-      const events = await hass.callApi(
-        'GET',
-        `calendars/${entityConfig.entity}?start=${timeWindow.start.toISOString()}&end=${timeWindow.end.toISOString()}`,
-      );
-      const processedEvents = (events as Types.CalendarEventData[]).map(
-        (event: Types.CalendarEventData) => ({
-          ...event,
-          _entityConfig: {
-            entity: entityConfig.entity,
-            color: entityConfig.color || 'var(--primary-text-color)',
-          },
-        }),
-      );
-      allEvents.push(...processedEvents);
-    } catch (error) {
-      console.warn(`Calendar-Card-Pro: Failed to fetch events for ${entityConfig.entity}`, error);
-    }
+export async function updateCalendarEvents(
+  hass: Types.Hass | null,
+  config: Types.Config,
+  instanceId: string,
+  force = false,
+  currentEvents: Types.CalendarEventData[] = [],
+): Promise<{
+  events: Types.CalendarEventData[];
+  fromCache: boolean;
+  error: unknown | null;
+}> {
+  // Check if state is valid
+  if (!isValidState(hass, config.entities)) {
+    return { events: currentEvents, fromCache: false, error: null };
   }
 
-  return allEvents;
-}
+  // Generate cache key
+  const baseKey = getBaseCacheKey(
+    instanceId,
+    config.entities,
+    config.days_to_show,
+    config.show_past_events,
+    config,
+  );
 
-/**
- * Fetch events for just today
- * Used as a fallback when full event fetching fails
- *
- * @param hass - Home Assistant interface
- * @param entity - Calendar entity to fetch events for
- * @returns Array of calendar events for today or null if fetching fails
- */
-export async function fetchTodayEvents(
-  hass: Types.Hass,
-  entity: string,
-): Promise<Types.CalendarEventData[] | null> {
+  const cacheKey = getCacheKey(baseKey);
+  const cacheDuration = (config.update_interval || 300) * 1000;
+
+  // Try to get from cache if not forced
+  const cachedData = !force && getCachedEvents(cacheKey, cacheDuration);
+  if (cachedData) {
+    return { events: cachedData, fromCache: true, error: null };
+  }
+
   try {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const end = new Date(start);
-    end.setHours(23, 59, 59, 999);
+    // Convert string entities to EntityConfig objects
+    const entities = config.entities.map((entity) => {
+      return typeof entity === 'string' ? { entity, color: 'var(--primary-text-color)' } : entity;
+    });
 
-    const events = await hass.callApi(
-      'GET',
-      `calendars/${entity}?start=${start.toISOString()}&end=${end.toISOString()}`,
-    );
-    return events as Types.CalendarEventData[];
-  } catch {
-    return null;
+    // Fetch events
+    const timeWindow = getTimeWindow(config.days_to_show);
+    const events = await fetchEvents(hass!, entities, timeWindow);
+
+    // Cache the events
+    cacheEvents(cacheKey, [...events]);
+
+    return { events: [...events], fromCache: false, error: null };
+  } catch (error) {
+    // Attempt fallback if no events already
+    if (currentEvents.length === 0) {
+      try {
+        const firstEntity =
+          typeof config.entities[0] === 'string' ? config.entities[0] : config.entities[0].entity;
+
+        const partialEvents = await fetchTodayEvents(hass!, firstEntity);
+        return {
+          events: partialEvents ? [...partialEvents] : [],
+          fromCache: false,
+          error,
+        };
+      } catch (fallbackError) {
+        return { events: [], fromCache: false, error: fallbackError };
+      }
+    }
+
+    return { events: currentEvents, fromCache: false, error };
   }
 }
 
 /**
- * Calculate time window for event fetching
+ * Check if the card state is valid for processing events
  *
- * @param daysToShow - Number of days to show in the calendar
- * @returns Object containing start and end dates for the calendar window
+ * @param hass - Home Assistant interface
+ * @param entities - Calendar entities (strings or objects)
+ * @returns Boolean indicating if the state is valid
  */
-export function getTimeWindow(daysToShow: number): { start: Date; end: Date } {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Start of today
-  const end = new Date(start);
-  const days = parseInt(daysToShow.toString()) || 3;
-  end.setDate(start.getDate() + days);
-  end.setHours(23, 59, 59, 999);
-
-  return { start, end };
-}
-
-/**
- * Update date objects used for time comparisons
- *
- * @param dateObjs - Object containing date references to update
- */
-export function updateDateObjects(dateObjs: { now: Date; todayStart: Date; todayEnd: Date }): void {
-  dateObjs.now = new Date();
-  dateObjs.todayStart.setTime(dateObjs.now.getTime());
-  dateObjs.todayStart.setHours(0, 0, 0, 0);
-  dateObjs.todayEnd.setTime(dateObjs.todayStart.getTime());
-  dateObjs.todayEnd.setHours(23, 59, 59, 999);
+export function isValidState(
+  hass: Types.Hass | null,
+  entities: Array<string | Types.EntityConfig>,
+): boolean {
+  if (!hass || !entities.length) {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -238,107 +240,180 @@ export function groupEventsByDay(
   return days;
 }
 
+// FETCH FUNCTIONS
+
 /**
- * Check if the card state is valid for processing events
+ * Fetch calendar events from Home Assistant API
  *
  * @param hass - Home Assistant interface
- * @param entities - Calendar entities (strings or objects)
- * @returns Boolean indicating if the state is valid
+ * @param entities - Calendar entities to fetch events for
+ * @param timeWindow - Time window to fetch events in
+ * @returns Array of calendar events
  */
-export function isValidState(
-  hass: Types.Hass | null,
-  entities: Array<string | Types.EntityConfig>,
-): boolean {
-  if (!hass || !entities.length) {
-    return false;
-  }
-  return true;
-}
+export async function fetchEvents(
+  hass: Types.Hass,
+  entities: Array<Types.EntityConfig>,
+  timeWindow: { start: Date; end: Date },
+): Promise<ReadonlyArray<Types.CalendarEventData>> {
+  const allEvents: Types.CalendarEventData[] = [];
 
-/**
- * Cache events in localStorage for future use
- *
- * @param cacheKey - Key to use for localStorage
- * @param events - Calendar events to cache
- * @returns Boolean indicating if caching was successful
- */
-export function cacheEvents(
-  cacheKey: string,
-  events: ReadonlyArray<Types.CalendarEventData>,
-): boolean {
-  try {
-    localStorage.setItem(
-      cacheKey,
-      JSON.stringify({
-        events,
-        timestamp: Date.now(),
-      }),
-    );
-    return true;
-  } catch (error) {
-    console.error('Calendar-Card-Pro: Failed to cache events:', error);
-    return false;
-  }
-}
-
-/**
- * Retrieve cached events from localStorage
- *
- * @param cacheKey - Key to use for localStorage
- * @param cacheDuration - How long (in milliseconds) to keep the cache valid
- * @returns Cached events or null if cache is invalid/expired
- */
-export function getCachedEvents(
-  cacheKey: string,
-  cacheDuration: number,
-): ReadonlyArray<Types.CalendarEventData> | null {
-  try {
-    const cacheStr = localStorage.getItem(cacheKey);
-    if (!cacheStr) return null;
-
-    const cache = JSON.parse(cacheStr) as Types.CacheEntry;
-
-    if (cache && Date.now() - cache.timestamp < cacheDuration) {
-      sessionStorage.setItem(cacheKey, 'used');
-      return cache.events;
+  for (const entityConfig of entities) {
+    try {
+      const events = await hass.callApi(
+        'GET',
+        `calendars/${entityConfig.entity}?start=${timeWindow.start.toISOString()}&end=${timeWindow.end.toISOString()}`,
+      );
+      const processedEvents = (events as Types.CalendarEventData[]).map(
+        (event: Types.CalendarEventData) => ({
+          ...event,
+          _entityConfig: {
+            entity: entityConfig.entity,
+            color: entityConfig.color || 'var(--primary-text-color)',
+          },
+        }),
+      );
+      allEvents.push(...processedEvents);
+    } catch (error) {
+      console.warn(`Calendar-Card-Pro: Failed to fetch events for ${entityConfig.entity}`, error);
     }
-  } catch (error) {
-    console.warn('Calendar-Card-Pro: Failed to retrieve cached events:', error);
+  }
+
+  return allEvents;
+}
+
+/**
+ * Fetch events for just today
+ * Used as a fallback when full event fetching fails
+ *
+ * @param hass - Home Assistant interface
+ * @param entity - Calendar entity to fetch events for
+ * @returns Array of calendar events for today or null if fetching fails
+ */
+export async function fetchTodayEvents(
+  hass: Types.Hass,
+  entity: string,
+): Promise<Types.CalendarEventData[] | null> {
+  try {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const end = new Date(start);
+    end.setHours(23, 59, 59, 999);
+
+    const events = await hass.callApi(
+      'GET',
+      `calendars/${entity}?start=${start.toISOString()}&end=${end.toISOString()}`,
+    );
+    return events as Types.CalendarEventData[];
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Calculate time window for event fetching
+ *
+ * @param daysToShow - Number of days to show in the calendar
+ * @returns Object containing start and end dates for the calendar window
+ */
+export function getTimeWindow(daysToShow: number): { start: Date; end: Date } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Start of today
+  const end = new Date(start);
+  const days = parseInt(daysToShow.toString()) || 3;
+  end.setDate(start.getDate() + days);
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+}
+
+/**
+ * Update date objects used for time comparisons
+ *
+ * @param dateObjs - Object containing date references to update
+ */
+export function updateDateObjects(dateObjs: { now: Date; todayStart: Date; todayEnd: Date }): void {
+  dateObjs.now = new Date();
+  dateObjs.todayStart.setTime(dateObjs.now.getTime());
+  dateObjs.todayStart.setHours(0, 0, 0, 0);
+  dateObjs.todayEnd.setTime(dateObjs.todayStart.getTime());
+  dateObjs.todayEnd.setHours(23, 59, 59, 999);
+}
+
+// CACHE MANAGEMENT FUNCTIONS
+
+/**
+ * Get cached event data if available and not expired
+ *
+ * @param key - Cache key
+ * @param maxAge - Maximum age of cache in milliseconds
+ * @returns Cached events or null if expired/unavailable
+ */
+export function getCachedEvents(key: string, maxAge: number): Types.CalendarEventData[] | null {
+  try {
+    const cache = localStorage.getItem(key);
+    if (!cache) return null;
+
+    const cacheEntry = JSON.parse(cache) as Types.CacheEntry;
+    const now = Date.now();
+
+    if (now - cacheEntry.timestamp < maxAge) {
+      // Create a mutable copy of the events array to avoid readonly issues
+      return [...cacheEntry.events];
+    }
+  } catch (e) {
+    console.warn('Failed to retrieve cached events:', e);
   }
   return null;
 }
 
 /**
- * Remove cached events for specific keys
+ * Cache event data in localStorage
  *
- * @param keys - Array of cache keys to remove
+ * @param key - Cache key
+ * @param events - Calendar event data to cache
  */
-export function invalidateCache(keys: string[]): void {
-  keys.forEach((key) => localStorage.removeItem(key));
+export function cacheEvents(key: string, events: Types.CalendarEventData[]): void {
+  try {
+    const cacheEntry: Types.CacheEntry = {
+      events,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(key, JSON.stringify(cacheEntry));
+  } catch (e) {
+    console.warn('Failed to cache calendar events:', e);
+  }
 }
 
 /**
- * Clean up old cache entries
+ * Generate a base cache key from configuration
  *
- * @param cachePrefix - Prefix to identify related cache entries
- * @param maxAge - Maximum age in milliseconds before removing cache
+ * @param instanceId - Unique instance ID
+ * @param entities - Calendar entities
+ * @param daysToShow - Number of days to display
+ * @param showPastEvents - Whether to show past events
+ * @param config - Full configuration for hashing
+ * @returns Base cache key
  */
-export function cleanupCache(cachePrefix: string, maxAge = 86400000): void {
-  const now = Date.now();
+export function getBaseCacheKey(
+  instanceId: string,
+  entities: Array<string | { entity: string; color?: string }>,
+  daysToShow: number,
+  showPastEvents: boolean,
+  config: unknown,
+): string {
+  const configHash = Helpers.hashConfig(config);
+  const entityIds = entities.map((e) => (typeof e === 'string' ? e : e.entity));
+  return `calendar_${instanceId}_${entityIds.join('_')}_${daysToShow}_${showPastEvents}_${configHash}`;
+}
 
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key?.startsWith(cachePrefix)) {
-      try {
-        const cache = JSON.parse(localStorage.getItem(key)!);
-        if (now - cache.timestamp > maxAge) {
-          localStorage.removeItem(key);
-        }
-      } catch {
-        localStorage.removeItem(key);
-      }
-    }
-  }
+/**
+ * Get current cache key based on base key and current date
+ *
+ * @param baseKey - Base cache key
+ * @returns Complete cache key including date
+ */
+export function getCacheKey(baseKey: string): string {
+  return `${baseKey}_${new Date().toDateString()}`;
 }
 
 /**
@@ -362,33 +437,43 @@ export function getAllCacheKeys(baseKey: string): string[] {
 }
 
 /**
- * Get current cache key based on base key and current date
+ * Invalidate cached events by removing them from storage
  *
- * @param baseKey - Base cache key
- * @returns Complete cache key including date
+ * @param keys - Array of cache keys to invalidate
  */
-export function getCacheKey(baseKey: string): string {
-  return `${baseKey}_${new Date().toDateString()}`;
+export function invalidateCache(keys: string[]): void {
+  try {
+    keys.forEach((key) => localStorage.removeItem(key));
+  } catch (e) {
+    console.warn('Failed to invalidate cache:', e);
+  }
 }
 
 /**
- * Generate a base cache key from configuration
+ * Clean up old cache entries
  *
- * @param instanceId - Unique instance ID
- * @param entities - Calendar entities
- * @param daysToShow - Number of days to display
- * @param showPastEvents - Whether to show past events
- * @param config - Full configuration for hashing
- * @returns Base cache key
+ * @param prefix - Cache key prefix to search for
  */
-export function getBaseCacheKey(
-  instanceId: string,
-  entities: Array<string | { entity: string; color?: string }>,
-  daysToShow: number,
-  showPastEvents: boolean,
-  config: unknown,
-): string {
-  const configHash = Helpers.hashConfig(config);
-  const entityIds = entities.map((e) => (typeof e === 'string' ? e : e.entity));
-  return `calendar_${instanceId}_${entityIds.join('_')}_${daysToShow}_${showPastEvents}_${configHash}`;
+export function cleanupCache(prefix: string): void {
+  try {
+    // Find and remove all cache entries that start with the prefix
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith(prefix))
+      .forEach((key) => {
+        try {
+          const cacheEntry = JSON.parse(localStorage.getItem(key) || '') as Types.CacheEntry;
+          const now = Date.now();
+
+          // Remove if older than 24 hours
+          if (now - cacheEntry.timestamp > 86400000) {
+            localStorage.removeItem(key);
+          }
+        } catch {
+          // If we can't parse it, just remove it
+          localStorage.removeItem(key);
+        }
+      });
+  } catch (e) {
+    console.warn('Cache cleanup failed:', e);
+  }
 }

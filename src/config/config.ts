@@ -80,17 +80,6 @@ export function normalizeEntities(
 }
 
 /**
- * Checks if entities configuration has changed
- */
-export function hasEntitiesChanged(
-  previous: Array<string | { entity: string; color?: string }>,
-  current: Array<string | { entity: string; color?: string }>,
-): boolean {
-  if (previous.length !== current.length) return true;
-  return previous.some((entity, index) => entity !== current[index]);
-}
-
-/**
  * Checks if relevant configuration properties have changed
  */
 export function hasConfigChanged(previous: Partial<Types.Config>, current: Types.Config): boolean {
@@ -99,6 +88,17 @@ export function hasConfigChanged(previous: Partial<Types.Config>, current: Types
   const relevantKeys = ['entities', 'days_to_show', 'show_past_events', 'update_interval'];
 
   return relevantKeys.some((key) => JSON.stringify(previous[key]) !== JSON.stringify(current[key]));
+}
+
+/**
+ * Checks if entities configuration has changed
+ */
+export function hasEntitiesChanged(
+  previous: Array<string | { entity: string; color?: string }>,
+  current: Array<string | { entity: string; color?: string }>,
+): boolean {
+  if (previous.length !== current.length) return true;
+  return previous.some((entity, index) => entity !== current[index]);
 }
 
 /**

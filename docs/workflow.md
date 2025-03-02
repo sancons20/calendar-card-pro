@@ -42,6 +42,10 @@ This section covers the process of **developing and testing** changes before the
 ### 1️⃣ Make Code Changes
 
 - Modify files in the `src/` directory (TypeScript).
+- Follow modular architecture:
+  - Add new utilities to appropriate module files
+  - Create new utility files in the appropriate folders when necessary
+  - Keep main component file focused on orchestration
 - Run:
 
   ```sh

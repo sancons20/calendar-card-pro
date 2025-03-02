@@ -8,138 +8,86 @@
 
 import * as Types from '../config/types';
 import * as Localize from '../translations/localize';
+import * as DomUtils from '../utils/dom-utils';
 import * as Styles from './styles';
 
 /**
- * Generate HTML content for a single day's events
+ * Render the full calendar card
  *
- * @param day - Day object containing events
  * @param config - Card configuration
- * @param formatEventTime - Function to format event time
- * @param formatLocation - Function to format location
- * @returns HTML string representing the day's events
+ * @param eventsByDay - Events grouped by day
+ * @param formatEventTimeFn - Function to format event time
+ * @param formatLocationFn - Function to format location
+ * @param chunkSize - Size of chunks for progressive rendering
+ * @param renderDelay - Delay between rendering chunks
+ * @returns Object containing built DOM elements
  */
-export function generateDayContent(
-  day: Types.EventsByDay,
+export async function renderCalendarCard(
   config: Types.Config,
-  formatEventTime: (event: Types.CalendarEventData) => string,
-  formatLocation: (location: string) => string,
-): string {
-  return day.events
-    .map(
-      (event: Types.CalendarEventData, index: number) => `
-    <tr>
-      ${
-        index === 0
-          ? `
-        <td class="date" rowspan="${day.events.length}">
-          <div class="date-content">
-            <div class="weekday">${day.weekday}</div>
-            <div class="day">${day.day}</div>
-            ${config.show_month ? `<div class="month">${day.month}</div>` : ''}
-          </div>
-        </td>
-      `
-          : ''
-      }
-      <td class="event">
-        <div class="event-content">
-          <div class="event-title" style="color: ${
-            event._entityConfig?.color
-          }">${event.summary}</div>
-          <div class="time-location">
-            <div class="time">
-              <ha-icon icon="hass:clock-outline"></ha-icon>
-              <span>${formatEventTime(event)}</span>
-            </div>
-            ${
-              event.location && config.show_location
-                ? `
-              <div class="location">
-                <ha-icon icon="hass:map-marker"></ha-icon>
-                <span>${formatLocation(event.location)}</span>
-              </div>
-            `
-                : ''
-            }
-          </div>
-        </div>
-      </td>
-    </tr>
-  `,
-    )
-    .join('');
+  eventsByDay: Types.EventsByDay[],
+  formatEventTimeFn: (event: Types.CalendarEventData) => string,
+  formatLocationFn: (location: string) => string,
+  chunkSize = 10,
+  renderDelay = 50,
+): Promise<{ container: Element; style: HTMLStyleElement }> {
+  // Create container elements
+  const container = DomUtils.createElement('div', 'card-container');
+  const content = DomUtils.createElement('div', 'card-content');
+
+  // Add title if configured
+  if (config.title) {
+    const title = DomUtils.createElement('div', 'title', config.title);
+    content.appendChild(title);
+  }
+
+  // Generate calendar content
+  const calendarContent = await renderProgressively(
+    eventsByDay,
+    config,
+    formatEventTimeFn,
+    formatLocationFn,
+    chunkSize,
+    renderDelay,
+  );
+
+  // Assemble the card
+  content.appendChild(calendarContent);
+  container.appendChild(content);
+
+  // Create style element
+  const style = DomUtils.createStyleElement(Styles.getStyles(config));
+
+  return { container, style };
 }
 
 /**
- * Generate HTML content for all calendar days
+ * Wrapper for rendering error states to maintain consistent interface
  *
- * @param days - Array of day objects
+ * @param shadowRoot - Shadow DOM root to render to
+ * @param state - Current state ('loading', 'empty', 'error')
  * @param config - Card configuration
- * @param formatEventTime - Function to format event time
- * @param formatLocation - Function to format location
- * @returns HTML string for the full calendar
  */
-export function generateCalendarContent(
-  days: Types.EventsByDay[],
+export function renderErrorToDOM(
+  shadowRoot: ShadowRoot,
+  state: 'loading' | 'empty' | 'error',
   config: Types.Config,
-  formatEventTime: (event: Types.CalendarEventData) => string,
-  formatLocation: (location: string) => string,
-): string {
-  if (!days.length) {
-    return '<div class="no-events">No upcoming events</div>';
+): void {
+  // Clear shadow DOM first
+  DomUtils.clearShadowRoot(shadowRoot);
+
+  // Get error state content
+  const result = renderErrorState(state, config);
+
+  // Render error state content
+  if ('container' in result && 'style' in result) {
+    shadowRoot.appendChild(result.style);
+    shadowRoot.appendChild(result.container);
+  } else {
+    shadowRoot.innerHTML = `
+      <style>${result.styleText}</style>
+      ${result.html}
+    `;
   }
-
-  return days
-    .map((day) => {
-      if (day.events.length === 0) return '';
-
-      const eventRows = day.events
-        .map(
-          (event: Types.CalendarEventData, index: number) => `
-      <tr>
-        ${
-          index === 0
-            ? `
-          <td class="date" rowspan="${day.events.length}">
-            <div class="date-content">
-              <div class="weekday">${day.weekday}</div>
-              <div class="day">${day.day}</div>
-              ${config.show_month ? `<div class="month">${day.month}</div>` : ''}
-            </div>
-          </td>
-        `
-            : ''
-        }
-        <td class="event">
-          <div class="event-content">
-            <div class="event-title">${event.summary}</div>
-            <div class="time-location">
-              <div class="time">
-                <ha-icon icon="hass:clock-outline"></ha-icon>
-                <span>${formatEventTime(event)}</span>
-              </div>
-              ${
-                event.location && config.show_location
-                  ? `
-                <div class="location">
-                  <ha-icon icon="hass:map-marker"></ha-icon>
-                  <span>${formatLocation(event.location)}</span>
-                </div>
-              `
-                  : ''
-              }
-            </div>
-          </div>
-        </td>
-      </tr>
-    `,
-        )
-        .join('');
-
-      return `<table>${eventRows}</table>`;
-    })
-    .join('');
 }
 
 /**
@@ -294,4 +242,136 @@ export function renderErrorState(
   const styleText = Styles.getErrorStyles();
 
   return { html, styleText };
+}
+
+/**
+ * Generate HTML content for all calendar days
+ *
+ * @param days - Array of day objects
+ * @param config - Card configuration
+ * @param formatEventTime - Function to format event time
+ * @param formatLocation - Function to format location
+ * @returns HTML string for the full calendar
+ */
+export function generateCalendarContent(
+  days: Types.EventsByDay[],
+  config: Types.Config,
+  formatEventTime: (event: Types.CalendarEventData) => string,
+  formatLocation: (location: string) => string,
+): string {
+  if (!days.length) {
+    return '<div class="no-events">No upcoming events</div>';
+  }
+
+  return days
+    .map((day) => {
+      if (day.events.length === 0) return '';
+
+      const eventRows = day.events
+        .map(
+          (event: Types.CalendarEventData, index: number) => `
+      <tr>
+        ${
+          index === 0
+            ? `
+          <td class="date" rowspan="${day.events.length}">
+            <div class="date-content">
+              <div class="weekday">${day.weekday}</div>
+              <div class="day">${day.day}</div>
+              ${config.show_month ? `<div class="month">${day.month}</div>` : ''}
+            </div>
+          </td>
+        `
+            : ''
+        }
+        <td class="event">
+          <div class="event-content">
+            <div class="event-title">${event.summary}</div>
+            <div class="time-location">
+              <div class="time">
+                <ha-icon icon="hass:clock-outline"></ha-icon>
+                <span>${formatEventTime(event)}</span>
+              </div>
+              ${
+                event.location && config.show_location
+                  ? `
+                <div class="location">
+                  <ha-icon icon="hass:map-marker"></ha-icon>
+                  <span>${formatLocation(event.location)}</span>
+                </div>
+              `
+                  : ''
+              }
+            </div>
+          </div>
+        </td>
+      </tr>
+    `,
+        )
+        .join('');
+
+      return `<table>${eventRows}</table>`;
+    })
+    .join('');
+}
+
+/**
+ * Generate HTML content for a single day's events
+ *
+ * @param day - Day object containing events
+ * @param config - Card configuration
+ * @param formatEventTime - Function to format event time
+ * @param formatLocation - Function to format location
+ * @returns HTML string representing the day's events
+ */
+export function generateDayContent(
+  day: Types.EventsByDay,
+  config: Types.Config,
+  formatEventTime: (event: Types.CalendarEventData) => string,
+  formatLocation: (location: string) => string,
+): string {
+  return day.events
+    .map(
+      (event: Types.CalendarEventData, index: number) => `
+    <tr>
+      ${
+        index === 0
+          ? `
+        <td class="date" rowspan="${day.events.length}">
+          <div class="date-content">
+            <div class="weekday">${day.weekday}</div>
+            <div class="day">${day.day}</div>
+            ${config.show_month ? `<div class="month">${day.month}</div>` : ''}
+          </div>
+        </td>
+      `
+          : ''
+      }
+      <td class="event">
+        <div class="event-content">
+          <div class="event-title" style="color: ${
+            event._entityConfig?.color
+          }">${event.summary}</div>
+          <div class="time-location">
+            <div class="time">
+              <ha-icon icon="hass:clock-outline"></ha-icon>
+              <span>${formatEventTime(event)}</span>
+            </div>
+            ${
+              event.location && config.show_location
+                ? `
+              <div class="location">
+                <ha-icon icon="hass:map-marker"></ha-icon>
+                <span>${formatLocation(event.location)}</span>
+              </div>
+            `
+                : ''
+            }
+          </div>
+        </div>
+      </td>
+    </tr>
+  `,
+    )
+    .join('');
 }

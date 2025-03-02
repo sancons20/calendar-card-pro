@@ -1,46 +1,12 @@
 /* eslint-disable import/order */
 /**
- * Format utilities for Calendar Card Pro
+ * Formatting utilities for Calendar Card Pro
  *
- * Provides date, time, and location formatting functions
+ * Handles formatting of dates, times, and locations for display.
  */
 
 import * as Types from '../config/types';
 import * as Localize from '../translations/localize';
-
-/**
- * Format time according to 12/24 hour setting
- *
- * @param date - Date object to format
- * @param use24h - Whether to use 24-hour format
- * @returns Formatted time string
- */
-export function formatTime(date: Date, use24h: boolean): string {
-  let hours = date.getHours();
-  const minutes = date.getMinutes();
-
-  if (!use24h) {
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12;
-    return `${hours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
-  }
-
-  return `${hours}:${minutes.toString().padStart(2, '0')}`;
-}
-
-/**
- * Format location string, optionally removing the country
- *
- * @param location - Location string to format
- * @param removeCountry - Whether to remove country name
- * @returns Formatted location string
- */
-export function formatLocation(location: string, removeCountry = true): string {
-  if (removeCountry) {
-    return location.replace(/, [^,]+$/, '');
-  }
-  return location;
-}
 
 /**
  * Format event time based on event type and configuration
@@ -52,96 +18,172 @@ export function formatLocation(location: string, removeCountry = true): string {
  */
 export function formatEventTime(
   event: Types.CalendarEventData,
-  config: Partial<Types.Config>,
+  config: Types.Config,
   language: string,
 ): string {
-  const startDate = new Date(event.start.dateTime || event.start.date || '');
-  const endDate = new Date(event.end.dateTime || event.end.date || '');
-  const isAllDayEvent = !event.start.dateTime;
+  // Create Date objects
+  const startDate = event.start.dateTime
+    ? new Date(event.start.dateTime)
+    : event.start.date
+      ? new Date(event.start.date)
+      : null;
+  const endDate = event.end.dateTime
+    ? new Date(event.end.dateTime)
+    : event.end.date
+      ? new Date(event.end.date)
+      : null;
 
-  if (isAllDayEvent) {
-    const adjustedEndDate = new Date(endDate);
-    adjustedEndDate.setDate(adjustedEndDate.getDate() - 1);
-
-    if (startDate.toDateString() !== adjustedEndDate.toDateString()) {
-      return formatMultiDayAllDayTime(adjustedEndDate, language);
-    }
-    return Localize.translateString(language, 'allDay');
+  if (!startDate || !endDate) {
+    return '';
   }
 
-  if (startDate.toDateString() !== endDate.toDateString()) {
+  // Check for all-day event (no time portion)
+  const isAllDay = !event.start.dateTime;
+
+  // Multi-day events
+  const isMultiDay =
+    startDate.getDate() !== endDate.getDate() ||
+    startDate.getMonth() !== endDate.getMonth() ||
+    startDate.getFullYear() !== endDate.getFullYear();
+
+  if (isMultiDay) {
+    if (isAllDay) {
+      return formatMultiDayAllDayTime(endDate, language);
+    }
     return formatMultiDayTime(startDate, endDate, config, language);
+  }
+
+  // Single-day events
+  if (isAllDay) {
+    return Localize.translateString(language, 'allDay');
   }
 
   return formatSingleDayTime(startDate, endDate, config);
 }
 
 /**
- * Format a multi-day all-day event
+ * Format a standard time (hours:minutes)
  *
- * @param endDate - End date of the event
- * @param language - Language code
- * @returns Formatted date range string
+ * @param date - Date object
+ * @param use24h - Whether to use 24-hour format
+ * @returns Formatted time string
  */
-export function formatMultiDayAllDayTime(endDate: Date, language: string): string {
-  const endDay = endDate.getDate();
-  const endMonthName = Localize.getMonthName(language, endDate.getMonth());
-  const dayFormat = language === 'de' ? `${endDay}.` : endDay;
+export function formatTime(date: Date, use24h = true): string {
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
 
-  return `${Localize.translateString(language, 'allDay')}, ${Localize.translateString(language, 'multiDay')} ${dayFormat} ${endMonthName}`;
+  // 24-hour format
+  if (use24h) {
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  }
+
+  // 12-hour format
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 || 12;
+  return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
 }
 
 /**
- * Format a multi-day event with time
+ * Format multi-day all-day event time
  *
- * @param startDate - Start date/time of the event
- * @param endDate - End date/time of the event
+ * @param endDate - End date
+ * @param language - Language code
+ * @returns Formatted time string
+ */
+export function formatMultiDayAllDayTime(endDate: Date, language: string): string {
+  // End date is exclusive for all-day events, so subtract a day
+  const adjustedEndDate = new Date(endDate);
+  adjustedEndDate.setDate(adjustedEndDate.getDate() - 1);
+
+  // Create human-readable date
+  const month = Localize.getMonthName(language, adjustedEndDate.getMonth());
+  const day = adjustedEndDate.getDate();
+
+  return `${Localize.translateString(language, 'multiDay')} ${month} ${day}`;
+}
+
+/**
+ * Format multi-day event time with start and end
+ *
+ * @param startDate - Start date
+ * @param endDate - End date
  * @param config - Card configuration
  * @param language - Language code
- * @returns Formatted date/time range string
+ * @returns Formatted time string
  */
 export function formatMultiDayTime(
   startDate: Date,
   endDate: Date,
-  config: Partial<Types.Config>,
+  config: Types.Config,
   language: string,
 ): string {
-  const endDay = endDate.getDate();
-  const endMonthName = Localize.getMonthName(language, endDate.getMonth());
-  const endWeekday = Localize.getDayName(language, endDate.getDay(), true);
-  const dayFormat = language === 'de' ? `${endDay}.` : endDay;
+  const formattedStartTime = formatTime(startDate, config.time_24h);
+  const month = Localize.getMonthName(language, endDate.getMonth());
+  const day = endDate.getDate();
 
-  const startTimeStr = formatTime(startDate, Boolean(config.time_24h));
-  const endTimeStr = formatTime(endDate, Boolean(config.time_24h));
+  if (!config.show_end_time) {
+    return formattedStartTime;
+  }
 
-  return [
-    startTimeStr,
-    Localize.translateString(language, 'multiDay'),
-    endWeekday + ',',
-    dayFormat,
-    endMonthName,
-    Localize.translateString(language, 'at'),
-    endTimeStr,
-  ].join(' ');
+  const formattedEndTime = formatTime(endDate, config.time_24h);
+  return `${formattedStartTime} ${Localize.translateString(
+    language,
+    'multiDay',
+  )} ${month} ${day}, ${formattedEndTime}`;
 }
 
 /**
- * Format a single-day event with start and optional end time
+ * Format single-day event time with start and possibly end
  *
- * @param startDate - Start date/time of the event
- * @param endDate - End date/time of the event
+ * @param startDate - Start date
+ * @param endDate - End date
  * @param config - Card configuration
- * @returns Formatted time range string
+ * @returns Formatted time string
  */
-export function formatSingleDayTime(
-  startDate: Date,
-  endDate: Date,
-  config: Partial<Types.Config>,
-): string {
-  const use24h = Boolean(config.time_24h);
-  return config.show_end_time
-    ? `${formatTime(startDate, use24h)} - ${formatTime(endDate, use24h)}`
-    : formatTime(startDate, use24h);
+export function formatSingleDayTime(startDate: Date, endDate: Date, config: Types.Config): string {
+  if (!config.show_end_time) {
+    return formatTime(startDate, config.time_24h);
+  }
+
+  // For events with same start and end time, just show the start time
+  if (startDate.getTime() === endDate.getTime()) {
+    return formatTime(startDate, config.time_24h);
+  }
+
+  // Otherwise show both start and end time
+  return `${formatTime(startDate, config.time_24h)} - ${formatTime(endDate, config.time_24h)}`;
+}
+
+/**
+ * Format location string with optional country removal
+ *
+ * @param location - Location string
+ * @param removeCountry - Whether to remove country part
+ * @returns Formatted location string
+ */
+export function formatLocation(location: string, removeCountry: boolean): string {
+  if (!location || !removeCountry) {
+    return location || '';
+  }
+
+  // Try to remove the country (typically after the last comma)
+  const lastCommaIndex = location.lastIndexOf(',');
+  if (lastCommaIndex >= 0) {
+    // Check if there's text after the last comma
+    const afterComma = location.substring(lastCommaIndex + 1).trim();
+
+    // If the text after the comma looks like a country (2+ chars, all uppercase),
+    // or if it contains something that looks like a country code (2-3 letters),
+    // remove it
+    if (
+      afterComma.length >= 2 &&
+      (afterComma === afterComma.toUpperCase() || /^[A-Z]{2,3}$/.test(afterComma.trim()))
+    ) {
+      return location.substring(0, lastCommaIndex).trim();
+    }
+  }
+
+  return location;
 }
 
 /**
