@@ -2,6 +2,9 @@
 /**
  * Calendar Card Pro for Home Assistant
  *
+ * This is the main entry point for the Calendar Card Pro custom card.
+ * It orchestrates the different modules and handles the core web component lifecycle.
+ *
  * @license MIT
  * @version 0.1.0
  */
@@ -44,7 +47,11 @@ declare global {
  * MAIN CARD CLASS
  ******************************************************************************/
 
-// Make class properties more strictly typed
+/**
+ * The main Calendar Card Pro component that extends HTMLElement
+ * This class orchestrates the different modules to create a complete
+ * calendar card for Home Assistant
+ */
 class CalendarCardPro extends HTMLElement {
   // Add explicit types for static properties
   private static _dateObjects: {
@@ -84,7 +91,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * STATIC CONFIGURATION
-   * Imported from config/config.ts
    ******************************************************************************/
 
   static get DEFAULT_CONFIG(): Types.Config {
@@ -93,7 +99,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * TRANSLATIONS
-   * Imported from translations/localize.ts
    ******************************************************************************/
 
   static get TRANSLATIONS(): Readonly<Record<string, Types.Translations>> {
@@ -102,7 +107,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * PERFORMANCE CONSTANTS
-   * Moved to utils/helpers.ts
    ******************************************************************************/
 
   private static readonly PERFORMANCE_THRESHOLDS = Helpers.PERFORMANCE_CONSTANTS;
@@ -111,7 +115,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * STATIC HELPER METHODS
-   * Will be moved to utils/helpers.ts
    ******************************************************************************/
 
   static get DATE_OBJECTS() {
@@ -127,7 +130,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * CALENDAR ENTITY UTILITIES
-   * Will be moved to utils/event-utils.ts
    ******************************************************************************/
 
   static findCalendarEntity(hass: Types.Hass): string | null {
@@ -136,7 +138,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * CONFIG UTILITIES
-   * Imported from config/config.ts
    ******************************************************************************/
 
   static getStubConfig(hass: Types.Hass) {
@@ -149,7 +150,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * LIFECYCLE METHODS
-   * Will be moved to calendar-card-pro.ts (kept in main file)
    ******************************************************************************/
 
   constructor() {
@@ -182,7 +182,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * BASIC UTILITY METHODS
-   * Moved to utils/format-utils.ts
    ******************************************************************************/
 
   formatLocation(location: string): string {
@@ -191,7 +190,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * STATE MANAGEMENT
-   * Will be moved to utils/state-utils.ts
    ******************************************************************************/
 
   initializeState() {
@@ -229,7 +227,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * HOME ASSISTANT INTEGRATION
-   * Will be moved to utils/event-utils.ts
    ******************************************************************************/
 
   set hass(hass: Types.Hass) {
@@ -250,7 +247,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * CONFIGURATION
-   * Using functions from config/config.ts
    ******************************************************************************/
 
   setConfig(config: Partial<Types.Config>) {
@@ -266,6 +262,7 @@ class CalendarCardPro extends HTMLElement {
     }
   }
 
+  // Helper methods for entities and configuration
   normalizeEntities(entities: Array<string | { entity: string; color?: string }>) {
     if (!Array.isArray(entities)) {
       return [];
@@ -310,7 +307,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * CACHE MANAGEMENT
-   * Will be moved to utils/state-utils.ts
    ******************************************************************************/
 
   invalidateCache() {
@@ -351,7 +347,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * EVENT FETCHING & PROCESSING
-   * Moved to utils/event-utils.ts
    ******************************************************************************/
 
   async updateEvents(force = false): Promise<void> {
@@ -400,7 +395,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * ACTION HANDLING
-   * Moved to utils/actions.ts
    ******************************************************************************/
 
   handleAction(actionConfig: Types.ActionConfig) {
@@ -470,7 +464,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * EVENT PROCESSING
-   * Will be moved to utils/event-utils.ts
    ******************************************************************************/
 
   /**
@@ -494,7 +487,7 @@ class CalendarCardPro extends HTMLElement {
    * @param {Object} event Calendar event object
    * @returns {string} Formatted time string
    */
-  formatEventTime(event: Types.CalendarEventData) {
+  formatEventTime(event: Types.CalendarEventData): string {
     return FormatUtils.formatEventTime(event, this.config, this.config.language);
   }
 
@@ -631,7 +624,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * HTML GENERATION
-   * Moved to rendering/render.ts
    ******************************************************************************/
 
   generateCalendarContent(days: Types.EventsByDay[]): string {
@@ -654,7 +646,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * STYLING
-   * Moved to rendering/styles.ts
    ******************************************************************************/
 
   getStyles(): string {
@@ -663,7 +654,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * UTILITY FUNCTIONS
-   * Will be moved to utils/helpers.ts
    ******************************************************************************/
 
   /**
@@ -692,7 +682,6 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * PERFORMANCE MONITORING
-   * Moved to utils/helpers.ts
    ******************************************************************************/
 
   /**
@@ -725,15 +714,7 @@ class CalendarCardPro extends HTMLElement {
 }
 
 /******************************************************************************
- * EDITOR COMPONENT
- * Moved to rendering/editor.ts
- ******************************************************************************/
-
-// Editor class has been moved to rendering/editor.ts and is now imported
-
-/******************************************************************************
  * ELEMENT REGISTRATION
- * Will be kept in calendar-card-pro.ts (main entry point)
  ******************************************************************************/
 
 // Register the custom element

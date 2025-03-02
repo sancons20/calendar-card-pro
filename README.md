@@ -300,6 +300,13 @@ The following features are currently limited or not fully implemented:
 
 The card is open source and community-driven. If you need additional features or language support, please consider contributing to the project. Pull requests are welcome! See CONTRIBUTING.md for guidelines on how to contribute.
 
+## Future Enhancements
+
+1. **UI Editor**: Expanding editor.ts to provide a visual configuration interface
+2. **Additional Languages**: Expanding language support
+3. **Custom Event Filters**: Allow users to filter events based on properties
+4. **Performance Optimizations**: Further optimizations for large calendars
+
 <!--Badges-->
 
 # TO BE UPDATED

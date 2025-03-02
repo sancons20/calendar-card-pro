@@ -8,8 +8,6 @@
 
 import * as Types from '../config/types';
 import * as Localize from '../translations/localize';
-import * as FormatUtils from '../utils/format-utils';
-import * as EventUtils from '../utils/event-utils';
 import * as Styles from './styles';
 
 /**
