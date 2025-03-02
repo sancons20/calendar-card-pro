@@ -12,6 +12,7 @@ import * as Types from './config/types';
 import * as Localize from './translations/localize';
 import * as FormatUtils from './utils/format-utils';
 import * as EventUtils from './utils/event-utils';
+import * as ActionUtils from './utils/actions';
 
 // Ensure this file is treated as a module
 export {};
@@ -403,60 +404,41 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * ACTION HANDLING
-   * Will be moved to utils/actions.ts
+   * Moved to utils/actions.ts
    ******************************************************************************/
 
   handleAction(actionConfig: Types.ActionConfig) {
-    if (!this._hass || !actionConfig) return;
+    // Get the primary entity ID
+    const entityId = ActionUtils.getPrimaryEntityId(this.config.entities);
 
-    const actions: Record<string, () => void> = {
-      'more-info': () => this.fireMoreInfo(),
-      navigate: () => this.handleNavigation(actionConfig),
-      'call-service': () => this.callService(actionConfig),
-      url: () => this.openUrl(actionConfig),
-      expand: () => this.toggleExpanded(),
-      none: () => {},
-    };
-
-    const action = actions[actionConfig.action];
-    if (action) action();
+    // Call the extracted action handler
+    ActionUtils.handleAction(
+      actionConfig,
+      this._hass,
+      this,
+      entityId,
+      // Pass a callback to handle expand action
+      () => this.toggleExpanded(),
+    );
   }
 
   fireMoreInfo() {
-    const entityId = Array.isArray(this.config.entities)
-      ? typeof this.config.entities[0] === 'string'
-        ? this.config.entities[0]
-        : this.config.entities[0].entity
-      : this.config.entities;
-
-    const event = new CustomEvent<{ entityId: string }>('hass-more-info', {
-      bubbles: true,
-      composed: true,
-      detail: {
-        entityId: entityId,
-      },
-    });
-    this.dispatchEvent(event);
+    const entityId = ActionUtils.getPrimaryEntityId(this.config.entities);
+    ActionUtils.fireMoreInfo(this, entityId);
   }
 
   handleNavigation(actionConfig: Types.ActionConfig) {
-    if (actionConfig.navigation_path) {
-      window.history.pushState(null, '', actionConfig.navigation_path);
-      window.dispatchEvent(new Event('location-changed'));
-    }
+    ActionUtils.handleNavigation(actionConfig);
   }
 
   callService(actionConfig: Types.ActionConfig) {
-    if (actionConfig.service) {
-      const [domain, service] = actionConfig.service.split('.');
-      this._hass!.callService(domain, service, actionConfig.service_data || {});
+    if (this._hass) {
+      ActionUtils.callService(this._hass, actionConfig);
     }
   }
 
   openUrl(actionConfig: Types.ActionConfig) {
-    if (actionConfig.url_path) {
-      window.open(actionConfig.url_path, actionConfig.open_tab || '_blank');
-    }
+    ActionUtils.openUrl(actionConfig);
   }
 
   /**
@@ -471,38 +453,23 @@ class CalendarCardPro extends HTMLElement {
     }
   }
 
-  // Update event handlers in setupEventListeners
   setupEventListeners(): void {
     const cardContainer = this.shadowRoot?.querySelector<HTMLDivElement>('.card-container');
     if (!cardContainer) return;
 
-    let holdTimer: number;
-    let isHold = false;
+    // Get primary entity ID
+    const entityId = ActionUtils.getPrimaryEntityId(this.config.entities);
 
-    const handlePointerDown = (): void => {
-      isHold = false;
-      holdTimer = window.setTimeout(() => {
-        isHold = true;
-        if (this.config.hold_action) {
-          this.handleAction(this.config.hold_action);
-        }
-      }, 500);
-    };
-
-    const handlePointerUp = (): void => {
-      clearTimeout(holdTimer);
-      if (!isHold && this.config.tap_action) {
-        this.handleAction(this.config.tap_action);
-      }
-    };
-
-    const handlePointerCancel = (): void => {
-      clearTimeout(holdTimer);
-    };
-
-    cardContainer.addEventListener('pointerdown', handlePointerDown);
-    cardContainer.addEventListener('pointerup', handlePointerUp);
-    cardContainer.addEventListener('pointercancel', handlePointerCancel);
+    // Use the extracted setupEventListeners function
+    ActionUtils.setupEventListeners(
+      cardContainer,
+      this.config.tap_action,
+      this.config.hold_action,
+      this._hass,
+      this,
+      entityId,
+      () => this.toggleExpanded(),
+    );
   }
 
   /******************************************************************************
