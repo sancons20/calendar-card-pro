@@ -14,6 +14,7 @@ import * as FormatUtils from './utils/format-utils';
 import * as EventUtils from './utils/event-utils';
 import * as ActionUtils from './utils/actions';
 import * as Helpers from './utils/helpers';
+import * as Styles from './rendering/styles';
 
 // Ensure this file is treated as a module
 export {};
@@ -713,11 +714,19 @@ class CalendarCardPro extends HTMLElement {
 
     // For other states (error/loading) use simple message display
     const messages = {
-      error: `<p style="color: var(--error-color, red);">${Localize.translateString(this.config.language, 'error')}</p>`,
-      loading: `<p style="color: var(--secondary-text-color);">${Localize.translateString(this.config.language, 'loading')}</p>`,
+      error: `<p style="color: var(--error-color, red);">${Localize.translateString(
+        this.config.language,
+        'error',
+      )}</p>`,
+      loading: `<p style="color: var(--secondary-text-color);">${Localize.translateString(
+        this.config.language,
+        'loading',
+      )}</p>`,
     };
 
+    // Use the simplified error styles for error messages
     this.shadowRoot!.innerHTML = `
+      <style>${Styles.getErrorStyles()}</style>
       <div class="card-content">
         ${messages[state]}
       </div>
@@ -835,142 +844,11 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * STYLING
-   * Will be moved to rendering/styles.ts
+   * Moved to rendering/styles.ts
    ******************************************************************************/
 
   getStyles(): string {
-    // First define the custom properties
-    const customProperties = `
-      :host {
-        --card-font-size-title: ${this.config.title_font_size};
-        --card-font-size-weekday: ${this.config.weekday_font_size};
-        --card-font-size-day: ${this.config.day_font_size};
-        --card-font-size-month: ${this.config.month_font_size};
-        --card-font-size-event: ${this.config.event_font_size};
-        --card-font-size-time: ${this.config.time_font_size};
-        --card-font-size-location: ${this.config.location_font_size};
-        --card-color-title: ${this.config.title_color};
-        --card-color-weekday: ${this.config.weekday_color};
-        --card-color-day: ${this.config.day_color};
-        --card-color-month: ${this.config.month_color};
-        --card-color-event: ${this.config.event_color};
-        --card-color-time: ${this.config.time_color};
-        --card-color-location: ${this.config.location_color};
-        --card-line-color-vertical: ${this.config.vertical_line_color};
-        --card-line-color-horizontal: ${this.config.horizontal_line_color};
-        --card-line-width-vertical: ${this.config.vertical_line_width};
-        --card-line-width-horizontal: ${this.config.horizontal_line_width};
-        --card-spacing-row: ${this.config.row_spacing};
-        --card-spacing-additional: ${this.config.additional_card_spacing};
-        --card-icon-size: ${this.config.time_location_icon_size};
-        --card-date-column-width: ${parseFloat(this.config.day_font_size) * 1.75}px;
-        --card-custom-background: ${this.config.background_color};
-      }
-    `;
-
-    // Then use them in the actual styles
-    return `
-      ${customProperties}
-      
-      :host {
-        display: block;
-      }
-      .card-container {
-        cursor: pointer;
-        width: 100%;
-        height: 100%;
-      }
-      .card-content {
-        background: var(--card-custom-background, var(--card-background-color, #FFF));
-        border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, var(--divider-color));
-        border-radius: var(--ha-card-border-radius, 10px);
-        padding: 16px;
-        padding-top: calc(16px + var(--card-spacing-additional));
-        padding-bottom: calc(16px + var(--card-spacing-additional));
-      }
-      .title {
-        font-size: var(--card-font-size-title);
-        line-height: var(--card-font-size-title);
-        font-weight: 500;
-        color: var(--card-color-title);
-        margin-bottom: 16px;
-      }
-      ha-icon {
-        margin-right: 4px;
-        --mdc-icon-size: var(--card-icon-size);
-        vertical-align: middle;
-        position: relative;
-      }
-      table {
-        width: 100%;
-        table-layout: fixed;
-        border-spacing: 0;
-        margin-bottom: var(--card-spacing-row);
-        border-bottom: var(--card-line-width-horizontal) solid var(--card-line-color-horizontal);
-        padding-bottom: var(--card-spacing-row);
-      }
-      .date {
-        width: var(--card-date-column-width);
-        text-align: center;
-        padding-right: 12px;
-        border-right: var(--card-line-width-vertical) solid var(--card-line-color-vertical);
-      }
-      .weekday {
-        font-size: var(--card-font-size-weekday);
-        line-height: var(--card-font-size-weekday);
-        color: var(--card-color-weekday);
-      }
-      .day {
-        font-size: var(--card-font-size-day);
-        line-height: var(--card-font-size-day);
-        font-weight: 500;
-        color: var(--card-color-day);
-      }
-      .month {
-        font-size: var(--card-font-size-month);
-        line-height: var(--card-font-size-month);
-        text-transform: uppercase;
-        color:var(--card-color-month);
-      }
-      .event {
-        padding-left: 12px;
-      }
-      .event-title {
-        font-size: var(--card-font-size-event);
-        font-weight: 500;
-        color: var(--card-color-event);
-      }
-      .time-location {
-        display: flex;
-        flex-direction: column;
-        margin-top: 0px;
-      }
-      .time, .location {
-        display: flex;
-        align-items: center;
-        line-height: 1.2;
-      }
-      .time {
-        font-size: var(--card-font-size-time);
-        color: var(--card-color-time);
-      }
-      .location {
-        font-size: var(--card-font-size-location);
-        color: var(--card-color-location);
-        margin-top: 2px;
-      }
-      table:last-of-type {
-        margin-bottom: 0;
-        border-bottom: 0;
-        padding-bottom: 0;
-      }
-      .no-events {
-        text-align: center;
-        color: var(--secondary-text-color);
-        font-style: italic;
-        padding: 16px;
-      }
-    `;
+    return Styles.getStyles(this.config);
   }
 
   /******************************************************************************
