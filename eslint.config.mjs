@@ -31,7 +31,7 @@ export default [
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/explicit-function-return-type': 'off',
       'import/order': [
-        'error',
+        'warn',
         {
           groups: ['builtin', 'external', 'internal', ['sibling', 'parent'], 'index', 'unknown'],
           'newlines-between': 'always',
@@ -52,7 +52,10 @@ export default [
     },
     settings: {
       'import/resolver': {
-        typescript: { project: './tsconfig.json' },
+        typescript: {
+          project: './tsconfig.json',
+          alwaysTryTypes: true,
+        },
       },
     },
   },

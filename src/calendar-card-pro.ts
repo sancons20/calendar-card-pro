@@ -1,3 +1,4 @@
+/* eslint-disable import/order */
 /**
  * Calendar Card Pro for Home Assistant
  *
@@ -6,8 +7,9 @@
  */
 
 // Import all types via namespace for cleaner imports
-import * as Types from './config/types';
 import * as Config from './config/config';
+import * as Types from './config/types';
+import * as Localize from './translations/localize';
 
 // Ensure this file is treated as a module
 export {};
@@ -84,76 +86,11 @@ class CalendarCardPro extends HTMLElement {
 
   /******************************************************************************
    * TRANSLATIONS
-   * Will be moved to translations/languages/*.json
+   * Imported from translations/localize.ts
    ******************************************************************************/
 
   static get TRANSLATIONS(): Readonly<Record<string, Types.Translations>> {
-    return {
-      en: {
-        daysOfWeek: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-        fullDaysOfWeek: [
-          'Sunday',
-          'Monday',
-          'Tuesday',
-          'Wednesday',
-          'Thursday',
-          'Friday',
-          'Saturday',
-        ],
-        months: [
-          'Jan',
-          'Feb',
-          'Mar',
-          'Apr',
-          'May',
-          'Jun',
-          'Jul',
-          'Aug',
-          'Sep',
-          'Oct',
-          'Nov',
-          'Dec',
-        ],
-        allDay: 'all-day',
-        multiDay: 'until',
-        at: 'at',
-        noEvents: 'No upcoming events',
-        loading: 'Loading calendar events...',
-        error: 'Error: Calendar entity not found or improperly configured',
-      },
-      de: {
-        daysOfWeek: ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'],
-        fullDaysOfWeek: [
-          'Sonntag',
-          'Montag',
-          'Dienstag',
-          'Mittwoch',
-          'Donnerstag',
-          'Freitag',
-          'Samstag',
-        ],
-        months: [
-          'Jan',
-          'Feb',
-          'Mär',
-          'Apr',
-          'Mai',
-          'Jun',
-          'Jul',
-          'Aug',
-          'Sep',
-          'Okt',
-          'Nov',
-          'Dez',
-        ],
-        allDay: 'ganztägig',
-        multiDay: 'bis',
-        at: 'um',
-        noEvents: 'Keine anstehenden Termine',
-        loading: 'Kalendereinträge werden geladen...',
-        error: 'Fehler: Kalender-Entity nicht gefunden oder falsch konfiguriert',
-      },
-    };
+    return Localize.TRANSLATIONS;
   }
 
   /******************************************************************************
@@ -295,7 +232,7 @@ class CalendarCardPro extends HTMLElement {
 
   get translations() {
     const lang = this.config.language || 'en';
-    return CalendarCardPro.TRANSLATIONS[lang] || CalendarCardPro.TRANSLATIONS.en;
+    return Localize.getTranslations(lang);
   }
 
   /******************************************************************************
@@ -826,7 +763,7 @@ class CalendarCardPro extends HTMLElement {
 
   formatMultiDayAllDayTime(endDate: Date) {
     const endDay = endDate.getDate();
-    const endMonthName = this.translations.months[endDate.getMonth()];
+    const endMonthName = Localize.getMonthName(this.config.language, endDate.getMonth());
     const dayFormat = this.config.language === 'de' ? `${endDay}.` : endDay;
 
     return `${this.translations.allDay}, ${this.translations.multiDay} ${dayFormat} ${endMonthName}`;
@@ -834,8 +771,8 @@ class CalendarCardPro extends HTMLElement {
 
   formatMultiDayTime(startDate: Date, endDate: Date) {
     const endDay = endDate.getDate();
-    const endMonthName = this.translations.months[endDate.getMonth()];
-    const endWeekday = this.translations.fullDaysOfWeek[endDate.getDay()];
+    const endMonthName = Localize.getMonthName(this.config.language, endDate.getMonth());
+    const endWeekday = Localize.getDayName(this.config.language, endDate.getDay(), true);
     const dayFormat = this.config.language === 'de' ? `${endDay}.` : endDay;
 
     const startTimeStr = this.formatTime(startDate);
@@ -843,11 +780,11 @@ class CalendarCardPro extends HTMLElement {
 
     return [
       startTimeStr,
-      this.translations.multiDay,
+      Localize.translateString(this.config.language, 'multiDay'),
       endWeekday + ',',
       dayFormat,
       endMonthName,
-      this.translations.at,
+      Localize.translateString(this.config.language, 'at'),
       endTimeStr,
     ].join(' ');
   }
@@ -1004,7 +941,7 @@ class CalendarCardPro extends HTMLElement {
       content.className = 'card-content';
       content.innerHTML = `
         <div style="text-align: center; color: var(--primary-text-color);">
-          ${this.translations.loading}
+          ${Localize.translateString(this.config.language, 'loading')}
         </div>`;
 
       container.appendChild(content);
@@ -1026,12 +963,12 @@ class CalendarCardPro extends HTMLElement {
       // Create a card that looks like a regular calendar entry
       const now = new Date();
       const emptyDay = {
-        weekday: this.translations.daysOfWeek[now.getDay()],
+        weekday: Localize.getDayName(this.config.language, now.getDay()),
         day: now.getDate(),
-        month: this.translations.months[now.getMonth()],
+        month: Localize.getMonthName(this.config.language, now.getMonth()),
         events: [
           {
-            summary: this.translations.noEvents,
+            summary: Localize.translateString(this.config.language, 'noEvents'),
             time: '', // No time display
             location: '', // No location
             _entityConfig: { color: 'var(--secondary-text-color)' },
@@ -1083,8 +1020,8 @@ class CalendarCardPro extends HTMLElement {
 
     // For other states (error/loading) use simple message display
     const messages = {
-      error: `<p style="color: var(--error-color, red);">${this.translations.error}</p>`,
-      loading: `<p style="color: var(--secondary-text-color);">${this.translations.loading}</p>`,
+      error: `<p style="color: var(--error-color, red);">${Localize.translateString(this.config.language, 'error')}</p>`,
+      loading: `<p style="color: var(--secondary-text-color);">${Localize.translateString(this.config.language, 'loading')}</p>`,
     };
 
     this.shadowRoot!.innerHTML = `

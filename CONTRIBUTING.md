@@ -1,80 +1,117 @@
 # Contributing to Calendar Card Pro
 
-Thank you for your interest in contributing to Calendar Card Pro! This project welcomes contributions from the community, particularly in the following areas:
+Thank you for your interest in contributing to Calendar Card Pro! This document outlines the process for contributing to the project, including code changes, translations, and bug reports.
 
-## Adding New Languages
+## Adding New Translations
 
-1. Fork the repository
-2. In `calendar-card-pro.js`, locate the `TRANSLATIONS` object
-3. Add your language following this template:
-   ```javascript
-   'language_code': {
-     daysOfWeek: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-     fullDaysOfWeek: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-     months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-     allDay: 'all-day',
-     multiDay: 'until',
-     at: 'at'
-   }
-   ```
-4. Update documentation to include the new language code
+Calendar Card Pro supports multiple languages through JSON translation files. Here's how to add a new language:
+
+### Method 1: Contributing a Language File to the Repository
+
+1. Create a new JSON file in `src/translations/languages/` named with the language code (e.g., `fr.json` for French)
+2. Copy the structure from an existing translation file like `en.json`
+3. Translate all values while keeping the keys the same
+4. Import and register the file in `src/translations/localize.ts`
 5. Submit a pull request
 
-## Code Contributions
+Example language file structure:
 
-### Development Setup
-1. Fork and clone the repository
-2. Create a development environment in Home Assistant
-3. Link the development version to your HA installation
-4. Make your changes
-5. Test thoroughly with different calendar configurations
+```json
+{
+  "daysOfWeek": ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"],
+  "fullDaysOfWeek": ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"],
+  "months": ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"],
+  "allDay": "toute la journée",
+  "multiDay": "jusqu'au",
+  "at": "à",
+  "noEvents": "Aucun événement à venir",
+  "loading": "Chargement des événements...",
+  "error": "Erreur: Entité de calendrier introuvable ou mal configurée"
+}
+```
 
-### Pull Request Guidelines
-- Focus on a single feature or bug fix per PR
-- Maintain existing code style and formatting
-- Add comments for new functions and complex logic
-- Update documentation if needed
-- Test your changes with multiple browsers and devices
+### Method 2: Testing Translations During Development
 
-### Testing
-Before submitting a PR, please test:
-- Different calendar configurations
-- Multiple calendars
-- Various time zones
-- Different location formats
-- Both 12/24h time formats
-- Light and dark themes
+For quickly testing a language without modifying the source code, you can use the dynamic translation registration API:
 
-## Feature Requests
+1. Create a script file in Home Assistant (e.g., `/config/www/calendar-translation-dev.js`):
 
-When requesting new features:
-1. Check existing issues to avoid duplicates
-2. Describe your use case clearly
-3. Consider contributing the feature yourself
-4. Be open to discussion about implementation details
+```javascript
+// Development helper for testing new translations
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    if (window.CalendarCardProLocalize) {
+      // Register test translation
+      window.CalendarCardProLocalize.addTranslations('test', {
+        daysOfWeek: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        fullDaysOfWeek: [
+          'Sunday',
+          'Monday',
+          'Tuesday',
+          'Wednesday',
+          'Thursday',
+          'Friday',
+          'Saturday',
+        ],
+        months: [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ],
+        allDay: 'TEST all-day',
+        multiDay: 'TEST until',
+        at: 'TEST at',
+        noEvents: 'TEST No upcoming events',
+        loading: 'TEST Loading calendar events...',
+        error: 'TEST Error: Calendar entity not found or improperly configured',
+      });
+      console.log('Test language registered for Calendar Card Pro!');
+    }
+  }, 2000);
+});
+```
 
-## Bug Reports
+2. Add this script as a resource in Home Assistant
+3. Set `language: 'test'` in your card configuration to test the translation
 
-When reporting bugs:
-1. Describe the expected vs actual behavior
-2. Include your configuration
-3. Add steps to reproduce
-4. Mention your HA version and browser
-5. Include any relevant error messages
+> Note: This method is primarily intended for development and testing. For permanent language additions, please contribute directly to the repository via pull request.
 
-## Code Style
+## General Contribution Guidelines
 
-- Use consistent indentation (2 spaces)
-- Follow existing naming conventions
-- Keep functions focused and well-documented
-- Use TypeScript-style JSDoc comments
-- Maintain the existing architecture
+### Code Style and Quality
 
-## Questions?
+- Follow the TypeScript style guide
+- Run `npm run lint` to check for errors
+- Run `npm run format` to format code with Prettier
+- Ensure all tests pass before submitting a PR
 
-Feel free to open an issue for:
-- Implementation guidance
-- Architecture questions
-- Best practices discussions
+### Pull Request Process
 
-Thank you for helping improve Calendar Card Pro!
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/my-new-feature`)
+3. Commit your changes (`git commit -am 'Add some feature'`)
+4. Push to your branch (`git push origin feature/my-new-feature`)
+5. Create a new Pull Request
+
+### Bug Reports
+
+When filing a bug report, please include:
+
+1. A clear description of the issue
+2. Steps to reproduce the problem
+3. Expected behavior
+4. Actual behavior
+5. Version of Calendar Card Pro and Home Assistant
+6. Browser and OS information
+7. Screenshots if applicable
+
+Thank you for contributing to Calendar Card Pro!

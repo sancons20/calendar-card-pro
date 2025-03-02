@@ -1,5 +1,19 @@
 {
-  "common": {
-    "loading": "Kalendereinträge werden geladen..."
-  }
+  "daysOfWeek": ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"],
+  "fullDaysOfWeek": [
+    "Sonntag",
+    "Montag",
+    "Dienstag",
+    "Mittwoch",
+    "Donnerstag",
+    "Freitag",
+    "Samstag"
+  ],
+  "months": ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"],
+  "allDay": "ganztägig",
+  "multiDay": "bis",
+  "at": "um",
+  "noEvents": "Keine anstehenden Termine",
+  "loading": "Kalendereinträge werden geladen...",
+  "error": "Fehler: Kalender-Entity nicht gefunden oder falsch konfiguriert"
 }
