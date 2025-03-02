@@ -2,37 +2,28 @@
 /**
  * Editor component for Calendar Card Pro
  *
- * This module will contain:
- * - CalendarCardProEditor class
- * - Editor registration
- * - Configuration UI (future implementation)
- * - Schema definition for editor fields
- * - UI rendering methods
+ * This is a placeholder for the future UI editor implementation.
+ * It will provide a visual interface for configuring the calendar card.
  */
 
-import type * as Types from '../config/types';
+import * as Types from '../config/types';
 
 /**
- * Editor component for configuring the Calendar Card Pro
+ * Calendar Card Pro Editor component
  *
- * Currently a placeholder that will be implemented in a future version
- * with a full configuration UI. The component will be registered and
- * used by Home Assistant's card editor system.
- *
- * @export - Makes the component available for import in the main file
+ * This component will handle the visual configuration of the card.
+ * Currently implemented as a placeholder for future development.
  */
 export class CalendarCardProEditor extends HTMLElement {
   /**
-   * Sets the configuration for the editor
-   * Currently a placeholder for future implementation
+   * Set the configuration for this editor
    *
-   * @param {Readonly<Partial<Types.Config>>} _config - Card configuration
+   * @param config - Partial configuration object
    */
   public setConfig(_config: Readonly<Partial<Types.Config>>): void {
-    // Will be implemented later when we build the UI editor
+    // Will be implemented in the future when we build the UI editor
+    // This is currently a placeholder
   }
 }
-
-// The registration will be handled in the main file until the editor is fully implemented
 
 export {};

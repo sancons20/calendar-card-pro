@@ -11,6 +11,10 @@ import * as Types from '../config/types';
 /**
  * Debounce helper to limit function call frequency
  *
+ * Creates a function that delays invoking the provided function until after
+ * the specified wait time has elapsed since the last time it was invoked.
+ * Useful for limiting API calls and expensive operations.
+ *
  * @param func - Function to debounce
  * @param wait - Wait time in milliseconds
  * @returns Debounced function
@@ -32,6 +36,10 @@ export function debounce<T extends (...args: unknown[]) => void>(
 
 /**
  * Memoize helper for caching function results
+ *
+ * Creates a function that memoizes the result of func. If the function is called
+ * with the same arguments, the cached result is returned instead of re-executing
+ * the function. This is particularly useful for expensive calculations.
  *
  * @param func - Function to memoize
  * @param context - Function context (this reference)
@@ -146,9 +154,16 @@ export function handleError(error: unknown, prefix = 'Calendar-Card-Pro:'): void
 
 /**
  * Performance constants for calendar card
+ *
+ * These constants define thresholds and parameters for performance optimizations
+ * throughout the calendar card. Adjusting these values can affect rendering
+ * performance and responsiveness.
  */
 export const PERFORMANCE_CONSTANTS = {
+  /** Threshold in milliseconds for warning about slow rendering */
   RENDER_TIME_THRESHOLD: 100,
+  /** Size of chunks for progressive rendering */
   CHUNK_SIZE: 10,
+  /** Delay between rendering chunks in milliseconds */
   RENDER_DELAY: 50,
 } as const;

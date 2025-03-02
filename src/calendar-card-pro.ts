@@ -17,6 +17,7 @@ import * as FormatUtils from './utils/format-utils';
 import * as EventUtils from './utils/event-utils';
 import * as ActionUtils from './utils/actions';
 import * as Helpers from './utils/helpers';
+import * as StateUtils from './utils/state-utils';
 import * as Styles from './rendering/styles';
 import * as Render from './rendering/render';
 import { CalendarCardProEditor } from './rendering/editor';
@@ -193,31 +194,26 @@ class CalendarCardPro extends HTMLElement {
    ******************************************************************************/
 
   initializeState() {
-    this.config = {} as Types.Config;
-    this.events = [];
-    this._hass = null;
-    this.rendered = false;
-    this.touchState = {
-      touchStartY: 0,
-      touchStartX: 0,
-      holdTimer: null,
-      holdTriggered: false,
-    };
-    this.isLoading = true;
-    this.isExpanded = false;
+    const initialState = StateUtils.initializeState();
+    this.config = initialState.config;
+    this.events = initialState.events;
+    this._hass = initialState.hass;
+    this.rendered = initialState.rendered;
+    this.touchState = initialState.touchState;
+    this.isLoading = initialState.isLoading;
+    this.isExpanded = initialState.isExpanded;
   }
 
   cleanup() {
-    if (this.renderTimeout) {
-      clearTimeout(this.renderTimeout);
-    }
-    (this.memoizedFormatTime as unknown as Types.MemoCache<string>).cache.clear();
-    (this.memoizedFormatLocation as unknown as Types.MemoCache<string>).cache.clear();
+    StateUtils.cleanup(
+      this.renderTimeout,
+      this.memoizedFormatTime as unknown as Types.MemoCache<string>,
+      this.memoizedFormatLocation as unknown as Types.MemoCache<string>,
+    );
   }
 
   cleanupCache() {
-    const cachePrefix = `calendar_${this.config.entities.join('_')}`;
-    EventUtils.cleanupCache(cachePrefix);
+    StateUtils.cleanupCache(this.config.entities);
   }
 
   get translations() {
@@ -310,35 +306,36 @@ class CalendarCardPro extends HTMLElement {
    ******************************************************************************/
 
   invalidateCache() {
-    const cacheKeys = this.getAllCacheKeys();
-    EventUtils.invalidateCache(cacheKeys);
+    const baseKey = EventUtils.getBaseCacheKey(
+      this.instanceId,
+      this.config.entities,
+      this.config.days_to_show,
+      this.config.show_past_events,
+      this.config,
+    );
+    const keys = EventUtils.getAllCacheKeys(baseKey);
+    EventUtils.invalidateCache(keys);
   }
 
   getAllCacheKeys() {
-    const keys: string[] = [];
     const baseKey = this.getBaseCacheKey();
-
-    const now = new Date();
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    [now, yesterday].forEach((date) => {
-      keys.push(`${baseKey}_${date.toDateString()}`);
-    });
-
-    return keys;
+    return EventUtils.getAllCacheKeys(baseKey);
   }
 
   getCacheKey(): string {
-    return `${this.getBaseCacheKey()}_${new Date().toDateString()}`;
+    const baseKey = this.getBaseCacheKey();
+    return EventUtils.getCacheKey(baseKey);
   }
 
   getBaseCacheKey() {
     const { entities, days_to_show, show_past_events } = this.config;
-    const configHash = Helpers.hashConfig(this.config);
-    return `calendar_${this.instanceId}_${entities.join(
-      '_',
-    )}_${days_to_show}_${show_past_events}_${configHash}`;
+    return EventUtils.getBaseCacheKey(
+      this.instanceId,
+      entities,
+      days_to_show,
+      show_past_events,
+      this.config,
+    );
   }
 
   isValidState() {

@@ -8,6 +8,7 @@
 import * as Types from '../config/types';
 import * as Localize from '../translations/localize';
 import * as FormatUtils from './format-utils';
+import * as Helpers from './helpers';
 
 /**
  * Fetch calendar events from Home Assistant API
@@ -338,4 +339,56 @@ export function cleanupCache(cachePrefix: string, maxAge = 86400000): void {
       }
     }
   }
+}
+
+/**
+ * Get all cache keys for the current configuration
+ *
+ * @param baseKey - Base cache key
+ * @returns Array of cache keys
+ */
+export function getAllCacheKeys(baseKey: string): string[] {
+  const keys: string[] = [];
+
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  [now, yesterday].forEach((date) => {
+    keys.push(`${baseKey}_${date.toDateString()}`);
+  });
+
+  return keys;
+}
+
+/**
+ * Get current cache key based on base key and current date
+ *
+ * @param baseKey - Base cache key
+ * @returns Complete cache key including date
+ */
+export function getCacheKey(baseKey: string): string {
+  return `${baseKey}_${new Date().toDateString()}`;
+}
+
+/**
+ * Generate a base cache key from configuration
+ *
+ * @param instanceId - Unique instance ID
+ * @param entities - Calendar entities
+ * @param daysToShow - Number of days to display
+ * @param showPastEvents - Whether to show past events
+ * @param config - Full configuration for hashing
+ * @returns Base cache key
+ */
+export function getBaseCacheKey(
+  instanceId: string,
+  entities: Array<string | { entity: string; color?: string }>,
+  daysToShow: number,
+  showPastEvents: boolean,
+  config: unknown,
+): string {
+  const configHash = Helpers.hashConfig(config);
+  const entityIds = entities.map((e) => (typeof e === 'string' ? e : e.entity));
+  return `calendar_${instanceId}_${entityIds.join('_')}_${daysToShow}_${showPastEvents}_${configHash}`;
 }
