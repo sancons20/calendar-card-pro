@@ -16,6 +16,7 @@ import * as ActionUtils from './utils/actions';
 import * as Helpers from './utils/helpers';
 import * as Styles from './rendering/styles';
 import * as Render from './rendering/render';
+import { CalendarCardProEditor } from './rendering/editor';
 
 // Ensure this file is treated as a module
 export {};
@@ -725,16 +726,10 @@ class CalendarCardPro extends HTMLElement {
 
 /******************************************************************************
  * EDITOR COMPONENT
- * Will be moved to rendering/editor.ts
+ * Moved to rendering/editor.ts
  ******************************************************************************/
 
-// This is a placeholder for future UI editor implementation
-// Currently not used since we removed getConfigElement
-class CalendarCardProEditor extends HTMLElement {
-  public setConfig(_config: Readonly<Partial<Types.Config>>): void {
-    // Will be implemented later when we build the UI editor
-  }
-}
+// Editor class has been moved to rendering/editor.ts and is now imported
 
 /******************************************************************************
  * ELEMENT REGISTRATION
