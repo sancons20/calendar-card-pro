@@ -24,13 +24,13 @@
 
 Calendar Card Pro was inspired by a beautiful [calendar design using button-card and Hass calendar add-on](https://community.home-assistant.io/t/calendar-add-on-some-calendar-designs/385790) shared in the Home Assistant community. While the original design was visually stunning, implementing it with button-card led to performance issues. This motivated me to create a dedicated card focused on doing one thing exceptionally well: displaying your upcoming events beautifully and efficiently.
 
-Built with performance in mind, the card uses WebSocket for real-time updates and smart caching to ensure smooth operation even with multiple calendars.
+Built with performance in mind, the card uses intelligent refresh mechanisms and smart caching to ensure smooth operation even with multiple calendars.
 
 ### Features
 
 - 🎨 Multiple calendars with individual styling
 - 📊 Smart compact mode with expand/collapse functionality
-- 🔄 Real-time updates via WebSocket connection
+- 🔄 Smart update system with automatic refresh and state detection
 - ⚡ Optimized performance with smart caching
 - 🎯 Progressive loading for smooth rendering
 - 📱 Responsive and touch-friendly design
@@ -320,7 +320,12 @@ The card is open source and community-driven. If you need additional features or
 1. **UI Editor**: Expanding editor.ts to provide a visual configuration interface
 2. **Additional Languages**: Expanding language support
 3. **Custom Event Filters**: Allow users to filter events based on properties
-4. **Performance Optimizations**: Further optimizations for large calendars
+4. **Performance Optimizations**: Further optimizations for large calendars, including:
+   - DOM virtualization for cards with many events to reduce memory usage
+   - More efficient data structures for faster filtering and sorting
+   - Per-calendar caching strategies to minimize API requests
+   - Render time optimizations for initial load
+   - Memory usage improvements for long-running instances
 
 <!--Badges-->
 
