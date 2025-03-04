@@ -311,20 +311,28 @@ class CalendarCardPro extends HTMLElement {
    * @param force - Force refresh ignoring cache
    */
   async updateEvents(force = false): Promise<void> {
-    // Set loading state if we don't already have events
-    const wasEmpty = this.events.length === 0;
-    if (wasEmpty) {
-      this.isLoading = true;
+    if (!this.isValidState()) return;
+
+    // Try cache first - skip API call if cache is valid
+    const cacheDuration = (this.config.update_interval || 300) * 1000;
+    const cachedEvents = !force && EventUtils.getCachedEvents(this.getCacheKey(), cacheDuration);
+
+    if (cachedEvents) {
+      this.events = cachedEvents;
       this.renderCard();
+      return;
     }
 
+    // Only set loading state if we need to fetch from API
+    this.isLoading = true;
+    this.renderCard(); // Show loading state immediately
+
     try {
-      // Use the extracted update function
       const result = await EventUtils.updateCalendarEvents(
         this._hass,
         this.config,
         this.instanceId,
-        force,
+        true, // Force skip cache since we already checked above
         this.events,
       );
 
