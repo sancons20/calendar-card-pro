@@ -16,7 +16,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   days_to_show: 3,
   max_events_to_show: undefined,
   show_past_events: false,
-  update_interval: 43200,
+  update_interval: 300,
   language: 'en',
   time_24h: true,
   show_end_time: true,

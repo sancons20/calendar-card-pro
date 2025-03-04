@@ -95,6 +95,7 @@ type: module
 | max_events_to_show      | number  | -                           | Maximum number of events to show in compact mode |
 | show_past_events        | boolean | false                       | Show today's events that have already ended      |
 | language                | string  | System                      | Interface language (en/de)                       |
+| update_interval         | number  | 300                         | Seconds between auto-refresh of calendar events  |
 | time_24h                | boolean | true                        | Use 24-hour time format                          |
 | show_end_time           | boolean | true                        | Show event end times                             |
 | show_month              | boolean | true                        | Show month names                                 |
@@ -135,7 +136,7 @@ The `entities` array accepts either strings (entity IDs) or objects with extende
 - A string (entity ID only)
 - An object with the following properties:
   - `entity`: Calendar entity ID (required)
-  - `color`: Custom color for events from this calendar (optional)
+  - `color`: Custom color for event titles from this calendar (optional), overwrites event_color when set
 
 #### Event Display & Compact Mode
 
@@ -174,6 +175,18 @@ Both `tap_action` and `hold_action` support the following options:
 - `url_path`: URL for url action
 - `service`: Service to call (for call-service action)
 - `service_data`: Service data (for call-service action)
+
+#### Auto-Refresh and Update Behavior
+
+Calendar Card Pro automatically refreshes calendar events to ensure your dashboard always displays the latest information:
+
+- Events are refreshed based on your `update_interval` setting (default: every 5 minutes)
+- Minimum refresh interval is 60 seconds to prevent excessive API calls
+- Events are also refreshed when:
+  - A calendar entity's state changes in Home Assistant
+  - Navigating between views in your dashboard
+  - The Home Assistant connection is restored after being disconnected
+- The card uses efficient caching to minimize API calls while maintaining up-to-date information
 
 ## 💡 Examples
 
@@ -316,5 +329,3 @@ The card is open source and community-driven. If you need additional features or
 [git-last-commit-badge]: https://img.shields.io/github/last-commit/ngocjohn/vehicle-status-card
 [git-download-all-badge]: https://img.shields.io/github/downloads/ngocjohn/vehicle-status-card/total?style=flat&logo=homeassistantcommunitystore&logoSize=auto&label=Downloads&color=%2318BCF2
 [git-download-latest-badge]: https://img.shields.io/github/downloads/ngocjohn/vehicle-status-card/latest/total?style=flat&logo=homeassistantcommunitystore&logoSize=auto
-
-<!--Urls-->
