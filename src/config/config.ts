@@ -16,7 +16,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   days_to_show: 3,
   max_events_to_show: undefined,
   show_past_events: false,
-  update_interval: 300,
+  refresh_interval: 30,
   language: 'en',
   time_24h: true,
   show_end_time: true,
@@ -85,7 +85,7 @@ export function normalizeEntities(
 export function hasConfigChanged(previous: Partial<Types.Config>, current: Types.Config): boolean {
   if (!previous) return true;
 
-  const relevantKeys = ['entities', 'days_to_show', 'show_past_events', 'update_interval'];
+  const relevantKeys = ['entities', 'days_to_show', 'show_past_events', 'refresh_interval'];
 
   return relevantKeys.some((key) => JSON.stringify(previous[key]) !== JSON.stringify(current[key]));
 }

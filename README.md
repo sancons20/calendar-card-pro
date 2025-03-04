@@ -95,7 +95,7 @@ type: module
 | max_events_to_show      | number  | -                           | Maximum number of events to show in compact mode |
 | show_past_events        | boolean | false                       | Show today's events that have already ended      |
 | language                | string  | System                      | Interface language (en/de)                       |
-| update_interval         | number  | 300                         | Seconds between auto-refresh of calendar events  |
+| refresh_interval        | number  | 30                          | Minutes between auto-refresh of events           |
 | time_24h                | boolean | true                        | Use 24-hour time format                          |
 | show_end_time           | boolean | true                        | Show event end times                             |
 | show_month              | boolean | true                        | Show month names                                 |
@@ -178,15 +178,17 @@ Both `tap_action` and `hold_action` support the following options:
 
 #### Auto-Refresh and Update Behavior
 
-Calendar Card Pro automatically refreshes calendar events to ensure your dashboard always displays the latest information:
+Calendar Card Pro uses a sophisticated approach to keep calendar data current while minimizing API calls:
 
-- Events are refreshed based on your `update_interval` setting (default: every 5 minutes)
-- Minimum refresh interval is 60 seconds to prevent excessive API calls
-- Events are also refreshed when:
+- **Automatic Refresh**: The card proactively fetches new data every `refresh_interval` minutes (default: 30) even without user interaction
+- **Smart Caching**: Events are stored locally with a fixed 30-minute validity period so repeated views don't trigger unnecessary API calls
+- **Reactive Updates**: Besides the timed refresh, events are also updated when:
+  - You return to a browser tab after being away for 5+ minutes
   - A calendar entity's state changes in Home Assistant
-  - Navigating between views in your dashboard
+  - The card configuration changes
   - The Home Assistant connection is restored after being disconnected
-- The card uses efficient caching to minimize API calls while maintaining up-to-date information
+
+This approach ensures your calendar stays current while maintaining excellent performance and responsiveness.
 
 ## 💡 Examples
 

@@ -81,7 +81,7 @@ class CalendarCardPro extends HTMLElement {
   };
   private isLoading = true;
   private isExpanded = false;
-  private readonly performanceMetrics: Readonly<Types.PerformanceData> = {
+  private performanceMetrics: Types.PerformanceData = {
     renderTime: [],
     eventCount: 0,
     lastUpdate: Date.now(),
@@ -91,6 +91,7 @@ class CalendarCardPro extends HTMLElement {
   private readonly memoizedFormatLocation: (location: string) => string & Types.MemoCache<string>;
   private readonly cleanupInterval: number;
   private renderTimeout?: number;
+  private refreshIntervalId?: number;
 
   /******************************************************************************
    * STATIC CONFIGURATION
@@ -161,6 +162,17 @@ class CalendarCardPro extends HTMLElement {
     this.instanceId = Helpers.generateInstanceId();
     this.initializeState();
 
+    // Add page visibility handling
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        const timeSinceUpdate = Date.now() - this.performanceMetrics.lastUpdate;
+        if (timeSinceUpdate > 5 * 60 * 1000) {
+          // 5 minutes
+          this.updateEvents();
+        }
+      }
+    });
+
     // Use the helper functions
     this.debouncedUpdate = Helpers.debounce(() => this.updateEvents(), 300);
 
@@ -176,9 +188,13 @@ class CalendarCardPro extends HTMLElement {
     ) as unknown as (location: string) => string & Types.MemoCache<string>;
 
     this.cleanupInterval = window.setInterval(() => this.cleanupCache(), 3600000);
+
+    // Start refresh timer after initialization
+    this.startRefreshTimer();
   }
 
   disconnectedCallback() {
+    this.stopRefreshTimer(); // Stop the refresh timer
     clearInterval(this.cleanupInterval);
     this.cleanup();
   }
@@ -258,6 +274,9 @@ class CalendarCardPro extends HTMLElement {
     } else {
       this.renderCard();
     }
+
+    // Restart the refresh timer with the new configuration
+    this.startRefreshTimer();
   }
 
   /******************************************************************************
@@ -314,8 +333,7 @@ class CalendarCardPro extends HTMLElement {
     if (!this.isValidState()) return;
 
     // Try cache first - skip API call if cache is valid
-    const cacheDuration = (this.config.update_interval || 300) * 1000;
-    const cachedEvents = !force && EventUtils.getCachedEvents(this.getCacheKey(), cacheDuration);
+    const cachedEvents = !force && EventUtils.getCachedEvents(this.getCacheKey());
 
     if (cachedEvents) {
       this.events = cachedEvents;
@@ -340,6 +358,9 @@ class CalendarCardPro extends HTMLElement {
       if (result.events) {
         this.events = result.events;
       }
+
+      // Update last refresh timestamp
+      this.performanceMetrics.lastUpdate = Date.now();
 
       // Handle any errors that occurred
       if (result.error) {
@@ -595,6 +616,30 @@ class CalendarCardPro extends HTMLElement {
 
   private handleError(error: unknown): void {
     ErrorUtils.logError(error);
+  }
+
+  /**
+   * Starts the automatic refresh timer based on configuration
+   */
+  private startRefreshTimer(): void {
+    this.stopRefreshTimer(); // Clear any existing timer
+
+    // Convert minutes to milliseconds
+    const refreshMinutes = this.config?.refresh_interval || 30;
+    this.refreshIntervalId = window.setInterval(
+      () => this.updateEvents(true), // Force refresh
+      refreshMinutes * 60000,
+    );
+  }
+
+  /**
+   * Stops the automatic refresh timer
+   */
+  private stopRefreshTimer(): void {
+    if (this.refreshIntervalId) {
+      clearInterval(this.refreshIntervalId);
+      this.refreshIntervalId = undefined;
+    }
   }
 }
 

@@ -67,7 +67,7 @@ export interface Config {
   days_to_show: number;
   max_events_to_show?: number;
   show_past_events: boolean;
-  readonly update_interval: number;
+  refresh_interval: number;
   language: string;
   time_24h: boolean;
   show_end_time: boolean;
@@ -175,7 +175,7 @@ export interface CacheEntry {
 export interface PerformanceData {
   readonly renderTime: number[];
   eventCount: number;
-  readonly lastUpdate: number;
+  lastUpdate: number;
 }
 
 /**

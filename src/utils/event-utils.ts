@@ -48,12 +48,11 @@ export async function updateCalendarEvents(
   );
 
   const cacheKey = getCacheKey(baseKey);
-  const cacheDuration = (config.update_interval || 300) * 1000;
 
   // Try to get from cache if not forced
-  const cachedData = !force && getCachedEvents(cacheKey, cacheDuration);
-  if (cachedData) {
-    return { events: cachedData, fromCache: true, error: null };
+  const cachedEvents = !force && getCachedEvents(cacheKey);
+  if (cachedEvents) {
+    return { events: cachedEvents, fromCache: true, error: null };
   }
 
   try {
@@ -341,6 +340,9 @@ export function updateDateObjects(dateObjs: { now: Date; todayStart: Date; today
 
 // CACHE MANAGEMENT FUNCTIONS
 
+// Fixed cache duration (30 minutes)
+export const CACHE_DURATION = 30 * 60 * 1000;
+
 /**
  * Get cached event data if available and not expired
  *
@@ -348,7 +350,7 @@ export function updateDateObjects(dateObjs: { now: Date; todayStart: Date; today
  * @param maxAge - Maximum age of cache in milliseconds
  * @returns Cached events or null if expired/unavailable
  */
-export function getCachedEvents(key: string, maxAge: number): Types.CalendarEventData[] | null {
+export function getCachedEvents(key: string): Types.CalendarEventData[] | null {
   try {
     const cache = localStorage.getItem(key);
     if (!cache) return null;
@@ -356,7 +358,7 @@ export function getCachedEvents(key: string, maxAge: number): Types.CalendarEven
     const cacheEntry = JSON.parse(cache) as Types.CacheEntry;
     const now = Date.now();
 
-    if (now - cacheEntry.timestamp < maxAge) {
+    if (now - cacheEntry.timestamp < CACHE_DURATION) {
       // Create a mutable copy of the events array to avoid readonly issues
       return [...cacheEntry.events];
     }

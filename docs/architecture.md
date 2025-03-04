@@ -94,6 +94,33 @@ graph TD
     F --> D
 ```
 
+## Event Processing and Refresh Mechanism
+
+Calendar Card Pro uses a multi-layered approach to keep calendar data fresh while maintaining performance:
+
+1. **Local Storage Caching**:
+
+   - Events are cached in browser localStorage for 30 minutes
+   - Provides immediate rendering without API calls when available
+   - Reduces load on Home Assistant and improves rendering speed
+
+2. **Automatic Refreshing**:
+
+   - Regular updates based on user-configured `refresh_interval` (default: 30 minutes)
+   - Updates events in the background without disturbing the user experience
+
+3. **State-Based Updates**:
+
+   - Calendar entity state changes trigger immediate updates
+   - Ensures new events are shown promptly when calendars are updated
+
+4. **Page Visibility Detection**:
+   - Refreshes data when users return to a tab after being away
+   - Only triggers if the last refresh was more than 5 minutes ago
+   - Ensures the calendar always shows recent data without excessive API calls
+
+This approach balances fresh data with performance considerations, avoiding unnecessary API calls while keeping the display current.
+
 1. **Initialization Flow**:
 
    - Main component initializes
