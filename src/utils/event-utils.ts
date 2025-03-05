@@ -9,6 +9,7 @@ import * as Types from '../config/types';
 import * as Localize from '../translations/localize';
 import * as FormatUtils from './format-utils';
 import * as Helpers from './helpers';
+import * as Logger from './logger-utils';
 
 // HIGH-LEVEL API FUNCTIONS FIRST
 
@@ -46,7 +47,6 @@ export async function updateCalendarEvents(
     config.show_past_events,
     config,
   );
-
   const cacheKey = getCacheKey(baseKey);
 
   // Try to get from cache if not forced
@@ -64,15 +64,19 @@ export async function updateCalendarEvents(
     // Fetch events
     const timeWindow = getTimeWindow(config.days_to_show);
     const events = await fetchEvents(hass!, entities, timeWindow);
+    Logger.info(`Fetched ${events.length} events from ${entities.length} calendars`);
 
     // Cache the events
     cacheEvents(cacheKey, [...events]);
 
     return { events: [...events], fromCache: false, error: null };
   } catch (error) {
+    Logger.error('API error:', error);
+
     // Attempt fallback if no events already
     if (currentEvents.length === 0) {
       try {
+        Logger.info('Trying fallback to fetch today events');
         const firstEntity =
           typeof config.entities[0] === 'string' ? config.entities[0] : config.entities[0].entity;
 
@@ -83,6 +87,7 @@ export async function updateCalendarEvents(
           error,
         };
       } catch (fallbackError) {
+        Logger.error('Fallback failed:', fallbackError);
         return { events: [], fromCache: false, error: fallbackError };
       }
     }
@@ -262,6 +267,12 @@ export async function fetchEvents(
         'GET',
         `calendars/${entityConfig.entity}?start=${timeWindow.start.toISOString()}&end=${timeWindow.end.toISOString()}`,
       );
+
+      if (!events || !Array.isArray(events)) {
+        Logger.warn(`Invalid response for ${entityConfig.entity}`);
+        continue;
+      }
+
       const processedEvents = (events as Types.CalendarEventData[]).map(
         (event: Types.CalendarEventData) => ({
           ...event,
@@ -273,7 +284,7 @@ export async function fetchEvents(
       );
       allEvents.push(...processedEvents);
     } catch (error) {
-      console.warn(`Calendar-Card-Pro: Failed to fetch events for ${entityConfig.entity}`, error);
+      Logger.error(`Failed to fetch events for ${entityConfig.entity}:`, error);
     }
   }
 
@@ -344,28 +355,61 @@ export function updateDateObjects(dateObjs: { now: Date; todayStart: Date; today
 export const CACHE_DURATION = 30 * 60 * 1000;
 
 /**
+ * Parse and validate cache entry
+ * Helper function to ensure consistent cache validation
+ *
+ * @param key - Cache key
+ * @returns Valid cache entry or null if invalid/expired
+ */
+export function getValidCacheEntry(key: string): Types.CacheEntry | null {
+  try {
+    const item = localStorage.getItem(key);
+    if (!item) return null;
+
+    const cache = JSON.parse(item) as Types.CacheEntry;
+    const now = Date.now();
+    const isValid = now - cache.timestamp < CACHE_DURATION;
+
+    if (!isValid) {
+      // Remove expired cache
+      localStorage.removeItem(key);
+      Logger.info(`Cache expired and removed for ${key}`);
+      return null;
+    }
+
+    return cache;
+  } catch (e) {
+    Logger.warn('Cache error:', e);
+    try {
+      localStorage.removeItem(key);
+    } catch {}
+    return null;
+  }
+}
+
+/**
  * Get cached event data if available and not expired
  *
  * @param key - Cache key
- * @param maxAge - Maximum age of cache in milliseconds
  * @returns Cached events or null if expired/unavailable
  */
 export function getCachedEvents(key: string): Types.CalendarEventData[] | null {
-  try {
-    const cache = localStorage.getItem(key);
-    if (!cache) return null;
-
-    const cacheEntry = JSON.parse(cache) as Types.CacheEntry;
-    const now = Date.now();
-
-    if (now - cacheEntry.timestamp < CACHE_DURATION) {
-      // Create a mutable copy of the events array to avoid readonly issues
-      return [...cacheEntry.events];
-    }
-  } catch (e) {
-    console.warn('Failed to retrieve cached events:', e);
+  const cacheEntry = getValidCacheEntry(key);
+  if (cacheEntry) {
+    return [...cacheEntry.events];
   }
   return null;
+}
+
+/**
+ * Check if valid cache exists for a key
+ *
+ * @param key - Cache key
+ * @returns Boolean indicating if valid cache exists
+ */
+export function doesCacheExist(key: string): boolean {
+  // Use the same shared validation function
+  return getValidCacheEntry(key) !== null;
 }
 
 /**
@@ -373,69 +417,25 @@ export function getCachedEvents(key: string): Types.CalendarEventData[] | null {
  *
  * @param key - Cache key
  * @param events - Calendar event data to cache
+ * @returns Boolean indicating if caching was successful
  */
-export function cacheEvents(key: string, events: Types.CalendarEventData[]): void {
+export function cacheEvents(key: string, events: Types.CalendarEventData[]): boolean {
   try {
+    Logger.info(`Caching ${events.length} events`);
     const cacheEntry: Types.CacheEntry = {
       events,
       timestamp: Date.now(),
     };
+
+    // Save to localStorage
     localStorage.setItem(key, JSON.stringify(cacheEntry));
+
+    // Verify the cache was written correctly
+    return getValidCacheEntry(key) !== null;
   } catch (e) {
-    console.warn('Failed to cache calendar events:', e);
+    Logger.error('Failed to cache calendar events:', e);
+    return false;
   }
-}
-
-/**
- * Generate a base cache key from configuration
- *
- * @param instanceId - Unique instance ID
- * @param entities - Calendar entities
- * @param daysToShow - Number of days to display
- * @param showPastEvents - Whether to show past events
- * @param config - Full configuration for hashing
- * @returns Base cache key
- */
-export function getBaseCacheKey(
-  instanceId: string,
-  entities: Array<string | { entity: string; color?: string }>,
-  daysToShow: number,
-  showPastEvents: boolean,
-  config: unknown,
-): string {
-  const configHash = Helpers.hashConfig(config);
-  const entityIds = entities.map((e) => (typeof e === 'string' ? e : e.entity));
-  return `calendar_${instanceId}_${entityIds.join('_')}_${daysToShow}_${showPastEvents}_${configHash}`;
-}
-
-/**
- * Get current cache key based on base key and current date
- *
- * @param baseKey - Base cache key
- * @returns Complete cache key including date
- */
-export function getCacheKey(baseKey: string): string {
-  return `${baseKey}_${new Date().toDateString()}`;
-}
-
-/**
- * Get all cache keys for the current configuration
- *
- * @param baseKey - Base cache key
- * @returns Array of cache keys
- */
-export function getAllCacheKeys(baseKey: string): string[] {
-  const keys: string[] = [];
-
-  const now = new Date();
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  [now, yesterday].forEach((date) => {
-    keys.push(`${baseKey}_${date.toDateString()}`);
-  });
-
-  return keys;
 }
 
 /**
@@ -445,37 +445,104 @@ export function getAllCacheKeys(baseKey: string): string[] {
  */
 export function invalidateCache(keys: string[]): void {
   try {
-    keys.forEach((key) => localStorage.removeItem(key));
+    const invalidated = keys.filter((key) => {
+      if (localStorage.getItem(key) !== null) {
+        localStorage.removeItem(key);
+        return true;
+      }
+      return false;
+    });
+
+    if (invalidated.length > 0) {
+      Logger.info(`Invalidated ${invalidated.length} cache entries`);
+    }
   } catch (e) {
-    console.warn('Failed to invalidate cache:', e);
+    Logger.warn('Failed to invalidate cache:', e);
   }
+}
+
+/**
+ * Generate a base cache key from configuration
+ * This function creates a stable cache key that depends only on data-affecting parameters
+ *
+ * @param _instanceId - Component instance ID (unused, maintained for backward compatibility)
+ * @param entities - Calendar entities
+ * @param daysToShow - Number of days to display
+ * @param showPastEvents - Whether to show past events
+ * @param _config - Unused parameter
+ * @returns Base cache key
+ */
+export function getBaseCacheKey(
+  _instanceId: string,
+  entities: Array<string | { entity: string; color?: string }>,
+  daysToShow: number,
+  showPastEvents: boolean,
+  _config: unknown,
+): string {
+  // Extract just entity IDs in a stable format, sorted to ensure consistency
+  const entityIds = entities
+    .map((e) => (typeof e === 'string' ? e : e.entity))
+    .sort()
+    .join('_');
+
+  // Create a very simple, stable cache key that doesn't depend on instanceId
+  // This allows cache to be shared between component recreations
+  return `calendar_data_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}`;
+}
+
+/**
+ * Get current cache key based on base key and current date
+ *
+ * @param baseKey - Base cache key
+ * @returns Complete cache key including date
+ */
+export function getCacheKey(baseKey: string): string {
+  return baseKey;
+}
+
+/**
+ * Get all cache keys for the current configuration
+ *
+ * @param baseKey - Base cache key
+ * @returns Array of cache keys
+ */
+export function getAllCacheKeys(baseKey: string): string[] {
+  return [baseKey];
 }
 
 /**
  * Clean up old cache entries
  *
- * @param prefix - Cache key prefix to search for
+ * @param _prefix - Cache key prefix (unused but kept for API compatibility)
  */
-export function cleanupCache(prefix: string): void {
+export function cleanupCache(_prefix: string): void {
+  // Added underscore to mark as unused
   try {
-    // Find and remove all cache entries that start with the prefix
+    const keysToRemove: string[] = [];
+    const now = Date.now();
+
+    // Find and remove all cache entries that start with 'calendar_data_' and are older than 24 hours
     Object.keys(localStorage)
-      .filter((key) => key.startsWith(prefix))
+      .filter((key) => key.startsWith('calendar_data_'))
       .forEach((key) => {
         try {
           const cacheEntry = JSON.parse(localStorage.getItem(key) || '') as Types.CacheEntry;
-          const now = Date.now();
-
-          // Remove if older than 24 hours
           if (now - cacheEntry.timestamp > 86400000) {
-            localStorage.removeItem(key);
+            // 24 hours
+            keysToRemove.push(key);
           }
         } catch {
           // If we can't parse it, just remove it
-          localStorage.removeItem(key);
+          keysToRemove.push(key);
         }
       });
+
+    // Log and remove old keys
+    if (keysToRemove.length > 0) {
+      Logger.info(`Cleaned up ${keysToRemove.length} old cache entries`);
+      keysToRemove.forEach((key) => localStorage.removeItem(key));
+    }
   } catch (e) {
-    console.warn('Cache cleanup failed:', e);
+    Logger.warn('Cache cleanup failed:', e);
   }
 }

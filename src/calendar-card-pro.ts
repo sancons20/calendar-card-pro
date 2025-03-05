@@ -9,6 +9,9 @@
  * @version 0.1.0
  */
 
+// Version information - keep this at the top level for easy updates
+export const VERSION = '0.1.0';
+
 // Import all types via namespace for cleaner imports
 import * as Config from './config/config';
 import * as Types from './config/types';
@@ -21,7 +24,7 @@ import * as StateUtils from './utils/state-utils';
 import * as Styles from './rendering/styles';
 import * as Render from './rendering/render';
 import * as DomUtils from './utils/dom-utils';
-import * as ErrorUtils from './utils/error-utils';
+import * as Logger from './utils/logger-utils';
 import { CalendarCardProEditor } from './rendering/editor';
 
 // Ensure this file is treated as a module
@@ -63,7 +66,7 @@ class CalendarCardPro extends HTMLElement {
     todayEnd: Date;
   };
   private static _countryNames: Set<string>;
-  private readonly instanceId: string;
+  private instanceId: string;
   private config!: Types.Config;
   private events: Types.CalendarEventData[] = [];
   private _hass: Types.Hass | null = null;
@@ -156,11 +159,16 @@ class CalendarCardPro extends HTMLElement {
    * LIFECYCLE METHODS
    ******************************************************************************/
 
+  // In constructor, use a temporary ID that will be replaced in setConfig
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
+    // Generate a temporary instance ID - this will be replaced with a deterministic one in setConfig
     this.instanceId = Helpers.generateInstanceId();
     this.initializeState();
+
+    // Initialize logger with version info
+    Logger.initializeLogger('0.1.0');
 
     // Add page visibility handling
     document.addEventListener('visibilitychange', () => {
@@ -263,16 +271,30 @@ class CalendarCardPro extends HTMLElement {
    * CONFIGURATION
    ******************************************************************************/
 
+  /**
+   * Update component configuration and render
+   * Handles configuration changes and cache invalidation
+   */
   setConfig(config: Partial<Types.Config>) {
     const previousConfig = this.config;
     this.config = { ...CalendarCardPro.DEFAULT_CONFIG, ...config };
     this.config.entities = Config.normalizeEntities(this.config.entities);
 
-    if (Config.hasConfigChanged(previousConfig, this.config)) {
-      this.invalidateCache();
-      this.updateEvents(true);
+    // Generate deterministic instance ID based on data-affecting config
+    this.instanceId = Helpers.generateDeterministicId(
+      this.config.entities,
+      this.config.days_to_show,
+      this.config.show_past_events,
+    );
+
+    // Check if data-affecting configuration has changed
+    const configChanged = Config.hasConfigChanged(previousConfig, this.config);
+
+    if (configChanged) {
+      Logger.info('Configuration changed, refreshing data');
+      this.updateEvents(true); // Force refresh
     } else {
-      this.renderCard();
+      this.renderCard(); // Just re-render with new styling
     }
 
     // Restart the refresh timer with the new configuration
@@ -332,16 +354,22 @@ class CalendarCardPro extends HTMLElement {
   async updateEvents(force = false): Promise<void> {
     if (!this.isValidState()) return;
 
-    // Try cache first - skip API call if cache is valid
-    const cachedEvents = !force && EventUtils.getCachedEvents(this.getCacheKey());
+    const cacheKey = this.getCacheKey();
+    const cacheExists = !force && EventUtils.doesCacheExist(cacheKey);
 
-    if (cachedEvents) {
-      this.events = cachedEvents;
-      this.renderCard();
-      return;
+    if (cacheExists) {
+      const cachedEvents = EventUtils.getCachedEvents(cacheKey);
+      if (cachedEvents) {
+        Logger.info(`Using ${cachedEvents.length} events from cache`);
+        this.events = cachedEvents;
+        this.isLoading = false;
+        this.renderCard();
+        return;
+      }
     }
 
-    // Only set loading state if we need to fetch from API
+    Logger.info(`Fetching events from API${force ? ' (forced refresh)' : ''}`);
+
     this.isLoading = true;
     this.renderCard(); // Show loading state immediately
 
@@ -350,24 +378,22 @@ class CalendarCardPro extends HTMLElement {
         this._hass,
         this.config,
         this.instanceId,
-        true, // Force skip cache since we already checked above
+        force,
         this.events,
       );
 
-      // Update component state with the result
       if (result.events) {
         this.events = result.events;
       }
 
-      // Update last refresh timestamp
       this.performanceMetrics.lastUpdate = Date.now();
 
-      // Handle any errors that occurred
       if (result.error) {
-        ErrorUtils.logError(result.error, 'Event update');
+        Logger.error('Error during event update:', result.error);
       }
+    } catch (error) {
+      Logger.error('Failed to update events:', error);
     } finally {
-      // Always update loading state and render
       this.isLoading = false;
       this.renderCard();
     }
@@ -485,7 +511,6 @@ class CalendarCardPro extends HTMLElement {
       return;
     }
 
-    // Get events grouped by day
     const eventsByDay = EventUtils.groupEventsByDay(
       this.events,
       this.config,
@@ -493,29 +518,32 @@ class CalendarCardPro extends HTMLElement {
       this.config.language,
     );
 
-    // Show empty state if we have no upcoming events
     if (eventsByDay.length === 0) {
       Render.renderErrorToDOM(this.shadowRoot!, 'empty', this.config);
       this.endPerfMetrics(metrics);
       return;
     }
 
-    // Render the calendar card using the render module
-    const { container, style } = await Render.renderCalendarCard(
-      this.config,
-      eventsByDay,
-      (event) => this.formatEventTime(event),
-      (location) => this.formatLocation(location),
-      CalendarCardPro.CHUNK_SIZE,
-      CalendarCardPro.RENDER_DELAY,
-    );
+    try {
+      const { container, style } = await Render.renderCalendarCard(
+        this.config,
+        eventsByDay,
+        (event) => this.formatEventTime(event),
+        (location) => this.formatLocation(location),
+        CalendarCardPro.CHUNK_SIZE,
+        CalendarCardPro.RENDER_DELAY,
+      );
 
-    // Update shadow DOM
-    DomUtils.clearShadowRoot(this.shadowRoot!);
-    this.shadowRoot?.appendChild(style);
-    this.shadowRoot?.appendChild(container);
+      DomUtils.clearShadowRoot(this.shadowRoot!);
+      this.shadowRoot?.appendChild(style);
+      this.shadowRoot?.appendChild(container);
 
-    this.setupEventListeners();
+      this.setupEventListeners();
+    } catch (error) {
+      Logger.error('Render error:', error);
+      Render.renderErrorToDOM(this.shadowRoot!, 'error', this.config);
+    }
+
     this.endPerfMetrics(metrics);
   }
 
@@ -615,7 +643,7 @@ class CalendarCardPro extends HTMLElement {
   }
 
   private handleError(error: unknown): void {
-    ErrorUtils.logError(error);
+    Logger.logError(error);
   }
 
   /**

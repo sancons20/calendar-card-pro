@@ -7,6 +7,7 @@
  */
 
 import * as Types from './types';
+import * as Logger from '../utils/logger-utils';
 
 /**
  * Default configuration for Calendar Card Pro
@@ -80,14 +81,50 @@ export function normalizeEntities(
 }
 
 /**
- * Checks if relevant configuration properties have changed
+ * Checks if configuration changes require data refresh
  */
-export function hasConfigChanged(previous: Partial<Types.Config>, current: Types.Config): boolean {
+export function requiresDataRefresh(
+  previous: Partial<Types.Config>,
+  current: Types.Config,
+): boolean {
   if (!previous) return true;
 
-  const relevantKeys = ['entities', 'days_to_show', 'show_past_events', 'refresh_interval'];
+  // Only these parameters affect what data we need to fetch
+  const criticalKeys = ['entities', 'days_to_show', 'show_past_events'];
 
-  return relevantKeys.some((key) => JSON.stringify(previous[key]) !== JSON.stringify(current[key]));
+  return criticalKeys.some((key) => {
+    if (key === 'entities') {
+      // Check for actual entity changes (not just styling)
+      const prevEntities = previous.entities || [];
+      const currEntities = current.entities || [];
+
+      // Compare only the entity IDs, ignoring styling options
+      const prevIds = new Set(prevEntities.map((e) => (typeof e === 'string' ? e : e.entity)));
+      const currIds = new Set(currEntities.map((e) => (typeof e === 'string' ? e : e.entity)));
+
+      if (prevIds.size !== currIds.size) return true;
+      return Array.from(prevIds).some((id) => !currIds.has(id));
+    }
+
+    // Standard comparison for other keys
+    return JSON.stringify(previous[key]) !== JSON.stringify(current[key]);
+  });
+}
+
+// SIMPLIFY config change logging:
+export function hasConfigChanged(previous: Partial<Types.Config>, current: Types.Config): boolean {
+  if (!previous || Object.keys(previous).length === 0) {
+    return true;
+  }
+
+  const dataRefreshNeeded = requiresDataRefresh(previous, current);
+  const refreshIntervalChanged = previous?.refresh_interval !== current?.refresh_interval;
+
+  if (dataRefreshNeeded || refreshIntervalChanged) {
+    Logger.info('Configuration change requires data refresh');
+  }
+
+  return dataRefreshNeeded || refreshIntervalChanged;
 }
 
 /**
