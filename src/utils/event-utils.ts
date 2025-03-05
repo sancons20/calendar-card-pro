@@ -97,6 +97,79 @@ export async function updateCalendarEvents(
 }
 
 /**
+ * Orchestrates the complete event update process with state management
+ * This function manages loading states, cache access, API calls, and error handling
+ *
+ * @param options Configuration object containing all necessary parameters
+ * @returns Promise that resolves when the update is complete
+ */
+export async function orchestrateEventUpdate(options: {
+  hass: Types.Hass | null;
+  config: Types.Config;
+  instanceId: string;
+  force: boolean;
+  currentEvents: Types.CalendarEventData[];
+  callbacks: {
+    setLoading: (loading: boolean) => void;
+    setEvents: (events: Types.CalendarEventData[]) => void;
+    updateLastUpdate: () => void;
+    renderCallback: () => void;
+  };
+}): Promise<void> {
+  const { hass, config, instanceId, force, currentEvents, callbacks } = options;
+
+  // Early return if state is invalid
+  if (!isValidState(hass, config.entities)) return;
+
+  const cacheKey = getCacheKey(
+    getBaseCacheKey(
+      instanceId,
+      config.entities,
+      config.days_to_show,
+      config.show_past_events,
+      config,
+    ),
+  );
+
+  // Check cache first unless forced refresh
+  const cacheExists = !force && doesCacheExist(cacheKey);
+
+  if (cacheExists) {
+    const cachedEvents = getCachedEvents(cacheKey);
+    if (cachedEvents) {
+      Logger.info(`Using ${cachedEvents.length} events from cache`);
+      callbacks.setEvents(cachedEvents);
+      callbacks.setLoading(false);
+      callbacks.renderCallback();
+      return;
+    }
+  }
+
+  // Show loading state and fetch fresh data
+  Logger.info(`Fetching events from API${force ? ' (forced refresh)' : ''}`);
+  callbacks.setLoading(true);
+  callbacks.renderCallback();
+
+  try {
+    const result = await updateCalendarEvents(hass, config, instanceId, force, currentEvents);
+
+    if (result.events) {
+      callbacks.setEvents(result.events);
+      callbacks.updateLastUpdate();
+    }
+
+    if (result.error) {
+      Logger.error('Error during event update:', result.error);
+    }
+  } catch (error) {
+    Logger.error('Failed to update events:', error);
+  } finally {
+    callbacks.setLoading(false);
+    callbacks.renderCallback();
+  }
+}
+
+/**
  * Check if the card state is valid for processing events
  *
  * @param hass - Home Assistant interface

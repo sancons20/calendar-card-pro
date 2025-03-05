@@ -379,51 +379,28 @@ class CalendarCardPro extends HTMLElement {
    * @param force - Force refresh ignoring cache
    */
   async updateEvents(force = false): Promise<void> {
-    if (!this.isValidState()) return;
-
-    const cacheKey = this.getCacheKey();
-    const cacheExists = !force && EventUtils.doesCacheExist(cacheKey);
-
-    if (cacheExists) {
-      const cachedEvents = EventUtils.getCachedEvents(cacheKey);
-      if (cachedEvents) {
-        Logger.info(`Using ${cachedEvents.length} events from cache`);
-        this.events = cachedEvents;
-        this.isLoading = false;
-        this.renderCard();
-        return;
-      }
-    }
-
-    Logger.info(`Fetching events from API${force ? ' (forced refresh)' : ''}`);
-
-    this.isLoading = true;
-    this.renderCard(); // Show loading state immediately
-
-    try {
-      const result = await EventUtils.updateCalendarEvents(
-        this._hass,
-        this.config,
-        this.instanceId,
-        force,
-        this.events,
-      );
-
-      if (result.events) {
-        this.events = result.events;
-      }
-
-      this.performanceMetrics.lastUpdate = Date.now();
-
-      if (result.error) {
-        Logger.error('Error during event update:', result.error);
-      }
-    } catch (error) {
-      Logger.error('Failed to update events:', error);
-    } finally {
-      this.isLoading = false;
-      this.renderCard();
-    }
+    // Use the new orchestration function
+    await EventUtils.orchestrateEventUpdate({
+      hass: this._hass,
+      config: this.config,
+      instanceId: this.instanceId,
+      force,
+      currentEvents: this.events,
+      callbacks: {
+        setLoading: (loading) => {
+          this.isLoading = loading;
+        },
+        setEvents: (events) => {
+          this.events = events;
+        },
+        updateLastUpdate: () => {
+          this.performanceMetrics.lastUpdate = Date.now();
+        },
+        renderCallback: () => {
+          this.renderCard();
+        },
+      },
+    });
   }
 
   /******************************************************************************
