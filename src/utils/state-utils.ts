@@ -7,6 +7,7 @@
 
 import * as Types from '../config/types';
 import * as EventUtils from './event-utils';
+import * as Logger from './logger-utils';
 
 /**
  * Initialize component state
@@ -70,4 +71,68 @@ export function cleanup(
 export function cleanupCache(entities: Array<string | { entity: string; color?: string }>): void {
   const cachePrefix = `calendar_${entities.join('_')}`;
   EventUtils.cleanupCache(cachePrefix);
+}
+
+/**
+ * Sets up page visibility handling to refresh events when returning to the page
+ *
+ * @param updateCallback Function to call when page visibility changes
+ * @param getLastUpdateTime Function that returns the timestamp of the last update
+ * @returns Cleanup function to remove the event listener
+ */
+export function setupVisibilityHandling(
+  updateCallback: () => void,
+  getLastUpdateTime: () => number,
+): () => void {
+  const handler = () => {
+    if (document.visibilityState === 'visible') {
+      const timeSinceUpdate = Date.now() - getLastUpdateTime();
+      if (timeSinceUpdate > 5 * 60 * 1000) {
+        // 5 minutes
+        updateCallback();
+      }
+    }
+  };
+
+  document.addEventListener('visibilitychange', handler);
+
+  // Return cleanup function
+  return () => document.removeEventListener('visibilitychange', handler);
+}
+
+/**
+ * Sets up automatic refresh timer based on configuration
+ *
+ * @param updateCallback Function to call when timer triggers
+ * @param getRefreshInterval Function that returns the refresh interval in minutes
+ * @returns Object with timer control methods
+ */
+export function setupRefreshTimer(
+  updateCallback: (force?: boolean) => void,
+  getRefreshInterval: () => number,
+): {
+  start: () => void;
+  stop: () => void;
+} {
+  let timerId: number | undefined;
+
+  const start = () => {
+    stop(); // Clear any existing timer
+    const refreshMinutes = getRefreshInterval();
+    timerId = window.setInterval(
+      () => updateCallback(true), // Force refresh
+      refreshMinutes * 60000,
+    );
+    Logger.debug(`Started refresh timer with interval ${refreshMinutes} minutes`);
+  };
+
+  const stop = () => {
+    if (timerId !== undefined) {
+      clearInterval(timerId);
+      timerId = undefined;
+      Logger.debug('Stopped refresh timer');
+    }
+  };
+
+  return { start, stop };
 }

@@ -101,6 +101,13 @@ class CalendarCardPro extends HTMLElement {
     getAverageRenderTime: (performanceData: Types.PerformanceData) => number;
   };
 
+  // Add new properties for lifecycle management
+  private visibilityCleanup?: () => void;
+  private refreshTimer?: {
+    start: () => void;
+    stop: () => void;
+  };
+
   /******************************************************************************
    * STATIC CONFIGURATION
    ******************************************************************************/
@@ -178,16 +185,17 @@ class CalendarCardPro extends HTMLElement {
     // Initialize the performance tracker
     this.performanceTracker = Helpers.createPerformanceTracker();
 
-    // Add page visibility handling
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        const timeSinceUpdate = Date.now() - this.performanceMetrics.lastUpdate;
-        if (timeSinceUpdate > 5 * 60 * 1000) {
-          // 5 minutes
-          this.updateEvents();
-        }
-      }
-    });
+    // Use the new visibility handling function
+    this.visibilityCleanup = StateUtils.setupVisibilityHandling(
+      () => this.updateEvents(),
+      () => this.performanceMetrics.lastUpdate,
+    );
+
+    // Create refresh timer controller
+    this.refreshTimer = StateUtils.setupRefreshTimer(
+      (force = false) => this.updateEvents(force),
+      () => this.config?.refresh_interval || 30,
+    );
 
     // Use the helper functions
     this.debouncedUpdate = Helpers.debounce(() => this.updateEvents(), 300);
@@ -205,12 +213,21 @@ class CalendarCardPro extends HTMLElement {
 
     this.cleanupInterval = window.setInterval(() => this.cleanupCache(), 3600000);
 
-    // Start refresh timer after initialization
-    this.startRefreshTimer();
+    // Start refresh timer
+    this.refreshTimer.start();
   }
 
   disconnectedCallback() {
-    this.stopRefreshTimer(); // Stop the refresh timer
+    // Clean up visibility handler
+    if (this.visibilityCleanup) {
+      this.visibilityCleanup();
+    }
+
+    // Use the timer controller to stop the refresh timer
+    if (this.refreshTimer) {
+      this.refreshTimer.stop();
+    }
+
     clearInterval(this.cleanupInterval);
     this.cleanup();
   }
@@ -306,7 +323,9 @@ class CalendarCardPro extends HTMLElement {
     }
 
     // Restart the refresh timer with the new configuration
-    this.startRefreshTimer();
+    if (this.refreshTimer) {
+      this.refreshTimer.start();
+    }
   }
 
   /******************************************************************************
@@ -633,30 +652,6 @@ class CalendarCardPro extends HTMLElement {
 
   private handleError(error: unknown): void {
     Logger.logError(error);
-  }
-
-  /**
-   * Starts the automatic refresh timer based on configuration
-   */
-  private startRefreshTimer(): void {
-    this.stopRefreshTimer(); // Clear any existing timer
-
-    // Convert minutes to milliseconds
-    const refreshMinutes = this.config?.refresh_interval || 30;
-    this.refreshIntervalId = window.setInterval(
-      () => this.updateEvents(true), // Force refresh
-      refreshMinutes * 60000,
-    );
-  }
-
-  /**
-   * Stops the automatic refresh timer
-   */
-  private stopRefreshTimer(): void {
-    if (this.refreshIntervalId) {
-      clearInterval(this.refreshIntervalId);
-      this.refreshIntervalId = undefined;
-    }
   }
 }
 
