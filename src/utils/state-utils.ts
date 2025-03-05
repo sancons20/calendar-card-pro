@@ -18,7 +18,6 @@ export function initializeState(): {
   config: Types.Config;
   events: Types.CalendarEventData[];
   hass: null;
-  rendered: boolean;
   touchState: {
     touchStartY: number;
     touchStartX: number;
@@ -28,11 +27,11 @@ export function initializeState(): {
   isLoading: boolean;
   isExpanded: boolean;
 } {
+  // Return a clean initial state object with minimal properties
   return {
     config: {} as Types.Config,
     events: [],
     hass: null,
-    rendered: false,
     touchState: {
       touchStartY: 0,
       touchStartX: 0,

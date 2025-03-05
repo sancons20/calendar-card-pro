@@ -25,7 +25,7 @@ import * as Styles from './rendering/styles';
 import * as Render from './rendering/render';
 import * as DomUtils from './utils/dom-utils';
 import * as Logger from './utils/logger-utils';
-import { CalendarCardProEditor } from './rendering/editor';
+import * as Editor from './rendering/editor';
 
 // Ensure this file is treated as a module
 export {};
@@ -39,7 +39,7 @@ declare global {
   // Add custom element interface
   interface HTMLElementTagNameMap {
     'calendar-card-pro-dev': CalendarCardPro;
-    'calendar-card-pro-dev-editor': CalendarCardProEditor;
+    'calendar-card-pro-dev-editor': Editor.CalendarCardProEditor;
   }
 
   // Add improved DOM interfaces
@@ -59,18 +59,10 @@ declare global {
  * calendar card for Home Assistant
  */
 class CalendarCardPro extends HTMLElement {
-  // Add explicit types for static properties
-  private static _dateObjects: {
-    now: Date;
-    todayStart: Date;
-    todayEnd: Date;
-  };
-  private static _countryNames: Set<string>;
   private instanceId: string;
   private config!: Types.Config;
   private events: Types.CalendarEventData[] = [];
   private _hass: Types.Hass | null = null;
-  private rendered = false;
   private touchState: {
     touchStartY: number;
     touchStartX: number;
@@ -94,14 +86,11 @@ class CalendarCardPro extends HTMLElement {
   private readonly memoizedFormatLocation: (location: string) => string & Types.MemoCache<string>;
   private readonly cleanupInterval: number;
   private renderTimeout?: number;
-  private refreshIntervalId?: number;
   private performanceTracker: {
     beginMeasurement: (eventCount: number) => Types.PerfMetrics;
     endMeasurement: (metrics: Types.PerfMetrics, performanceData: Types.PerformanceData) => number;
     getAverageRenderTime: (performanceData: Types.PerformanceData) => number;
   };
-
-  // Add new properties for lifecycle management
   private visibilityCleanup?: () => void;
   private refreshTimer?: {
     start: () => void;
@@ -122,29 +111,6 @@ class CalendarCardPro extends HTMLElement {
 
   static get TRANSLATIONS(): Readonly<Record<string, Types.Translations>> {
     return Localize.TRANSLATIONS;
-  }
-
-  /******************************************************************************
-   * PERFORMANCE CONSTANTS
-   ******************************************************************************/
-
-  private static readonly PERFORMANCE_THRESHOLDS = Helpers.PERFORMANCE_CONSTANTS;
-  private static readonly CHUNK_SIZE = Helpers.PERFORMANCE_CONSTANTS.CHUNK_SIZE;
-  private static readonly RENDER_DELAY = Helpers.PERFORMANCE_CONSTANTS.RENDER_DELAY;
-
-  /******************************************************************************
-   * STATIC HELPER METHODS
-   ******************************************************************************/
-
-  static get DATE_OBJECTS() {
-    if (!this._dateObjects) {
-      this._dateObjects = {
-        now: new Date(),
-        todayStart: new Date(),
-        todayEnd: new Date(),
-      };
-    }
-    return this._dateObjects;
   }
 
   /******************************************************************************
@@ -249,7 +215,6 @@ class CalendarCardPro extends HTMLElement {
     this.config = initialState.config;
     this.events = initialState.events;
     this._hass = initialState.hass;
-    this.rendered = initialState.rendered;
     this.touchState = initialState.touchState;
     this.isLoading = initialState.isLoading;
     this.isExpanded = initialState.isExpanded;
@@ -535,8 +500,8 @@ class CalendarCardPro extends HTMLElement {
         eventsByDay,
         (event) => this.formatEventTime(event),
         (location) => this.formatLocation(location),
-        CalendarCardPro.CHUNK_SIZE,
-        CalendarCardPro.RENDER_DELAY,
+        Helpers.PERFORMANCE_CONSTANTS.CHUNK_SIZE, // Use constants directly from helpers
+        Helpers.PERFORMANCE_CONSTANTS.RENDER_DELAY, // Use constants directly from helpers
       );
 
       DomUtils.clearShadowRoot(this.shadowRoot!);
@@ -638,7 +603,7 @@ class CalendarCardPro extends HTMLElement {
 
 // Register the custom element
 customElements.define('calendar-card-pro-dev', CalendarCardPro);
-customElements.define('calendar-card-pro-dev-editor', CalendarCardProEditor);
+customElements.define('calendar-card-pro-dev-editor', Editor.CalendarCardProEditor);
 
 // Card registration for HACS and Home Assistant
 (window as unknown as { customCards: Array<Types.CustomCard> }).customCards =
