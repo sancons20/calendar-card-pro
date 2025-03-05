@@ -31,13 +31,14 @@ Built with performance in mind, the card uses intelligent refresh mechanisms and
 - 🎨 Multiple calendars with individual styling
 - 📊 Smart compact mode with expand/collapse functionality
 - 🔄 Smart update system with automatic refresh and state detection
-- ⚡ Optimized performance with smart caching
+- ⚡ Optimized performance with user-configurable smart caching
 - 🎯 Progressive loading for smooth rendering
 - 📱 Responsive and touch-friendly design
 - 🌍 Multi-language support (en/de)
 - 📍 Customizable location display
 - 🕒 Flexible time format options (12/24 hour)
 - 🎨 Extensive styling options
+- 🔍 Modular architecture for better maintainability
 
 ### Dependencies
 
@@ -88,45 +89,45 @@ type: module
 
 ### Variables
 
-| Name                    | Type    | Default                     | Description                                                             |
-| ----------------------- | ------- | --------------------------- | ----------------------------------------------------------------------- |
-| entities                | array   | Required                    | List of calendar entities with optional styling                         |
-| days_to_show            | number  | 3                           | Number of days to display                                               |
-| max_events_to_show      | number  | -                           | Maximum number of events to show in compact mode                        |
-| show_past_events        | boolean | false                       | Show today's events that have already ended                             |
-| language                | string  | System                      | Interface language (en/de)                                              |
-| refresh_interval        | number  | 30                          | Minutes between auto-refresh of events                                  |
-| time_24h                | boolean | true                        | Use 24-hour time format                                                 |
-| show_end_time           | boolean | true                        | Show event end times                                                    |
-| show_month              | boolean | true                        | Show month names                                                        |
-| show_location           | boolean | true                        | Show event locations                                                    |
-| remove_location_country | boolean | true                        | Remove country from location                                            |
-| background_color        | string  | var(--ha-card-background)   | Card background color                                                   |
-| row_spacing             | string  | 5px                         | Spacing between calendar day rows                                       |
-| additional_card_spacing | string  | 0px                         | Additional top/bottom padding for the card                              |
-| vertical_line_width     | string  | 2px                         | Width of vertical separator line                                        |
-| vertical_line_color     | string  | #03a9f4                     | Color of vertical separator line                                        |
-| horizontal_line_width   | string  | 0px                         | Width of horizontal separator line                                      |
-| horizontal_line_color   | string  | var(--secondary-text-color) | Color of horizontal separator line                                      |
-| title                   | string  | -                           | Card title                                                              |
-| title_font_size         | string  | 20px                        | Card title font size                                                    |
-| weekday_font_size       | string  | 14px                        | Weekday font size                                                       |
-| day_font_size           | string  | 26px                        | Day number font size                                                    |
-| month_font_size         | string  | 12px                        | Month font size                                                         |
-| event_font_size         | string  | 14px                        | Event title font size                                                   |
-| time_font_size          | string  | 12px                        | Event time font size                                                    |
-| location_font_size      | string  | 12px                        | Location text font size                                                 |
-| time_location_icon_size | string  | 16px                        | Size of time and location icons                                         |
-| title_color             | string  | var(--primary-text-color)   | Card title text color                                                   |
-| weekday_color           | string  | var(--primary-text-color)   | Weekday text color                                                      |
-| day_color               | string  | var(--primary-text-color)   | Day number text color                                                   |
-| month_color             | string  | var(--primary-text-color)   | Month text color                                                        |
-| event_color             | string  | var(--primary-text-color)   | Default event title color                                               |
-| time_color              | string  | var(--secondary-text-color) | Event time text color                                                   |
-| location_color          | string  | var(--secondary-text-color) | Location text color                                                     |
-| tap_action              | object  | { action: "expand" }        | Action on tap/click                                                     |
-| hold_action             | object  | { action: "none" }          | Action on long press                                                    |
-| cache_duration          | number  | 30                          | Cache duration in minutes (how long cached events are considered valid) |
+| Name                    | Type    | Default                     | Description                                      |
+| ----------------------- | ------- | --------------------------- | ------------------------------------------------ |
+| entities                | array   | Required                    | List of calendar entities with optional styling  |
+| days_to_show            | number  | 3                           | Number of days to display                        |
+| max_events_to_show      | number  | -                           | Maximum number of events to show in compact mode |
+| show_past_events        | boolean | false                       | Show today's events that have already ended      |
+| language                | string  | System                      | Interface language (en/de)                       |
+| refresh_interval        | number  | 30                          | Minutes between auto-refresh of events           |
+| cache_duration          | number  | 30                          | Cache validity of fetched events in minutes      |
+| time_24h                | boolean | true                        | Use 24-hour time format                          |
+| show_end_time           | boolean | true                        | Show event end times                             |
+| show_month              | boolean | true                        | Show month names                                 |
+| show_location           | boolean | true                        | Show event locations                             |
+| remove_location_country | boolean | true                        | Remove country from location                     |
+| background_color        | string  | var(--ha-card-background)   | Card background color                            |
+| row_spacing             | string  | 5px                         | Spacing between calendar day rows                |
+| additional_card_spacing | string  | 0px                         | Additional top/bottom padding for the card       |
+| vertical_line_width     | string  | 2px                         | Width of vertical separator line                 |
+| vertical_line_color     | string  | #03a9f4                     | Color of vertical separator line                 |
+| horizontal_line_width   | string  | 0px                         | Width of horizontal separator line               |
+| horizontal_line_color   | string  | var(--secondary-text-color) | Color of horizontal separator line               |
+| title                   | string  | -                           | Card title                                       |
+| title_font_size         | string  | 20px                        | Card title font size                             |
+| weekday_font_size       | string  | 14px                        | Weekday font size                                |
+| day_font_size           | string  | 26px                        | Day number font size                             |
+| month_font_size         | string  | 12px                        | Month font size                                  |
+| event_font_size         | string  | 14px                        | Event title font size                            |
+| time_font_size          | string  | 12px                        | Event time font size                             |
+| location_font_size      | string  | 12px                        | Location text font size                          |
+| time_location_icon_size | string  | 16px                        | Size of time and location icons                  |
+| title_color             | string  | var(--primary-text-color)   | Card title text color                            |
+| weekday_color           | string  | var(--primary-text-color)   | Weekday text color                               |
+| day_color               | string  | var(--primary-text-color)   | Day number text color                            |
+| month_color             | string  | var(--primary-text-color)   | Month text color                                 |
+| event_color             | string  | var(--primary-text-color)   | Default event title color                        |
+| time_color              | string  | var(--secondary-text-color) | Event time text color                            |
+| location_color          | string  | var(--secondary-text-color) | Location text color                              |
+| tap_action              | object  | { action: "expand" }        | Action on tap/click                              |
+| hold_action             | object  | { action: "none" }          | Action on long press                             |
 
 ### Advanced Features
 
@@ -287,12 +288,47 @@ hold_action:
 
 Calendar Card Pro is an open-source project, and contributions are welcome and appreciated!
 
+### Ways to Contribute
+
 - **Code Contributions**: Bug fixes, new features, and improvements
 - **Translations**: Help translate to your language
 - **Documentation**: Improve or expand the documentation
 - **Bug Reports**: Report issues or suggest enhancements
+- **Feature Requests**: Suggest new capabilities
 
-Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on how to contribute.
+### Adding Translations
+
+The card currently supports:
+
+- English (en)
+- German (de)
+
+To add a new language:
+
+1. Create a new file in `src/translations/languages/[lang-code].json`
+2. Copy the structure from an existing language file
+3. Translate all strings to your language
+4. Submit a PR with your changes
+
+### Developer Documentation
+
+For those interested in contributing code, we maintain detailed [architecture documentation](./docs/architecture.md) that explains:
+
+- Code organization and module responsibilities
+- Data flow and processing
+- Performance optimization techniques
+- Design principles and patterns
+
+### Getting Started with Development
+
+1. Fork the repository
+2. Clone your fork: `git clone https://github.com/[your-username]/calendar-card-pro.git`
+3. Install dependencies: `npm install`
+4. Make your changes
+5. Test locally: `npm run build`
+6. Submit a PR with a clear description of your changes
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for more detailed guidelines.
 
 ## ❗ Known Limitations
 
@@ -308,15 +344,7 @@ The following features are currently limited or not fully implemented:
 
 - No visual configuration editor yet (YAML only)
 
-### Language Support
-
-- Currently supports English (en) and German (de)
-- Contributions for additional languages are welcome and encouraged
-- See CONTRIBUTING.md for guidelines on adding new languages
-
-The card is open source and community-driven. If you need additional features or language support, please consider contributing to the project. Pull requests are welcome! See CONTRIBUTING.md for guidelines on how to contribute.
-
-## Future Enhancements
+## 🚀 Future Enhancements
 
 1. **UI Editor**: Expanding editor.ts to provide a visual configuration interface
 2. **Additional Languages**: Expanding language support
@@ -324,7 +352,7 @@ The card is open source and community-driven. If you need additional features or
 4. **Performance Optimizations**: Further optimizations for large calendars, including:
    - DOM virtualization for cards with many events to reduce memory usage
    - More efficient data structures for faster filtering and sorting
-   - Per-calendar caching strategies to minimize API requests
+   - Even more configurable caching strategies to minimize API requests
    - Render time optimizations for initial load
    - Memory usage improvements for long-running instances
 

@@ -43,7 +43,7 @@ src/
 - **Primary Role**: Manage configuration defaults and processing
 - **Key Files**:
   - `config.ts`: Default configuration and config-related helper functions
-  - `types.ts`: TypeScript interfaces for all components
+  - `types.ts`: TypeScript interfaces for all components, including configurable cache duration
 
 ### Translations (`translations/`)
 
@@ -56,13 +56,13 @@ src/
 
 - **Primary Role**: Provide reusable functionality across the card
 - **Key Files**:
-  - `event-utils.ts`: Calendar event fetching, processing, caching
+  - `event-utils.ts`: Calendar event fetching, processing, caching with orchestration functionality
   - `format-utils.ts`: Formatting dates, times, and locations
   - `dom-utils.ts`: DOM element creation and manipulation utilities
-  - `error-utils.ts`: Standardized error handling and logging
+  - `logger-utils.ts`: Standardized error handling and logging
   - `actions.ts`: Handling user interactions (tap/hold)
-  - `state-utils.ts`: Component state initialization and management
-  - `helpers.ts`: Generic utilities like debounce, memoize, performance monitoring
+  - `state-utils.ts`: Component lifecycle management including visibility tracking and timers
+  - `helpers.ts`: Generic utilities with performance tracker for monitoring
 
 ### Rendering (`rendering/`)
 
@@ -76,22 +76,39 @@ src/
 
 ```mermaid
 graph TD
-    A[Main Component] --> B[Config]
-    A --> C[Translations]
-    A --> D[Event Utils]
-    A --> E[Format Utils]
-    A --> F[Action Utils]
-    A --> G[Helpers]
-    A --> H[Rendering]
-    A --> I[DOM Utils]
-    A --> J[Error Utils]
-    A --> K[State Utils]
-    D --> C
-    E --> C
-    H --> E
-    H --> I
-    H --> C
-    F --> D
+    Main[Calendar Card Pro Main] --> Config[Config Module]
+    Main --> Events[Event Processing]
+    Main --> Render[Rendering]
+    Main --> State[State Management]
+    Main --> Actions[User Interactions]
+
+    %% Config relationships
+    Config --> Types[Type Definitions]
+
+    %% Event processing relationships
+    Events --> Cache[LocalStorage Cache]
+    Events --> API[Home Assistant API]
+    Events --> Format[Event Formatting]
+
+    %% Rendering relationships
+    Render --> DOM[DOM Operations]
+    Render --> Styles[CSS Generation]
+    Render --> I18n[Translations]
+
+    %% State relationships
+    State --> Lifecycle[Lifecycle Mgmt]
+    State --> Refresh[Refresh Timer]
+    State --> Visibility[Page Visibility]
+
+    %% Feature relationships
+    Main --> Performance[Performance Tracking]
+
+    %% Design notes
+    classDef core fill:#f9f,stroke:#333,stroke-width:2px
+    classDef util fill:#bbf,stroke:#333,stroke-width:1px
+
+    class Main,Events,Render,State,Actions core
+    class Config,Cache,API,DOM,Styles,I18n,Performance util
 ```
 
 ## Event Processing and Refresh Mechanism
@@ -100,7 +117,7 @@ Calendar Card Pro uses a multi-layered approach to keep calendar data fresh whil
 
 1. **Local Storage Caching**:
 
-   - Events are cached in browser localStorage for 30 minutes
+   - Events are cached in browser localStorage with user-configurable duration (default: 30 minutes)
    - Provides immediate rendering without API calls when available
    - Reduces load on Home Assistant and improves rendering speed
 
@@ -108,6 +125,7 @@ Calendar Card Pro uses a multi-layered approach to keep calendar data fresh whil
 
    - Regular updates based on user-configured `refresh_interval` (default: 30 minutes)
    - Updates events in the background without disturbing the user experience
+   - Uses dedicated refresh timer controller for lifecycle management
 
 3. **State-Based Updates**:
 
@@ -115,11 +133,13 @@ Calendar Card Pro uses a multi-layered approach to keep calendar data fresh whil
    - Ensures new events are shown promptly when calendars are updated
 
 4. **Page Visibility Detection**:
-   - Refreshes data when users return to a tab after being away
-   - Only triggers if the last refresh was more than 5 minutes ago
+   - Uses dedicated visibility handler with cleanup mechanism
+   - Refreshes data when users return to a tab after being away for more than 5 minutes
    - Ensures the calendar always shows recent data without excessive API calls
 
 This approach balances fresh data with performance considerations, avoiding unnecessary API calls while keeping the display current.
+
+## Processing Flow
 
 1. **Initialization Flow**:
 
@@ -150,13 +170,15 @@ This approach balances fresh data with performance considerations, avoiding unne
 1. **Separation of Concerns**:
 
    - Each module has a well-defined responsibility
-   - Minimizing dependencies between modules
+   - Minimal coupling between components for better testability
 
 2. **Performance Optimization**:
 
    - Aggressive caching of events and rendered output
    - Progressive rendering to avoid blocking the main thread
    - Memoization of expensive calculations
+   - Performance tracker for consistent monitoring
+   - Configurable cache duration for fine-tuned performance control
 
 3. **Type Safety**:
 
@@ -209,5 +231,6 @@ When modifying code:
 4. Add performance monitoring for new features
 5. Test with both small and large calendars
 6. Ensure all features work with and without entity history
+7. Respect user-configured cache and refresh settings
 
 By understanding this architecture, you'll be able to maintain, extend, and contribute to the Calendar Card Pro project more effectively.
