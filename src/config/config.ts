@@ -18,6 +18,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   max_events_to_show: undefined,
   show_past_events: false,
   refresh_interval: 30,
+  cache_duration: 30,
   language: 'en',
   time_24h: true,
   show_end_time: true,

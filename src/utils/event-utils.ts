@@ -50,7 +50,7 @@ export async function updateCalendarEvents(
   const cacheKey = getCacheKey(baseKey);
 
   // Try to get from cache if not forced
-  const cachedEvents = !force && getCachedEvents(cacheKey);
+  const cachedEvents = !force && getCachedEvents(cacheKey, config);
   if (cachedEvents) {
     return { events: cachedEvents, fromCache: true, error: null };
   }
@@ -135,7 +135,7 @@ export async function orchestrateEventUpdate(options: {
   const cacheExists = !force && doesCacheExist(cacheKey);
 
   if (cacheExists) {
-    const cachedEvents = getCachedEvents(cacheKey);
+    const cachedEvents = getCachedEvents(cacheKey, config);
     if (cachedEvents) {
       Logger.info(`Using ${cachedEvents.length} events from cache`);
       callbacks.setEvents(cachedEvents);
@@ -424,8 +424,12 @@ export function updateDateObjects(dateObjs: { now: Date; todayStart: Date; today
 
 // CACHE MANAGEMENT FUNCTIONS
 
-// Fixed cache duration (30 minutes)
-export const CACHE_DURATION = 30 * 60 * 1000;
+// Replace the hardcoded CACHE_DURATION constant with a function that uses the config
+export function getCacheDuration(config?: Types.Config): number {
+  // Default to 30 minutes if no config is provided
+  // Convert minutes to milliseconds
+  return (config?.cache_duration || 30) * 60 * 1000;
+}
 
 /**
  * Parse and validate cache entry
@@ -434,14 +438,15 @@ export const CACHE_DURATION = 30 * 60 * 1000;
  * @param key - Cache key
  * @returns Valid cache entry or null if invalid/expired
  */
-export function getValidCacheEntry(key: string): Types.CacheEntry | null {
+export function getValidCacheEntry(key: string, config?: Types.Config): Types.CacheEntry | null {
   try {
     const item = localStorage.getItem(key);
     if (!item) return null;
 
     const cache = JSON.parse(item) as Types.CacheEntry;
     const now = Date.now();
-    const isValid = now - cache.timestamp < CACHE_DURATION;
+    const cacheDuration = getCacheDuration(config);
+    const isValid = now - cache.timestamp < cacheDuration;
 
     if (!isValid) {
       // Remove expired cache
@@ -466,8 +471,11 @@ export function getValidCacheEntry(key: string): Types.CacheEntry | null {
  * @param key - Cache key
  * @returns Cached events or null if expired/unavailable
  */
-export function getCachedEvents(key: string): Types.CalendarEventData[] | null {
-  const cacheEntry = getValidCacheEntry(key);
+export function getCachedEvents(
+  key: string,
+  config?: Types.Config,
+): Types.CalendarEventData[] | null {
+  const cacheEntry = getValidCacheEntry(key, config);
   if (cacheEntry) {
     return [...cacheEntry.events];
   }
