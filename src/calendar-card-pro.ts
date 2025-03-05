@@ -95,6 +95,11 @@ class CalendarCardPro extends HTMLElement {
   private readonly cleanupInterval: number;
   private renderTimeout?: number;
   private refreshIntervalId?: number;
+  private performanceTracker: {
+    beginMeasurement: (eventCount: number) => Types.PerfMetrics;
+    endMeasurement: (metrics: Types.PerfMetrics, performanceData: Types.PerformanceData) => number;
+    getAverageRenderTime: (performanceData: Types.PerformanceData) => number;
+  };
 
   /******************************************************************************
    * STATIC CONFIGURATION
@@ -167,8 +172,11 @@ class CalendarCardPro extends HTMLElement {
     this.instanceId = Helpers.generateInstanceId();
     this.initializeState();
 
-    // Initialize logger with version info
-    Logger.initializeLogger('0.1.0');
+    // Use VERSION constant instead of hardcoded string
+    Logger.initializeLogger(VERSION);
+
+    // Initialize the performance tracker
+    this.performanceTracker = Helpers.createPerformanceTracker();
 
     // Add page visibility handling
     document.addEventListener('visibilitychange', () => {
@@ -497,17 +505,18 @@ class CalendarCardPro extends HTMLElement {
    * Main rendering method that orchestrates the display of the calendar card
    */
   async renderCard() {
-    const metrics = this.beginPerfMetrics();
+    // Use the performance tracker instead of direct function calls
+    const metrics = this.performanceTracker.beginMeasurement(this.events.length);
 
     if (!this.isValidState()) {
       Render.renderErrorToDOM(this.shadowRoot!, 'error', this.config);
-      this.endPerfMetrics(metrics);
+      this.performanceTracker.endMeasurement(metrics, this.performanceMetrics);
       return;
     }
 
     if (this.isLoading) {
       Render.renderErrorToDOM(this.shadowRoot!, 'loading', this.config);
-      this.endPerfMetrics(metrics);
+      this.performanceTracker.endMeasurement(metrics, this.performanceMetrics);
       return;
     }
 
@@ -520,7 +529,7 @@ class CalendarCardPro extends HTMLElement {
 
     if (eventsByDay.length === 0) {
       Render.renderErrorToDOM(this.shadowRoot!, 'empty', this.config);
-      this.endPerfMetrics(metrics);
+      this.performanceTracker.endMeasurement(metrics, this.performanceMetrics);
       return;
     }
 
@@ -544,7 +553,7 @@ class CalendarCardPro extends HTMLElement {
       Render.renderErrorToDOM(this.shadowRoot!, 'error', this.config);
     }
 
-    this.endPerfMetrics(metrics);
+    this.performanceTracker.endMeasurement(metrics, this.performanceMetrics);
   }
 
   /**
@@ -618,28 +627,8 @@ class CalendarCardPro extends HTMLElement {
    * PERFORMANCE MONITORING
    ******************************************************************************/
 
-  /**
-   * Performance monitoring utilities
-   * @private
-   */
-  beginPerfMetrics(): Types.PerfMetrics {
-    return Helpers.beginPerfMetrics(this.events.length);
-  }
-
-  /**
-   * End performance measurement and process results
-   * @param {Object} metrics Metrics object from beginPerfMetrics
-   */
-  endPerfMetrics(metrics: { startTime: number; eventCount: number }) {
-    Helpers.endPerfMetrics(
-      metrics,
-      this.performanceMetrics,
-      Helpers.PERFORMANCE_CONSTANTS.RENDER_TIME_THRESHOLD,
-    );
-  }
-
   getAverageRenderTime() {
-    return Helpers.getAverageRenderTime(this.performanceMetrics);
+    return this.performanceTracker.getAverageRenderTime(this.performanceMetrics);
   }
 
   private handleError(error: unknown): void {

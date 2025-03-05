@@ -189,16 +189,6 @@ export function hashString(str: string): string {
 }
 
 /**
- * Handle errors with consistent logging
- *
- * @param error - Error object or string
- * @param prefix - Optional prefix for the error message
- */
-export function handleError(error: unknown, prefix = 'Calendar-Card-Pro:'): void {
-  console.error(prefix, error instanceof Error ? error.message : String(error));
-}
-
-/**
  * Performance constants for calendar card
  *
  * These constants define thresholds and parameters for performance optimizations
@@ -213,3 +203,37 @@ export const PERFORMANCE_CONSTANTS = {
   /** Delay between rendering chunks in milliseconds */
   RENDER_DELAY: 50,
 } as const;
+
+/**
+ * Creates a performance tracker for monitoring render performance
+ *
+ * @returns Object with performance tracking methods
+ */
+export function createPerformanceTracker(): {
+  beginMeasurement: (eventCount: number) => Types.PerfMetrics;
+  endMeasurement: (
+    metrics: Types.PerfMetrics,
+    performanceData: Types.PerformanceData,
+    renderTimeThreshold?: number,
+  ) => number;
+  getAverageRenderTime: (performanceData: Types.PerformanceData) => number;
+} {
+  return {
+    beginMeasurement: beginPerfMetrics,
+
+    // Use a wrapper function to handle the missing parameter with a default value
+    endMeasurement: (
+      metrics: Types.PerfMetrics,
+      performanceData: Types.PerformanceData,
+      renderTimeThreshold?: number,
+    ) => {
+      return endPerfMetrics(
+        metrics,
+        performanceData,
+        renderTimeThreshold || PERFORMANCE_CONSTANTS.RENDER_TIME_THRESHOLD,
+      );
+    },
+
+    getAverageRenderTime,
+  };
+}
