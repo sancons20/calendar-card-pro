@@ -83,100 +83,92 @@ export function setupEventListeners(
   entityId: string,
   toggleExpanded: () => void,
 ): void {
-  // Clear existing event listeners (helps prevent memory leaks)
+  // Clear existing event listeners
   const clone = cardContainer.cloneNode(true) as HTMLDivElement;
   cardContainer.replaceWith(clone);
 
-  // Handle tap/click action
-  if (tapAction && tapAction.action !== 'none') {
-    clone.addEventListener('click', () => {
-      handleAction(tapAction, hass, element, entityId, toggleExpanded);
-    });
-    clone.style.cursor = 'pointer';
-  }
+  // Variables to track pointer state
+  let holdTimer: number | null = null;
+  let holdTriggered = false;
+  let pointerStartX = 0;
+  let pointerStartY = 0;
+  let activePointerId: number | null = null;
 
   // Handle hold action
   if (holdAction && holdAction.action !== 'none') {
-    let holdTimer: number | null = null;
-    let holdTriggered = false;
+    // Start on pointer down
+    clone.addEventListener('pointerdown', (ev) => {
+      if (activePointerId !== null) return; // Already processing a pointer
+      activePointerId = ev.pointerId;
 
-    clone.addEventListener(
-      'touchstart',
-      (ev) => {
-        // Record touch start position
-        const touch = ev.touches[0];
-        const touchStartY = touch.clientY;
-        const touchStartX = touch.clientX;
+      // Record start position
+      pointerStartX = ev.clientX;
+      pointerStartY = ev.clientY;
 
-        // Start hold timer
-        holdTimer = window.setTimeout(() => {
-          // If too much movement, don't trigger hold
-          // Here we check against a small threshold of 10px
-          const movement = Math.hypot(touchStartX - touch.clientX, touchStartY - touch.clientY);
-
-          if (movement < 10) {
-            holdTriggered = true;
-            handleAction(holdAction, hass, element, entityId, toggleExpanded);
-          }
-        }, 500); // 500ms hold time
-      },
-      { passive: true },
-    );
-
-    clone.addEventListener(
-      'touchend',
-      () => {
-        if (holdTimer) {
-          clearTimeout(holdTimer);
-          holdTimer = null;
-        }
-        holdTriggered = false;
-      },
-      { passive: true },
-    );
-
-    clone.addEventListener(
-      'touchmove',
-      () => {
-        if (holdTimer) {
-          clearTimeout(holdTimer);
-          holdTimer = null;
-        }
-      },
-      { passive: true },
-    );
-
-    // Long mouse press handling for desktop
-    clone.addEventListener('mousedown', () => {
+      // Start hold timer
       holdTimer = window.setTimeout(() => {
         holdTriggered = true;
         handleAction(holdAction, hass, element, entityId, toggleExpanded);
-      }, 500); // 500ms hold time
+      }, 500);
     });
 
-    clone.addEventListener('mouseup', (ev) => {
-      if (holdTimer) {
+    // Cancel on pointer move if moved too far
+    clone.addEventListener('pointermove', (ev) => {
+      if (ev.pointerId !== activePointerId) return;
+
+      // Check if moved too far from start position
+      const movement = Math.hypot(ev.clientX - pointerStartX, ev.clientY - pointerStartY);
+      if (movement > 10) {
+        // 10px movement threshold
+        // Cancel the hold timer
+        if (holdTimer !== null) {
+          clearTimeout(holdTimer);
+          holdTimer = null;
+        }
+      }
+    });
+
+    // Clean up on pointer up/cancel
+    const endPointerAction = (ev: PointerEvent) => {
+      if (ev.pointerId !== activePointerId) return;
+
+      // Clear the hold timer
+      if (holdTimer !== null) {
         clearTimeout(holdTimer);
         holdTimer = null;
       }
 
-      // If hold was triggered, prevent the click (tap) event
+      // Reset pointer ID
+      activePointerId = null;
+
+      // If hold was triggered, prevent tap action and reset after a delay
       if (holdTriggered) {
         ev.stopPropagation();
-        holdTriggered = false;
+        setTimeout(() => {
+          holdTriggered = false;
+        }, 300); // Longer delay to make sure popup doesn't close immediately
       }
-    });
+    };
 
-    clone.addEventListener('mouseleave', () => {
-      if (holdTimer) {
-        clearTimeout(holdTimer);
-        holdTimer = null;
-      }
-      holdTriggered = false;
-    });
+    clone.addEventListener('pointerup', endPointerAction);
+    clone.addEventListener('pointercancel', endPointerAction);
+    clone.addEventListener('pointerleave', endPointerAction);
 
     // Prevent text selection during hold
     clone.style.userSelect = 'none';
+    // Prevent touch actions from browser
+    clone.style.touchAction = 'none';
+  }
+
+  // Handle tap/click action
+  if (tapAction && tapAction.action !== 'none') {
+    clone.addEventListener('click', (ev) => {
+      // Only process click if hold wasn't triggered
+      if (!holdTriggered) {
+        handleAction(tapAction, hass, element, entityId, toggleExpanded);
+      }
+    });
+    clone.style.cursor = 'pointer';
   }
 }
 
