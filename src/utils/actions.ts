@@ -93,6 +93,7 @@ export function setupEventListeners(
   let pointerStartX = 0;
   let pointerStartY = 0;
   let activePointerId: number | null = null;
+  let hasMoved = false;
 
   // Handle hold action
   if (holdAction && holdAction.action !== 'none') {
@@ -100,6 +101,7 @@ export function setupEventListeners(
     clone.addEventListener('pointerdown', (ev) => {
       if (activePointerId !== null) return; // Already processing a pointer
       activePointerId = ev.pointerId;
+      hasMoved = false;
 
       // Record start position
       pointerStartX = ev.clientX;
@@ -107,20 +109,25 @@ export function setupEventListeners(
 
       // Start hold timer
       holdTimer = window.setTimeout(() => {
-        holdTriggered = true;
-        handleAction(holdAction, hass, element, entityId, toggleExpanded);
+        if (!hasMoved) {
+          holdTriggered = true;
+          handleAction(holdAction, hass, element, entityId, toggleExpanded);
+        }
       }, 500);
     });
 
-    // Cancel on pointer move if moved too far
+    // Monitor movement to differentiate between hold and swipe
     clone.addEventListener('pointermove', (ev) => {
       if (ev.pointerId !== activePointerId) return;
 
-      // Check if moved too far from start position
+      // Check if moved too far from start position (10px threshold)
       const movement = Math.hypot(ev.clientX - pointerStartX, ev.clientY - pointerStartY);
+
+      // Mark as moved if we exceed threshold - this will prevent hold action
       if (movement > 10) {
-        // 10px movement threshold
-        // Cancel the hold timer
+        hasMoved = true;
+
+        // Cancel the hold timer if it's still active
         if (holdTimer !== null) {
           clearTimeout(holdTimer);
           holdTimer = null;
@@ -141,12 +148,14 @@ export function setupEventListeners(
       // Reset pointer ID
       activePointerId = null;
 
-      // If hold was triggered, prevent tap action and reset after a delay
+      // If hold was triggered, prevent tap action
+      // but DON'T prevent default here - this allows scrolling to work
       if (holdTriggered) {
-        ev.stopPropagation();
+        // Instead of preventDefault, just use a longer timeout
+        // so other handlers don't immediately override our action
         setTimeout(() => {
           holdTriggered = false;
-        }, 300); // Longer delay to make sure popup doesn't close immediately
+        }, 500); // Use a longer delay of 500ms
       }
     };
 
@@ -154,17 +163,17 @@ export function setupEventListeners(
     clone.addEventListener('pointercancel', endPointerAction);
     clone.addEventListener('pointerleave', endPointerAction);
 
-    // Prevent text selection during hold
+    // Prevent text selection during hold but allow scrolling
     clone.style.userSelect = 'none';
-    // Prevent touch actions from browser
-    clone.style.touchAction = 'none';
+    // IMPORTANT: Allow pan-y for vertical scrolling
+    clone.style.touchAction = 'pan-y';
   }
 
   // Handle tap/click action
   if (tapAction && tapAction.action !== 'none') {
-    clone.addEventListener('click', (ev) => {
-      // Only process click if hold wasn't triggered
-      if (!holdTriggered) {
+    clone.addEventListener('click', () => {
+      // Only process click if hold wasn't triggered and no significant movement
+      if (!holdTriggered && !hasMoved) {
         handleAction(tapAction, hass, element, entityId, toggleExpanded);
       }
     });
