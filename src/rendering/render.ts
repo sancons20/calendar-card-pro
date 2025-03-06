@@ -12,50 +12,65 @@ import * as DomUtils from '../utils/dom-utils';
 import * as Styles from './styles';
 
 /**
- * Render the full calendar card
- *
- * @param config - Card configuration
- * @param eventsByDay - Events grouped by day
- * @param formatEventTimeFn - Function to format event time
- * @param formatLocationFn - Function to format location
- * @param chunkSize - Size of chunks for progressive rendering
- * @param renderDelay - Delay between rendering chunks
- * @returns Object containing built DOM elements
+ * Render a calendar card with proper container setup for ripple effects
  */
 export async function renderCalendarCard(
   config: Types.Config,
   eventsByDay: Types.EventsByDay[],
-  formatEventTimeFn: (event: Types.CalendarEventData) => string,
-  formatLocationFn: (location: string) => string,
-  chunkSize = 10,
-  renderDelay = 50,
-): Promise<{ container: Element; style: HTMLStyleElement }> {
-  // Create container elements
-  const container = DomUtils.createElement('div', 'card-container');
-  const content = DomUtils.createElement('div', 'card-content');
+  formatEventTime: (event: Types.CalendarEventData) => string,
+  formatLocation: (location: string) => string,
+  chunkSize: number,
+  renderDelay: number,
+): Promise<{ container: HTMLDivElement; style: HTMLStyleElement }> {
+  // Create container for the card
+  const container = document.createElement('div');
+  container.className = 'card-container card-interactive hover-effect-target';
+
+  // Add essential styling for interactions
+  container.style.position = 'relative'; // Required for absolute positioning of ripple
+  container.style.overflow = 'hidden'; // Keep ripples contained
+  container.style.display = 'block'; // Ensure block display for proper sizing
+  container.style.width = '100%'; // Fill available width
+  container.style.height = '100%'; // Fill available height
+  container.style.boxSizing = 'border-box'; // Include padding in dimensions
+
+  // Create content div inside container
+  const content = document.createElement('div');
+  content.className = 'card-content';
+  content.style.position = 'relative';
+  content.style.zIndex = '2'; // Above ripples
+
+  // Create ripple container for tap effects
+  const rippleContainer = document.createElement('div');
+  rippleContainer.className = 'card-ripple-container';
 
   // Add title if configured
   if (config.title) {
-    const title = DomUtils.createElement('div', 'title', config.title);
+    const title = document.createElement('h2');
+    title.className = 'title';
+    title.textContent = config.title;
     content.appendChild(title);
   }
 
-  // Generate calendar content
+  // Add calendar content
   const calendarContent = await renderProgressively(
     eventsByDay,
     config,
-    formatEventTimeFn,
-    formatLocationFn,
+    formatEventTime,
+    formatLocation,
     chunkSize,
     renderDelay,
   );
 
-  // Assemble the card
   content.appendChild(calendarContent);
+
+  // Layer order matters: ripple container first (under content)
+  container.appendChild(rippleContainer);
   container.appendChild(content);
 
   // Create style element
-  const style = DomUtils.createStyleElement(Styles.getStyles(config));
+  const style = document.createElement('style');
+  style.textContent = Styles.getStyles(config);
 
   return { container, style };
 }

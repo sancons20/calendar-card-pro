@@ -1,5 +1,5 @@
 # Ignore dist/ and docs/ folder
-dist/*
+# dist/*
 
 # Ignore system-specific and editor-related files
 .DS_Store

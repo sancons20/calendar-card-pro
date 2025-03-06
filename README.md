@@ -330,6 +330,12 @@ For those interested in contributing code, we maintain detailed [architecture do
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md) for more detailed guidelines.
 
+## Acknowledgements
+
+- Original design inspiration from [Calendar Add-on & Calendar Designs](https://community.home-assistant.io/t/calendar-add-on-some-calendar-designs/385790) by Home Assistant community member @GHA_Steph
+- Interaction patterns inspired by Home Assistant's [Tile Card](https://github.com/home-assistant/frontend/blob/dev/src/panels/lovelace/cards/hui-tile-card.ts), which is licensed under the [Apache License 2.0](https://github.com/home-assistant/frontend/blob/dev/LICENSE.md)
+- Material Design ripple interactions, originally by Google, used under the [Apache License 2.0](https://github.com/material-components/material-components-web/blob/master/LICENSE)
+
 ## ❗ Known Limitations
 
 The following features are currently limited or not fully implemented:
@@ -365,3 +371,7 @@ The following features are currently limited or not fully implemented:
 [git-last-commit-badge]: https://img.shields.io/github/last-commit/ngocjohn/vehicle-status-card
 [git-download-all-badge]: https://img.shields.io/github/downloads/ngocjohn/vehicle-status-card/total?style=flat&logo=homeassistantcommunitystore&logoSize=auto&label=Downloads&color=%2318BCF2
 [git-download-latest-badge]: https://img.shields.io/github/downloads/ngocjohn/vehicle-status-card/latest/total?style=flat&logo=homeassistantcommunitystore&logoSize=auto
+
+```
+
+```

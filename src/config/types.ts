@@ -194,3 +194,53 @@ export interface MemoCache<T> {
   readonly cache: Map<string, T>;
   clear(): void;
 }
+
+/**
+ * Interaction state for tracking pointer events and visual feedback
+ * Enhanced with additional flags for better state management
+ */
+export interface InteractionState {
+  // Pointer tracking
+  activePointerId: number | null;
+  pointerStartX: number;
+  pointerStartY: number;
+  pointerStartTime: number; // Added to track interaction duration
+  hasMoved: boolean;
+
+  // Action state
+  holdTriggered: boolean;
+  tapPending: boolean; // Added to track pending tap actions
+  interactionActive: boolean; // Added to track active interactions
+  holdTimer: number | null;
+
+  // Visual elements
+  holdIndicator: HTMLElement | null;
+  tapRipple: HTMLElement | null;
+
+  // Timing
+  lastActionTime: number;
+  lastHoldTime: number; // Added to prevent rapid hold triggers
+  tapDisabled: boolean; // Added to explicitly disable taps after holds
+
+  // Device detection
+  isTouch: boolean;
+}
+
+/**
+ * Context data for action execution
+ */
+export interface ActionContext {
+  element: Element;
+  hass: Hass | null;
+  entityId?: string;
+  toggleCallback?: () => void;
+}
+
+/**
+ * Configuration for interaction module
+ */
+export interface InteractionConfig {
+  tapAction?: ActionConfig;
+  holdAction?: ActionConfig;
+  context: ActionContext;
+}

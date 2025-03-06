@@ -5,11 +5,17 @@
  * This is the main entry point for the Calendar Card Pro custom card.
  * It orchestrates the different modules and handles the core web component lifecycle.
  *
+ * Design inspired by Home Assistant community member @GHA_Steph's button-card calendar design
+ * https://community.home-assistant.io/t/calendar-add-on-some-calendar-designs/385790
+ *
+ * Interaction patterns inspired by Home Assistant's Tile Card
+ * and Material Design, both licensed under the Apache License 2.0.
+ * https://github.com/home-assistant/frontend/blob/dev/LICENSE.md
+ *
  * @license MIT
  * @version 0.1.0
  */
 
-// Version information - keep this at the top level for easy updates
 export const VERSION = '0.1.0';
 
 // Import all types via namespace for cleaner imports
@@ -18,7 +24,7 @@ import * as Types from './config/types';
 import * as Localize from './translations/localize';
 import * as FormatUtils from './utils/format-utils';
 import * as EventUtils from './utils/event-utils';
-import * as ActionUtils from './utils/actions';
+import * as Interaction from './utils/interaction';
 import * as Helpers from './utils/helpers';
 import * as StateUtils from './utils/state-utils';
 import * as Styles from './rendering/styles';
@@ -96,6 +102,7 @@ class CalendarCardPro extends HTMLElement {
     start: () => void;
     stop: () => void;
   };
+  private eventListenerCleanup: (() => void) | null = null;
 
   /******************************************************************************
    * STATIC CONFIGURATION
@@ -196,6 +203,12 @@ class CalendarCardPro extends HTMLElement {
 
     clearInterval(this.cleanupInterval);
     this.cleanup();
+
+    // Add cleanup for event listeners
+    if (this.eventListenerCleanup) {
+      this.eventListenerCleanup();
+      this.eventListenerCleanup = null;
+    }
   }
 
   /******************************************************************************
@@ -374,10 +387,10 @@ class CalendarCardPro extends HTMLElement {
 
   handleAction(actionConfig: Types.ActionConfig) {
     // Get the primary entity ID
-    const entityId = ActionUtils.getPrimaryEntityId(this.config.entities);
+    const entityId = Interaction.getPrimaryEntityId(this.config.entities);
 
-    // Call the extracted action handler
-    ActionUtils.handleAction(
+    // Call the action handler from the interaction module
+    Interaction.handleAction(
       actionConfig,
       this._hass,
       this,
@@ -388,22 +401,22 @@ class CalendarCardPro extends HTMLElement {
   }
 
   fireMoreInfo() {
-    const entityId = ActionUtils.getPrimaryEntityId(this.config.entities);
-    ActionUtils.fireMoreInfo(this, entityId);
+    const entityId = Interaction.getPrimaryEntityId(this.config.entities);
+    Interaction.fireMoreInfo(this, entityId);
   }
 
   handleNavigation(actionConfig: Types.ActionConfig) {
-    ActionUtils.handleNavigation(actionConfig);
+    Interaction.handleNavigation(actionConfig);
   }
 
   callService(actionConfig: Types.ActionConfig) {
     if (this._hass) {
-      ActionUtils.callService(this._hass, actionConfig);
+      Interaction.callService(this._hass, actionConfig);
     }
   }
 
   openUrl(actionConfig: Types.ActionConfig) {
-    ActionUtils.openUrl(actionConfig);
+    Interaction.openUrl(actionConfig);
   }
 
   /**
@@ -416,25 +429,6 @@ class CalendarCardPro extends HTMLElement {
       this.isExpanded = !this.isExpanded;
       this.renderCard();
     }
-  }
-
-  setupEventListeners(): void {
-    const cardContainer = this.shadowRoot?.querySelector<HTMLDivElement>('.card-container');
-    if (!cardContainer) return;
-
-    // Get primary entity ID
-    const entityId = ActionUtils.getPrimaryEntityId(this.config.entities);
-
-    // Use the extracted setupEventListeners function
-    ActionUtils.setupEventListeners(
-      cardContainer,
-      this.config.tap_action,
-      this.config.hold_action,
-      this._hass,
-      this,
-      entityId,
-      () => this.toggleExpanded(),
-    );
   }
 
   /******************************************************************************
@@ -505,10 +499,142 @@ class CalendarCardPro extends HTMLElement {
       );
 
       DomUtils.clearShadowRoot(this.shadowRoot!);
+
+      // CRITICAL FIX: Add interaction styles directly to shadow root
+      const interactionStyles = document.createElement('style');
+      interactionStyles.id = 'direct-interaction-styles';
+      interactionStyles.textContent = `
+        /* Direct Hover Effect Styles */
+        @media (hover: hover) {
+          .card-container {
+            transition: transform 180ms ease-in-out, box-shadow 180ms ease-in-out !important;
+            will-change: transform, box-shadow !important;
+          }
+          
+          .card-container:hover {
+            box-shadow: var(--ha-card-box-shadow, 
+                        0 2px 2px 0 rgba(0, 0, 0, 0.14), 
+                        0 1px 5px 0 rgba(0, 0, 0, 0.12), 
+                        0 3px 1px -2px rgba(0, 0, 0, 0.2)) !important;
+            transform: translateY(-2px) !important;
+          }
+        }
+        
+        /* Direct Ripple Styles */
+        .card-ripple-container {
+          position: absolute !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          overflow: hidden !important;
+          pointer-events: none !important;
+          z-index: 1 !important;
+        }
+        
+        .card-ripple {
+          position: absolute !important;
+          border-radius: 50% !important;
+          background-color: var(--primary-color, currentColor) !important;
+          opacity: 0;
+          pointer-events: none !important;
+          transition: opacity 300ms linear, transform 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+          z-index: 1 !important;
+        }
+        
+        .ripple-animate {
+          opacity: 0.15 !important;
+          transform: scale(1) !important;
+        }
+      `;
+
+      this.shadowRoot?.appendChild(interactionStyles);
       this.shadowRoot?.appendChild(style);
       this.shadowRoot?.appendChild(container);
 
-      this.setupEventListeners();
+      // Clean up previous event listeners if they exist
+      if (this.eventListenerCleanup) {
+        this.eventListenerCleanup();
+        this.eventListenerCleanup = null;
+      }
+
+      // Ensure container is properly configured for interactions
+      if (container instanceof HTMLDivElement) {
+        // Apply critical styles directly to container
+        container.style.position = 'relative';
+        container.style.overflow = 'hidden';
+        container.style.cursor = 'pointer';
+
+        // Force 3D rendering for better hover performance
+        container.style.transform = 'translateZ(0)';
+        container.style.backfaceVisibility = 'hidden';
+
+        // Apply special debug outline to verify the container is properly styled
+        if (Logger.isDebugEnabled()) {
+          container.style.outline = '1px dashed rgba(0,255,0,0.2)';
+        }
+
+        // Debug info to help troubleshoot
+        Logger.info('Setting up card interactions', {
+          hasInteractions: Boolean(this.config.tap_action || this.config.hold_action),
+          tapAction: this.config.tap_action?.action,
+          holdAction: this.config.hold_action?.action,
+        });
+
+        // Set up new event listeners with proper context
+        this.eventListenerCleanup = Interaction.setupInteractions(container, {
+          tapAction: this.config.tap_action,
+          holdAction: this.config.hold_action,
+          context: {
+            element: this,
+            hass: this._hass,
+            entityId: Interaction.getPrimaryEntityId(this.config.entities),
+            toggleCallback: () => this.toggleExpanded(),
+          },
+        });
+
+        // DIRECT INTERACTION SETUP
+        // Add an additional event handler for tap with direct effect
+        container.addEventListener('pointerdown', (ev) => {
+          const rippleContainer = container.querySelector('.card-ripple-container');
+          if (rippleContainer) {
+            const rect = container.getBoundingClientRect();
+            const x = ev.clientX - rect.left;
+            const y = ev.clientY - rect.top;
+
+            const size = Math.max(rect.width, rect.height) * 2;
+
+            const ripple = document.createElement('div');
+            ripple.className = 'card-ripple';
+            ripple.style.position = 'absolute';
+            ripple.style.width = `${size}px`;
+            ripple.style.height = `${size}px`;
+            ripple.style.left = `${x - size / 2}px`;
+            ripple.style.top = `${y - size / 2}px`;
+            ripple.style.opacity = '0';
+            ripple.style.transform = 'scale(0)';
+
+            rippleContainer.appendChild(ripple);
+
+            // Force reflow
+            ripple.offsetWidth;
+
+            // Apply animation
+            ripple.style.opacity = '0.15';
+            ripple.style.transform = 'scale(1)';
+
+            // Remove after animation
+            setTimeout(() => {
+              ripple.style.opacity = '0';
+              setTimeout(() => {
+                if (ripple.parentNode) {
+                  ripple.parentNode.removeChild(ripple);
+                }
+              }, 300);
+            }, 300);
+          }
+        });
+      }
     } catch (error) {
       Logger.error('Render error:', error);
       Render.renderErrorToDOM(this.shadowRoot!, 'error', this.config);

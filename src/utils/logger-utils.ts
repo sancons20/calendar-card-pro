@@ -182,6 +182,18 @@ export function setDebugMode(enable: boolean): void {
 }
 
 /**
+ * Check if debug mode is enabled
+ * @returns {boolean} True if debug mode is enabled
+ */
+export function isDebugEnabled(): boolean {
+  // Check for debug flag in localStorage or URL parameters
+  return (
+    localStorage.getItem('calendar-card-debug') === 'true' ||
+    window.location.search.includes('debug=true')
+  );
+}
+
+/**
  * Custom error class for Calendar Card Pro
  * Imported from error-utils.ts
  */
