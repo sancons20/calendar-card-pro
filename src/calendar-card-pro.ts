@@ -390,6 +390,10 @@ class CalendarCardPro extends HTMLElement {
    * ACTION HANDLING
    ******************************************************************************/
 
+  /**
+   * Handle user action (tap or hold) by delegating to the interaction module
+   * @param actionConfig - Configuration for the action
+   */
   handleAction(actionConfig: Types.ActionConfig) {
     // Get the primary entity ID
     const entityId = Interaction.getPrimaryEntityId(this.config.entities);
@@ -403,25 +407,6 @@ class CalendarCardPro extends HTMLElement {
       // Pass a callback to handle expand action
       () => this.toggleExpanded(),
     );
-  }
-
-  fireMoreInfo() {
-    const entityId = Interaction.getPrimaryEntityId(this.config.entities);
-    Interaction.fireMoreInfo(this, entityId);
-  }
-
-  handleNavigation(actionConfig: Types.ActionConfig) {
-    Interaction.handleNavigation(actionConfig);
-  }
-
-  callService(actionConfig: Types.ActionConfig) {
-    if (this._hass) {
-      Interaction.callService(this._hass, actionConfig);
-    }
-  }
-
-  openUrl(actionConfig: Types.ActionConfig) {
-    Interaction.openUrl(actionConfig);
   }
 
   /**
@@ -494,13 +479,6 @@ class CalendarCardPro extends HTMLElement {
     }
 
     try {
-      const eventsByDay = EventUtils.groupEventsByDay(
-        this.events,
-        this.config,
-        this.isExpanded,
-        this.config.language,
-      );
-
       // Get the calendar content using the render module
       const { container, style } = await Render.renderCalendarCard(
         this.config,
@@ -514,110 +492,24 @@ class CalendarCardPro extends HTMLElement {
       // Clear the shadow DOM before adding new content
       DomUtils.clearShadowRoot(this.shadowRoot!);
 
-      // UPDATED layered styles with transparent content-layer background
-      const layeredStyles = document.createElement('style');
-      layeredStyles.id = 'calendar-card-interaction-styles';
-      layeredStyles.textContent = `
-        /* Base container */
-        .card-container {
-          position: relative;
-          background: transparent !important; /* Keep container transparent */
-          overflow: visible; /* Allow hover effect to extend outside */
-          cursor: pointer;
-          transition: transform 180ms ease-in-out;
-        }
+      // Use our interaction module for styles and DOM structure
+      const interactionStyles = Interaction.createInteractionStyles();
 
-        /* Background layer */
-        .card-bg-layer {
-          position: absolute;
-          inset: 0;
-          z-index: 1 !important;
-          background-color: var(--ha-card-background, var(--card-background-color, white));
-          border-radius: var(--ha-card-border-radius, 4px);
-        }
+      // Create the layered DOM structure
+      const {
+        container: layeredContainer,
+        bgLayer,
+        rippleContainer,
+        contentLayer,
+      } = Interaction.createInteractionDom();
 
-        /* Content layer - EXPLICIT TRANSPARENCY */
-        .card-content-layer {
-          position: relative;
-          z-index: 3 !important;
-          background: transparent !important; /* Force transparency */
-        }
-
-        /* Ripple container */
-        .card-ripple-container {
-          position: absolute;
-          inset: 0;
-          z-index: 2 !important; /* Between bg (1) and content (3) */
-          pointer-events: none;
-          overflow: hidden;
-          border-radius: var(--ha-card-border-radius, 4px);
-        }
-        
-        /* Force transparency for all child elements that might have backgrounds */
-        .card-content-layer > * {
-          background-color: transparent !important;
-        }
-
-        /* Individual ripple */
-        .card-ripple {
-          position: absolute;
-          border-radius: 50%;
-          background-color: var(--primary-text-color, rgba(0,0,0,0.3));
-          opacity: 0;
-          transform: scale(0);
-          pointer-events: none;
-          will-change: transform, opacity;
-          transition: opacity 300ms ease-out, transform 300ms ease-out;
-        }
-
-        /* Hover effect */
-        @media (hover: hover) {
-          .card-container:hover {
-            box-shadow: var(--ha-card-box-shadow, 0px 2px 4px rgba(0, 0, 0, 0.1));
-            transform: translateY(-2px);
-          }
-        }
-      `;
-
-      // Create layered container structure
-      const layeredContainer = document.createElement('div');
-      layeredContainer.className = 'card-container';
-
-      // Create and add background layer
-      const bgLayer = document.createElement('div');
-      bgLayer.className = 'card-bg-layer';
-      layeredContainer.appendChild(bgLayer);
-
-      // Create ripple container
-      const rippleContainer = document.createElement('div');
-      rippleContainer.className = 'card-ripple-container';
-      layeredContainer.appendChild(rippleContainer);
-
-      // Create content layer
-      const contentLayer = document.createElement('div');
-      contentLayer.className = 'card-content-layer';
-      layeredContainer.appendChild(contentLayer);
-
-      // When moving content to content layer, enforce transparency
+      // Move content from the original container to our content layer
       if (container instanceof HTMLElement) {
-        // Copy padding from original container
-        const containerStyles = window.getComputedStyle(container);
-        contentLayer.style.padding = containerStyles.padding;
-        contentLayer.style.backgroundColor = 'transparent'; // Force transparency
-
-        // Move all children to content layer
-        while (container.firstChild) {
-          const child = container.firstChild;
-          if (child instanceof HTMLElement) {
-            // Remove any background from child elements
-            child.style.backgroundColor = 'transparent';
-          }
-          contentLayer.appendChild(child);
-        }
+        Interaction.moveContentToLayer(container, contentLayer);
       }
 
       // Add layers to shadow DOM
-      this.shadowRoot?.appendChild(layeredStyles);
+      this.shadowRoot?.appendChild(interactionStyles);
       this.shadowRoot?.appendChild(style); // Original styles
       this.shadowRoot?.appendChild(layeredContainer);
 
@@ -627,21 +519,17 @@ class CalendarCardPro extends HTMLElement {
         this.eventListenerCleanup = null;
       }
 
-      // Add handler for navigation changes
-      const navigationListener = () => {
-        Logger.info('Location changed, restoring interactions');
-        setTimeout(() => this.setupRippleEffects(), 100);
-      };
-      window.addEventListener('location-changed', navigationListener);
+      // Get primary entity ID for interactions
+      const entityId = Interaction.getPrimaryEntityId(this.config.entities);
 
-      // Setup ripple effects
-      this.setupRippleEffects(layeredContainer, rippleContainer);
-
-      // Return cleanup function
-      this.eventListenerCleanup = () => {
-        window.removeEventListener('location-changed', navigationListener);
-        // Ripple listeners are cleaned up in setupRippleEffects
-      };
+      // UPDATED: Use the complete interaction system
+      this.eventListenerCleanup = Interaction.setupInteractions(
+        layeredContainer,
+        this.config,
+        this._hass,
+        entityId,
+        () => this.toggleExpanded(),
+      );
     } catch (error) {
       Logger.error('Render error:', error);
       Render.renderErrorToDOM(this.shadowRoot!, 'error', this.config);
@@ -879,7 +767,7 @@ class CalendarCardPro extends HTMLElement {
   }
 
   /**
-   * Set up ripple effects using actual DOM elements
+   * Set up ripple effects using our interaction module
    */
   private setupRippleEffects(container?: HTMLElement, rippleContainer?: HTMLElement) {
     // Find elements if not provided
@@ -889,63 +777,96 @@ class CalendarCardPro extends HTMLElement {
       if (!container || !rippleContainer) return;
     }
 
-    // Clean up existing listeners
-    const oldHandler = container._rippleHandler;
-    if (oldHandler) {
-      container.removeEventListener('pointerdown', oldHandler);
-      delete container._rippleHandler;
+    // Use the new interaction module to set up ripple effects
+    const cleanup = Interaction.setupRippleEffects(container, rippleContainer);
+
+    // Keep track of the cleanup function
+    if (this.eventListenerCleanup) {
+      this.eventListenerCleanup();
     }
 
-    // Create ripple handler
-    container._rippleHandler = (ev: PointerEvent) => {
-      // Create ripple element
-      const ripple = document.createElement('div');
-      ripple.className = 'card-ripple';
-
-      // Get container dimensions & position
-      const rect = container!.getBoundingClientRect();
-      const size = Math.max(rect.width, rect.height) * 2.5;
-
-      // Calculate position relative to container
-      const x = ev.clientX - rect.left;
-      const y = ev.clientY - rect.top;
-
-      // Set ripple styles
-      ripple.style.width = ripple.style.height = `${size}px`;
-      ripple.style.left = `${x}px`;
-      ripple.style.top = `${y}px`;
-      ripple.style.opacity = '0';
-      ripple.style.transform = 'translate(-50%, -50%) scale(0)';
-
-      // Add ripple to container
-      rippleContainer!.appendChild(ripple);
-
-      // Force reflow before animation
-      ripple.offsetWidth;
-
-      // Start animation
-      requestAnimationFrame(() => {
-        ripple.style.opacity = '0.35';
-        ripple.style.transform = 'translate(-50%, -50%) scale(1)';
-
-        // Handle tap/hold actions
-        if (
-          this.config.tap_action?.action !== 'none' ||
-          this.config.hold_action?.action !== 'none'
-        ) {
-          this._setupCardInteractions(container!);
+    // Create new handler for tap/hold actions
+    const actionHandler = (ev: PointerEvent) => {
+      // Set up timer for hold action if configured
+      if (this.config.hold_action && this.config.hold_action.action !== 'none') {
+        if (this.touchState.holdTimer !== null) {
+          clearTimeout(this.touchState.holdTimer);
         }
 
-        // Remove after animation
-        setTimeout(() => {
-          ripple.style.opacity = '0';
-          setTimeout(() => ripple.remove(), 300);
-        }, 300);
-      });
+        this.touchState.holdTriggered = false;
+        this.touchState.holdTimer = window.setTimeout(() => {
+          this.touchState.holdTriggered = true;
+
+          // Create hold indicator using interaction module
+          const holdIndicator = Interaction.createHoldIndicator(ev);
+
+          // Execute hold action using interaction module
+          this.handleAction(this.config.hold_action);
+
+          // Remove hold indicator after animation
+          setTimeout(() => {
+            Interaction.removeHoldIndicator(holdIndicator);
+          }, 300);
+        }, 500);
+      }
+
+      // Set up pointer up handler
+      const handlePointerUp = (_upEv: PointerEvent) => {
+        // Clear hold timer
+        if (this.touchState.holdTimer !== null) {
+          clearTimeout(this.touchState.holdTimer);
+          this.touchState.holdTimer = null;
+        }
+
+        // Only trigger tap action if hold wasn't triggered
+        if (!this.touchState.holdTriggered && this.config.tap_action) {
+          this.handleAction(this.config.tap_action);
+        }
+
+        // Reset state
+        this.touchState.holdTriggered = false;
+
+        // Remove temporary listeners
+        window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerCancel);
+      };
+
+      const handlePointerCancel = () => {
+        // Clear hold timer
+        if (this.touchState.holdTimer !== null) {
+          clearTimeout(this.touchState.holdTimer);
+          this.touchState.holdTimer = null;
+        }
+
+        // Reset state
+        this.touchState.holdTriggered = false;
+
+        // Remove temporary listeners
+        window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerCancel);
+      };
+
+      // Add temporary global listeners to catch events outside element
+      window.addEventListener('pointerup', handlePointerUp, { once: true });
+      window.addEventListener('pointercancel', handlePointerCancel, { once: true });
     };
 
-    // Add event listener
-    container.addEventListener('pointerdown', container._rippleHandler);
+    // Add event listener for action handling
+    container.addEventListener('pointerdown', actionHandler);
+
+    // Return cleanup function that combines all cleanup tasks
+    this.eventListenerCleanup = () => {
+      cleanup(); // Clean up ripple effects
+      container?.removeEventListener('pointerdown', actionHandler);
+      window.removeEventListener('location-changed', navigationListener);
+    };
+
+    // Add handler for navigation changes
+    const navigationListener = () => {
+      Logger.info('Location changed, restoring interactions');
+      setTimeout(() => this.setupRippleEffects(), 100);
+    };
+    window.addEventListener('location-changed', navigationListener);
   }
 }
 

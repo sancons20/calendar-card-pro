@@ -18,8 +18,8 @@
  * https://github.com/home-assistant/frontend/blob/dev/LICENSE.md
  */
 
-import * as Types from '../config/types';
-import * as Logger from './logger-utils';
+import * as Types from '../src/config/types';
+import * as Logger from '../src/utils/logger-utils';
 
 /**
  * Get primary entity ID from entities array

@@ -334,6 +334,62 @@ Key Insights:
 - Debugging styles with browser devtools is essential to identify overrides
 - Setting explicit background: transparent is more reliable than not setting a background
 
+### Color Scheme Refinement
+
+#### The Challenge
+
+Our initial implementation used Home Assistant's `--primary-color` variable for all interaction effects (hover, ripple, hold indicator). While this matches HA's Tile Card pattern, it doesn't align with our card's own accent color scheme, creating a visual disconnect.
+
+#### The Insight
+
+The HA Tile Card uses the **entity's color** for all its interaction effects, with `--primary-color` serving only as a fallback. In our Calendar Card context, the equivalent would be using our card's `vertical_line_color` configuration parameter, which already serves as the card's main accent color.
+
+#### Implementation Approach
+
+1. **Custom CSS Variable** (defined in `styles.ts` with other CSS variables):
+
+   ```css
+   :host {
+     /* Existing variables */
+     --card-line-color-vertical: ${config.vertical_line_color};
+
+     /* New accent color variable leveraging existing vertical line color */
+     --card-accent-color: var(--card-line-color-vertical, var(--primary-color, #03a9f4));
+   }
+   ```
+
+2. **Usage in Effects** (in `interaction.ts`):
+
+   ```css
+   /* Ripple effect */
+   .card-ripple {
+     background-color: var(--card-accent-color);
+   }
+
+   /* Hold indicator */
+   .card-hold-indicator {
+     background-color: var(--card-accent-color);
+   }
+
+   /* Hover effect */
+   .card-container:hover::before {
+     background: var(--card-accent-color);
+   }
+   ```
+
+**Benefits**:
+
+1. Visual Consistency: Interaction effects now reflect the card's own accent color
+2. User Customization: Users who customize vertical_line_color get a fully coordinated experience
+3. Design Coherence: Maintains the design approach of HA's Tile Card while adapting to our card's context
+4. Maintainability: Using a semantic CSS variable makes future color changes easier
+
+**Implementation Notes**
+
+- The opacity values remain unchanged (0.05 for hover, 0.12 for ripple, 0.28 for hold)
+- The fallback chain allows graceful degradation if variables are missing
+- This approach preserves dark/light mode compatibility by inheriting from the system variables
+
 ## HA Tile Card Reference (v2025.3)
 
 This section documents the interaction patterns and visual specifications of the Home Assistant Tile Card as of version 2025.3, serving as our reference implementation.

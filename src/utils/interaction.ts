@@ -5,8 +5,6 @@
  * Implements Material Design-inspired interactions with proper state management
  * and device-appropriate behavior based on Home Assistant Tile Card patterns.
  *
- * This module combines and improves the functionality previously found in actions.ts.
- *
  * Interaction patterns inspired by Home Assistant's Tile Card
  * and Material Design, both licensed under the Apache License 2.0.
  * https://github.com/home-assistant/frontend/blob/dev/LICENSE.md
@@ -16,11 +14,7 @@ import * as Types from '../config/types';
 import * as Logger from './logger-utils';
 
 /**
- * Get primary entity ID from entities array
- * (Moved from actions.ts)
- *
- * @param entities - Calendar entities
- * @returns First entity ID
+ * Extract primary entity ID from entities configuration
  */
 export function getPrimaryEntityId(
   entities: Array<string | { entity: string; color?: string }>,
@@ -31,7 +25,7 @@ export function getPrimaryEntityId(
 
 /**
  * Handle action based on configuration
- * (Moved from actions.ts)
+ * Full implementation following HA Tile Card patterns
  *
  * @param actionConfig - Action configuration
  * @param hass - Home Assistant instance
@@ -46,1104 +40,909 @@ export function handleAction(
   entityId: string,
   toggleExpanded: () => void,
 ): void {
+  // Validate input to prevent errors
   if (!actionConfig || !actionConfig.action || actionConfig.action === 'none') {
+    Logger.debug('No action or action set to none - ignoring');
     return;
   }
 
-  switch (actionConfig.action) {
-    case 'more-info':
-      fireMoreInfo(element, entityId);
-      break;
-    case 'navigate':
-      handleNavigation(actionConfig);
-      break;
-    case 'call-service':
-      if (hass) {
-        callService(hass, actionConfig);
-      }
-      break;
-    case 'url':
-      openUrl(actionConfig);
-      break;
-    case 'expand':
-      toggleExpanded();
-      break;
-    default:
-      Logger.warn(`Unknown action type: ${actionConfig.action}`);
-  }
-}
+  Logger.info(`Executing action: ${actionConfig.action}`);
 
-/**
- * Enhanced interaction setup with reliable state management
- */
-export function setupInteractions(
-  element: HTMLElement,
-  config: Types.InteractionConfig,
-): () => void {
-  // Early return if no interactive actions
-  if (!hasInteractiveActions(config)) {
-    return () => {}; // No-op cleanup function
-  }
+  // Specific, typed actions with proper error handling
+  try {
+    switch (actionConfig.action) {
+      case 'more-info':
+        fireMoreInfo(element, entityId);
+        break;
 
-  // Create state tracker that's isolated per interaction instance
-  const state = createInteractionState();
+      case 'navigate':
+        handleNavigation(actionConfig);
+        break;
 
-  // Set up persistent styles for ripples and hover effects
-  setupGlobalStyles();
-
-  // Apply card styling hooks for hover effects
-  if (hasInteractiveActions(config)) {
-    applyInteractionStyles(element);
-  }
-
-  // Set up primary interaction listeners with proper cleanup
-  const removePointerListeners = setupPointerListeners(element, config, state);
-
-  // Return a function that cleans up everything when called
-  return () => {
-    removePointerListeners();
-    cleanupState(state);
-    Logger.info('Interaction cleanup performed');
-  };
-}
-
-/**
- * Create a more robust state object with safety defaults
- * Additional flags and strict initialization for better state tracking
- */
-function createInteractionState(): Types.InteractionState {
-  return {
-    // Pointer tracking
-    activePointerId: null,
-    pointerStartX: 0,
-    pointerStartY: 0,
-    pointerStartTime: 0,
-    hasMoved: false,
-
-    // Action state - enhanced with more explicit flags
-    holdTriggered: false,
-    tapPending: false,
-    interactionActive: false,
-    holdTimer: null,
-
-    // Visual elements
-    holdIndicator: null,
-    tapRipple: null,
-
-    // Timing with more precise tracking
-    lastActionTime: 0,
-    lastHoldTime: 0,
-    tapDisabled: false,
-
-    // Device detection
-    isTouch: 'ontouchstart' in window,
-  };
-}
-
-/**
- * Set up pointer listeners with improved state management
- * Completely rewritten to ensure proper state handling between events
- */
-function setupPointerListeners(
-  element: HTMLElement,
-  config: Types.InteractionConfig,
-  state: Types.InteractionState,
-): () => void {
-  // Guard against errors with complex event handling
-  if (!element || !config || !state) {
-    Logger.warn('Invalid parameters for setupPointerListeners');
-    return () => {};
-  }
-
-  // Only set up listeners if we have actions to handle
-  if (!hasInteractiveActions(config)) return () => {};
-
-  // Make sure element can receive pointer events properly
-  element.style.userSelect = 'none';
-  element.style.cursor = 'pointer';
-  element.style.touchAction = 'pan-y';
-
-  // Make sure element has position for proper containing of effects
-  if (window.getComputedStyle(element).position === 'static') {
-    element.style.position = 'relative';
-  }
-
-  // Clear any lingering state
-  cleanupState(state);
-
-  // IMPROVED HANDLERS WITH SAFETY CHECKS
-
-  /**
-   * Robust pointer down handler with timestamps and safety guards
-   */
-  const handlePointerDown = (ev: PointerEvent) => {
-    // Before beginning a new interaction, clean up any leftover state
-    safeCleanupVisualEffects(state);
-
-    // Safety check: Don't track multiple pointers simultaneously
-    if (state.activePointerId !== null) {
-      Logger.debug('Ignoring pointer down, another pointer already active');
-      return;
-    }
-
-    // Reset all state flags for a clean start
-    state.interactionActive = true;
-    state.activePointerId = ev.pointerId;
-    state.pointerStartX = ev.clientX;
-    state.pointerStartY = ev.clientY;
-    state.pointerStartTime = Date.now();
-    state.hasMoved = false;
-    state.holdTriggered = false;
-    state.tapPending = true;
-    state.tapDisabled = false;
-
-    // Minimum time between hold actions to prevent accidental triggers
-    const timeSinceLastHold = Date.now() - state.lastHoldTime;
-    if (timeSinceLastHold < 500) {
-      Logger.debug('Hold action prevented - too soon after last hold');
-      return;
-    }
-
-    // Only set up hold timer if we have a valid hold action
-    if (config.holdAction && config.holdAction.action !== 'none') {
-      // Clear any existing timer just to be safe
-      if (state.holdTimer !== null) {
-        clearTimeout(state.holdTimer);
-      }
-
-      // Create a new hold timer with proper closure to capture current state
-      state.holdTimer = window.setTimeout(() => {
-        // Check that interaction is still valid before triggering hold
-        if (
-          state.activePointerId !== null &&
-          !state.hasMoved &&
-          state.interactionActive &&
-          !state.holdTriggered
-        ) {
-          Logger.debug('Hold timer triggered');
-          handleHoldActionStart(ev, config, state);
-        }
-      }, 500); // Match Tile Card's 500ms hold time
-    }
-  };
-
-  /**
-   * Improved pointer move handler with proper threshold detection
-   */
-  const handlePointerMove = (ev: PointerEvent) => {
-    // Only track moves for the active pointer
-    if (ev.pointerId !== state.activePointerId) return;
-
-    // Calculate movement distance using Pythagorean theorem
-    const movementX = ev.clientX - state.pointerStartX;
-    const movementY = ev.clientY - state.pointerStartY;
-    const movement = Math.sqrt(movementX * movementX + movementY * movementY);
-
-    // Use 16px threshold to match Tile Card's behavior
-    const MOVEMENT_THRESHOLD = 16;
-
-    // Only set the moved flag once we cross the threshold
-    if (!state.hasMoved && movement > MOVEMENT_THRESHOLD) {
-      state.hasMoved = true;
-      Logger.debug('Movement threshold exceeded, canceling hold/tap actions');
-
-      // Cancel pending hold timer immediately
-      cancelHoldTimer(state);
-
-      // Also cancel any pending tap action
-      state.tapPending = false;
-
-      // Clean up any partial hold indicator
-      safeCleanupVisualEffects(state);
-    }
-  };
-
-  /**
-   * Completely rewritten pointer up handler with clear action paths
-   */
-  const handlePointerUp = (ev: PointerEvent) => {
-    // Only handle events for our tracked pointer
-    if (ev.pointerId !== state.activePointerId) return;
-
-    // Capture the pointer ID before resetting for use in this handler
-    const pointerId = state.activePointerId;
-
-    // First clean up the pointer tracking state
-    state.activePointerId = null;
-
-    try {
-      // Cancel any pending hold timer first
-      cancelHoldTimer(state);
-
-      // HOLD ACTION PATH: Complete hold action if it was triggered
-      if (state.holdTriggered && !state.hasMoved) {
-        Logger.debug('Completing hold action');
-        completeHoldAction(ev, config, state);
-
-        // Store timestamp of successful hold action
-        state.lastHoldTime = Date.now();
-
-        // Explicitly disable tap to prevent double actions
-        state.tapPending = false;
-        state.tapDisabled = true;
-
-        // Make sure to return early to avoid tap handling
-        return;
-      }
-
-      // TAP ACTION PATH: Handle tap if allowed and not moved
-      if (state.tapPending && !state.hasMoved && !state.tapDisabled) {
-        const now = Date.now();
-
-        // Implement a cooldown period to prevent rapid repeated taps
-        if (now - state.lastActionTime > 300) {
-          Logger.debug('Triggering tap action');
-
-          // Update timestamp before action to prevent double triggers
-          state.lastActionTime = now;
-
-          // Execute the tap action
-          handleTapAction(ev, config, state);
+      case 'call-service':
+        if (hass) {
+          callService(hass, actionConfig);
         } else {
-          Logger.debug('Tap action prevented - too soon after last action');
+          Logger.warn('Cannot call service - hass object not available');
         }
-      }
-    } finally {
-      // Always reset these flags regardless of execution path
-      state.holdTriggered = false;
-      state.tapPending = false;
-      state.interactionActive = false;
+        break;
 
-      // After a short delay, clean up visual effects
-      setTimeout(() => {
-        if (state.activePointerId === null) {
-          safeCleanupVisualEffects(state);
-        }
-      }, 100);
-    }
-  };
+      case 'url':
+        openUrl(actionConfig);
+        break;
 
-  /**
-   * Handle cancellation events with thorough cleanup
-   */
-  const handlePointerCancel = (ev: PointerEvent) => {
-    // Only handle for our tracked pointer
-    if (ev.pointerId !== state.activePointerId) return;
+      case 'expand':
+        toggleExpanded();
+        break;
 
-    Logger.debug('Pointer action canceled');
-
-    // Reset all state in the correct order
-    cancelHoldTimer(state);
-    state.activePointerId = null;
-    state.holdTriggered = false;
-    state.tapPending = false;
-    state.interactionActive = false;
-
-    // Clean up visual effects safely
-    safeCleanupVisualEffects(state);
-  };
-
-  /**
-   * Improved click prevention for hold actions
-   */
-  const handleClick = (ev: MouseEvent) => {
-    // Prevent click events immediately following hold actions
-    if (state.tapDisabled || state.holdTriggered || Date.now() - state.lastHoldTime < 300) {
-      Logger.debug('Click prevented to avoid double action');
-      ev.stopPropagation();
-      ev.preventDefault();
-
-      // Reset the tap disabled flag after handling
-      state.tapDisabled = false;
-    }
-  };
-
-  // Add event listeners with correct options for each event type
-  element.addEventListener('pointerdown', handlePointerDown, { passive: false });
-  element.addEventListener('pointermove', handlePointerMove, { passive: true });
-  element.addEventListener('pointerup', handlePointerUp, { passive: false });
-  element.addEventListener('pointercancel', handlePointerCancel, { passive: true });
-  element.addEventListener('pointerleave', handlePointerCancel, { passive: true });
-  element.addEventListener('click', handleClick, { capture: true, passive: false });
-
-  // Return a function that properly removes all event listeners
-  return () => {
-    element.removeEventListener('pointerdown', handlePointerDown);
-    element.removeEventListener('pointermove', handlePointerMove);
-    element.removeEventListener('pointerup', handlePointerUp);
-    element.removeEventListener('pointercancel', handlePointerCancel);
-    element.removeEventListener('pointerleave', handlePointerCancel);
-    element.removeEventListener('click', handleClick, { capture: true });
-
-    // Also ensure all state is properly cleaned up
-    cleanupState(state);
-  };
-}
-
-/**
- * Safely cancel hold timer if it exists
- * Extracted to a separate function for reuse and clarity
- */
-function cancelHoldTimer(state: Types.InteractionState): void {
-  if (state.holdTimer !== null) {
-    clearTimeout(state.holdTimer);
-    state.holdTimer = null;
-  }
-}
-
-/**
- * Safely clean up all visual effects
- * Handles null checks and proper DOM element removal
- */
-function safeCleanupVisualEffects(state: Types.InteractionState): void {
-  // Clean up hold indicator
-  if (state.holdIndicator) {
-    try {
-      if (state.holdIndicator.parentNode) {
-        state.holdIndicator.parentNode.removeChild(state.holdIndicator);
-      }
-    } catch (e) {
-      // Silently handle DOM errors
-    }
-    state.holdIndicator = null;
-  }
-
-  // Clean up tap ripple
-  if (state.tapRipple) {
-    try {
-      if (state.tapRipple.parentNode) {
-        state.tapRipple.parentNode.removeChild(state.tapRipple);
-      }
-    } catch (e) {
-      // Silently handle DOM errors
-    }
-    state.tapRipple = null;
-  }
-}
-
-/**
- * Improved Hold Action Start
- * Revised for better visual feedback and state management
- */
-function handleHoldActionStart(
-  ev: PointerEvent,
-  _config: Types.InteractionConfig,
-  state: Types.InteractionState,
-): void {
-  // Already triggered or moved - don't trigger again
-  if (state.holdTriggered || state.hasMoved) return;
-
-  // Mark as hold triggered right away
-  state.holdTriggered = true;
-  state.tapPending = false;
-
-  // Create hold indicator
-  const indicator = document.createElement('div');
-  indicator.className = 'calendar-interaction-ripple hold-ripple';
-
-  // Position safely
-  const safeX = Math.max(0, ev.clientX);
-  const safeY = Math.max(0, ev.clientY);
-
-  // Set essential styles directly on element
-  indicator.style.position = 'fixed';
-  indicator.style.top = `${safeY}px`;
-  indicator.style.left = `${safeX}px`;
-  indicator.style.borderRadius = '50%';
-  indicator.style.pointerEvents = 'none';
-  indicator.style.zIndex = '999';
-  indicator.style.transform = 'translate(-50%, -50%)';
-  indicator.style.backgroundColor = '#03a9f4';
-
-  // Add to body with error handling
-  try {
-    document.body.appendChild(indicator);
-
-    // Store reference
-    state.holdIndicator = indicator;
-
-    // Use requestAnimationFrame for smoother animation
-    requestAnimationFrame(() => {
-      if (indicator && indicator.parentNode) {
-        indicator.classList.add('active');
-      }
-    });
-  } catch (error) {
-    Logger.error('Error creating hold indicator:', error);
-  }
-}
-
-/**
- * Complete hold action - fade indicator and execute action
- * Completely rewritten for reliability
- */
-function completeHoldAction(
-  ev: PointerEvent,
-  config: Types.InteractionConfig,
-  state: Types.InteractionState,
-): void {
-  if (!config.holdAction || config.holdAction.action === 'none') return;
-
-  // Record the time for preventing taps immediately after a hold
-  state.lastActionTime = Date.now();
-  state.lastHoldTime = Date.now();
-
-  try {
-    // Execute the configured action
-    const actionContext = config.context;
-    handleAction(
-      config.holdAction,
-      actionContext.hass,
-      actionContext.element,
-      actionContext.entityId || '',
-      actionContext.toggleCallback || (() => {}),
-    );
-
-    // Start fade animation
-    if (state.holdIndicator && state.holdIndicator.parentNode) {
-      state.holdIndicator.classList.add('ripple-fading');
-
-      // Remove after animation
-      setTimeout(() => {
-        if (state.holdIndicator && state.holdIndicator.parentNode) {
-          try {
-            document.body.removeChild(state.holdIndicator);
-          } catch (error) {
-            // Silent fail if already removed
-          }
-          state.holdIndicator = null;
-        }
-      }, 150); // Match animation duration
+      default:
+        Logger.warn(`Unknown action type: ${actionConfig.action}`);
     }
   } catch (error) {
-    Logger.error('Error completing hold action:', error);
-    safeCleanupVisualEffects(state); // Ensure cleanup even on error
+    // Ensure errors in actions don't crash the card
+    Logger.error(`Error executing action ${actionConfig.action}:`, error);
   }
-
-  // Prevent default behaviors to avoid conflicts
-  ev.stopPropagation();
-  ev.preventDefault();
-
-  // Make sure hold state is reset
-  state.holdTriggered = false;
-}
-
-/**
- * Enhanced cleanup function with better error handling
- */
-function cleanupState(state: Types.InteractionState): void {
-  // Cancel timers
-  cancelHoldTimer(state);
-
-  // Reset all flags
-  state.activePointerId = null;
-  state.hasMoved = false;
-  state.holdTriggered = false;
-  state.tapPending = false;
-  state.interactionActive = false;
-  state.tapDisabled = false;
-
-  // Clean up visual elements
-  safeCleanupVisualEffects(state);
-}
-
-/**
- * Create global styles with additional debugging and CSS scoping
- */
-function setupGlobalStyles(): void {
-  // Remove any existing style element to ensure we're not conflicting
-  const existingStyle = document.getElementById('calendar-card-interaction-style');
-  if (existingStyle) {
-    try {
-      existingStyle.parentNode?.removeChild(existingStyle);
-      Logger.info('Removed existing interaction styles');
-    } catch (e) {
-      Logger.error('Failed to remove existing styles:', e);
-    }
-  }
-
-  // Create a new style element with extremely high specificity
-  const styleElem = document.createElement('style');
-  styleElem.id = 'calendar-card-interaction-style';
-
-  // Use !important and direct descendant selectors for maximum override power
-  styleElem.textContent = `
-    /* Add additional animation debugging */
-    @keyframes debug-blink {
-      0%, 100% { outline: 2px solid rgba(255,0,0,0); }
-      50% { outline: 2px solid rgba(255,0,0,0.5); }
-    }
-
-    /* Make hover effects extremely specific and important */
-    @media (hover: hover) {
-      html body .hover-effect-target,
-      html body div.card-container.card-interactive,
-      html body ha-card.card-interactive,
-      html body div.card-interactive ha-card {
-        cursor: pointer !important;
-        transition: transform 180ms ease-in-out, box-shadow 180ms ease-in-out !important;
-        will-change: transform, box-shadow !important;
-        position: relative !important;
-        overflow: visible !important;
-      }
-      
-      html body .hover-effect-target:hover,
-      html body div.card-container.card-interactive:hover,
-      html body ha-card.card-interactive:hover,
-      html body div.card-interactive ha-card:hover {
-        box-shadow: var(--ha-card-box-shadow, 
-                     0 2px 2px 0 rgba(0, 0, 0, 0.14), 
-                     0 1px 5px 0 rgba(0, 0, 0, 0.12), 
-                     0 3px 1px -2px rgba(0, 0, 0, 0.2)) !important;
-        transform: translateY(-2px) !important;
-        z-index: 1 !important;
-      }
-    }
-
-    /* Direct inline style version of ripple container */
-    .card-ripple-container {
-      position: absolute !important;
-      top: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      bottom: 0 !important;
-      overflow: hidden !important;
-      border-radius: var(--ha-card-border-radius, 4px) !important;
-      pointer-events: none !important;
-      z-index: 1 !important;
-      width: 100% !important;
-      height: 100% !important;
-    }
-
-    /* Force visiblity of ripples */
-    .card-ripple {
-      position: absolute !important;
-      border-radius: 50% !important;
-      background-color: var(--primary-color, currentColor) !important; 
-      opacity: 0 !important;
-      pointer-events: none !important;
-      z-index: 1 !important;
-      will-change: transform, opacity !important;
-    }
-    
-    /* Utility class for animations */
-    .ripple-animate {
-      opacity: 0.15 !important;
-      transform: scale(1) !important;
-      transition: opacity 300ms linear, transform 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
-    }
-
-    /* Rest of styles omitted for brevity... */
-    /* ...existing styles... */
-  `;
-
-  // Insert the style element at the end of the head for maximum cascade priority
-  document.head.appendChild(styleElem);
-  Logger.info('Global interaction styles applied with enhanced visibility');
-}
-
-/**
- * Apply interaction-specific styles to the element
- * Fixed to ensure hover effects work by targeting the right DOM elements
- */
-function applyInteractionStyles(element: HTMLElement): void {
-  Logger.info('Applying interaction styles to element', {
-    tagName: element.tagName,
-    classes: element.className,
-  });
-
-  // Strategy 1: Add interactive class to the element itself
-  element.classList.add('card-interactive');
-
-  // HOVER EFFECT FIX: Add ha-card class if missing to ensure hover styles apply
-  element.classList.add('hover-effect-target');
-
-  // Set pointer cursor for interactive elements
-  element.style.cursor = 'pointer';
-
-  // Strategy 2: Look for ha-card children and apply interactive class to them
-  const haCards = element.querySelectorAll('ha-card');
-  if (haCards.length) {
-    Logger.info('Found ha-card children, applying styles', { count: haCards.length });
-    haCards.forEach((card) => {
-      card.classList.add('card-interactive');
-      card.classList.add('hover-effect-target');
-    });
-  }
-
-  // Strategy 3: If element or any parent is ha-card or card-container, ensure it has the right classes
-  let current: HTMLElement | null = element;
-  while (current) {
-    if (
-      current.classList.contains('card-container') ||
-      current.tagName.toLowerCase() === 'ha-card'
-    ) {
-      Logger.info('Found card parent, applying styles', {
-        element: current.tagName,
-        classes: current.className,
-      });
-      current.classList.add('card-interactive');
-      current.classList.add('hover-effect-target');
-    }
-    current = current.parentElement;
-  }
-
-  // Prepare the element for ripple effects
-  if (window.getComputedStyle(element).position === 'static') {
-    element.style.position = 'relative';
-  }
-
-  // RIPPLE CONTAINER FIX: Make sure the ripple container exists and is properly positioned
-  ensureRippleContainer(element);
-}
-
-/**
- * Ensure ripple container exists and is properly set up
- */
-function ensureRippleContainer(element: HTMLElement): void {
-  // First remove any existing ripple containers to avoid duplicates
-  const existingContainers = element.querySelectorAll('.card-ripple-container');
-  existingContainers.forEach((container) => {
-    try {
-      container.parentNode?.removeChild(container);
-    } catch (e) {
-      // Ignore errors
-    }
-  });
-
-  // Create a new ripple container
-  const rippleContainer = document.createElement('div');
-  rippleContainer.className = 'card-ripple-container';
-
-  // Ensure it has the right styles directly applied (backup for CSS)
-  rippleContainer.style.position = 'absolute';
-  rippleContainer.style.top = '0';
-  rippleContainer.style.left = '0';
-  rippleContainer.style.right = '0';
-  rippleContainer.style.bottom = '0';
-  rippleContainer.style.overflow = 'hidden';
-  rippleContainer.style.pointerEvents = 'none';
-  rippleContainer.style.zIndex = '1';
-  rippleContainer.style.borderRadius = 'var(--ha-card-border-radius, 4px)';
-
-  // Make sure it's the first child for proper layering
-  if (element.firstChild) {
-    element.insertBefore(rippleContainer, element.firstChild);
-  } else {
-    element.appendChild(rippleContainer);
-  }
-
-  Logger.info('Ripple container created and properly positioned');
-}
-
-/**
- * Handle tap action with fixed ripple effect implementation
- */
-function handleTapAction(
-  ev: PointerEvent,
-  config: Types.InteractionConfig,
-  state: Types.InteractionState,
-): void {
-  if (!config.tapAction || config.tapAction.action === 'none') return;
-
-  // Find the card container element - use the currentTarget which is what the listener is on
-  const target = ev.currentTarget as HTMLElement;
-
-  // Debug log the tap action and target
-  Logger.info('Tap action triggered', {
-    action: config.tapAction.action,
-    target: target?.tagName,
-    targetClasses: target?.className,
-  });
-
-  // First create ripple for visual feedback, then execute action
-  createRippleEffect(ev, target);
-
-  // Update last action time
-  state.lastActionTime = Date.now();
-
-  // Execute action immediately
-  const actionContext = config.context;
-  handleAction(
-    config.tapAction,
-    actionContext.hass,
-    actionContext.element,
-    actionContext.entityId || '',
-    actionContext.toggleCallback || (() => {}),
-  );
-
-  // Prevent default browser actions
-  ev.stopPropagation();
-  ev.preventDefault();
-}
-
-/**
- * Create ripple effect with direct DOM manipulation
- * This version uses direct style changes instead of animations
- */
-function createRippleEffect(ev: PointerEvent, element: HTMLElement): void {
-  Logger.info('Creating ripple effect', {
-    x: ev.clientX,
-    y: ev.clientY,
-    element: element.tagName,
-    elementId: element.id,
-    classes: element.className,
-  });
-
-  // Get the card dimensions
-  const rect = element.getBoundingClientRect();
-  Logger.info('Card rect', {
-    width: rect.width,
-    height: rect.height,
-    left: rect.left,
-    top: rect.top,
-  });
-
-  try {
-    // Create container directly on element
-    let rippleContainer: HTMLDivElement;
-    const existingContainer = element.querySelector('.card-ripple-container') as HTMLDivElement;
-
-    if (existingContainer) {
-      // Clear any existing ripples
-      while (existingContainer.firstChild) {
-        existingContainer.removeChild(existingContainer.firstChild);
-      }
-      rippleContainer = existingContainer;
-      Logger.info('Using existing ripple container');
-    } else {
-      // Create new container with force rendering styles
-      rippleContainer = document.createElement('div');
-      rippleContainer.className = 'card-ripple-container';
-
-      // Set critical styles directly (shadowDOM-proof)
-      rippleContainer.style.cssText = `
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        width: ${rect.width}px !important;
-        height: ${rect.height}px !important;
-        overflow: hidden !important;
-        pointer-events: none !important;
-        z-index: 1 !important;
-        border-radius: var(--ha-card-border-radius, 4px);
-      `;
-
-      // Insert as first child for proper z-ordering
-      if (element.firstChild) {
-        element.insertBefore(rippleContainer, element.firstChild);
-      } else {
-        element.appendChild(rippleContainer);
-      }
-      Logger.info('Created new ripple container');
-    }
-
-    // Create the ripple with forced visibility
-    const ripple = document.createElement('div');
-    ripple.className = 'card-ripple';
-
-    // Calculate position and size based on tap location
-    const x = ev.clientX - rect.left;
-    const y = ev.clientY - rect.top;
-
-    // Make sure ripple is big enough to cover the card diagonally
-    const maxDim = Math.max(rect.width, rect.height);
-    const rippleSize = maxDim * 2.5; // Extra large for full coverage
-
-    Logger.info('Ripple parameters', { x, y, size: rippleSize });
-
-    // Set critical styles directly on element (shadowDOM-proof)
-    ripple.style.cssText = `
-      position: absolute !important;
-      width: ${rippleSize}px !important;
-      height: ${rippleSize}px !important;
-      left: ${x - rippleSize / 2}px !important;
-      top: ${y - rippleSize / 2}px !important;
-      border-radius: 50% !important;
-      background-color: var(--primary-color, currentColor) !important;
-      opacity: 0 !important;
-      transform: scale(0) !important;
-      pointer-events: none !important;
-      z-index: 1 !important;
-      will-change: transform, opacity !important;
-      animation: debug-blink 1s infinite; /* Debug animation */
-    `;
-
-    // Add ripple to container and force a layout calculation
-    rippleContainer.appendChild(ripple);
-    ripple.offsetWidth; // Force reflow
-
-    // Apply animation class in next frame
-    requestAnimationFrame(() => {
-      Logger.info('Applying ripple animation');
-      ripple.style.transition =
-        'opacity 300ms linear, transform 300ms cubic-bezier(0.4, 0, 0.2, 1) !important';
-      ripple.style.transform = 'scale(1) !important';
-      ripple.style.opacity = '0.15 !important';
-
-      // Also add class as a backup animation method
-      ripple.classList.add('ripple-animate');
-    });
-
-    // Remove the ripple after animation
-    setTimeout(() => {
-      if (ripple.parentNode) {
-        Logger.info('Fading out ripple');
-        ripple.style.opacity = '0 !important';
-
-        setTimeout(() => {
-          try {
-            if (ripple.parentNode) {
-              ripple.parentNode.removeChild(ripple);
-              Logger.info('Removed ripple element');
-            }
-          } catch (e) {
-            Logger.error('Error removing ripple:', e);
-          }
-        }, 300);
-      }
-    }, 300);
-  } catch (error) {
-    Logger.error('Error in createRippleEffect:', error);
-  }
-}
-
-/**
- * Check if config has any interactive actions
- */
-function hasInteractiveActions(config: Types.InteractionConfig): boolean {
-  // Apply null/undefined check first and return false
-  if (!config || (!config.tapAction && !config.holdAction)) return false;
-
-  return (
-    // Use nullish coalescing to ensure we check against 'none' only when action exists
-    config.tapAction?.action !== 'none' || config.holdAction?.action !== 'none' || false
-  ); // Explicitly return false if all tests fail
 }
 
 /**
  * Fire a Home Assistant more-info event
- * (Moved from actions.ts)
+ * Full implementation following HA patterns
  *
  * @param element - DOM element generating the event
  * @param entityId - Entity ID to show info about
  */
 export function fireMoreInfo(element: Element, entityId: string): void {
-  // Create a new custom event
-  const event = new CustomEvent('hass-more-info', {
-    detail: { entityId },
-    bubbles: true,
-    composed: true,
-    cancelable: false,
-  });
+  if (!entityId) {
+    Logger.warn('Cannot show more-info - no entity ID provided');
+    return;
+  }
 
-  element.dispatchEvent(event);
-}
+  Logger.info(`Firing more-info for entity: ${entityId}`);
 
-/**
- * Handle navigation action
- * (Moved from actions.ts)
- *
- * @param actionConfig - Action configuration
- */
-export function handleNavigation(actionConfig: Types.ActionConfig): void {
-  if (actionConfig.navigation_path) {
-    // The key part that was missing: directly modify browser history
-    window.history.pushState(null, '', actionConfig.navigation_path);
+  try {
+    // Create a new custom event with proper bubbling
+    const event = new CustomEvent('hass-more-info', {
+      detail: { entityId },
+      bubbles: true,
+      composed: true, // Important for crossing shadow DOM boundaries
+      cancelable: false,
+    });
 
-    // Then dispatch a simple event (without details)
-    window.dispatchEvent(new Event('location-changed'));
+    element.dispatchEvent(event);
+  } catch (error) {
+    Logger.error('Error firing more-info event:', error);
   }
 }
 
 /**
- * Call a Home Assistant service
- * (Moved from actions.ts)
+ * Handle navigation action with improved error handling
+ *
+ * @param actionConfig - Action configuration
+ */
+export function handleNavigation(actionConfig: Types.ActionConfig): void {
+  if (!actionConfig.navigation_path) {
+    Logger.warn('Cannot navigate - no navigation path provided');
+    return;
+  }
+
+  Logger.info(`Navigating to: ${actionConfig.navigation_path}`);
+
+  try {
+    // Navigate using history API
+    window.history.pushState(null, '', actionConfig.navigation_path);
+
+    // Dispatch event for Home Assistant to detect navigation
+    const locationChangedEvent = new Event('location-changed', {
+      bubbles: true,
+      cancelable: false,
+    });
+    window.dispatchEvent(locationChangedEvent);
+  } catch (error) {
+    Logger.error('Error during navigation:', error);
+  }
+}
+
+/**
+ * Call a Home Assistant service with improved validation and error handling
  *
  * @param hass - Home Assistant instance
  * @param actionConfig - Action configuration
  */
 export function callService(hass: Types.Hass, actionConfig: Types.ActionConfig): void {
-  if (!actionConfig.service) return;
-
-  const [domain, service] = actionConfig.service.split('.');
-  if (!domain || !service) {
-    Logger.error(`Invalid service: ${actionConfig.service}`);
+  if (!actionConfig.service) {
+    Logger.warn('Cannot call service - no service specified');
     return;
   }
 
+  const serviceParts = actionConfig.service.split('.');
+  if (serviceParts.length !== 2) {
+    Logger.error(`Invalid service format: ${actionConfig.service} - must be domain.service`);
+    return;
+  }
+
+  const [domain, service] = serviceParts;
   const serviceData = actionConfig.service_data || {};
-  hass.callService(domain, service, serviceData);
+
+  Logger.info(`Calling service ${domain}.${service}`, serviceData);
+
+  try {
+    hass.callService(domain, service, serviceData);
+  } catch (error) {
+    Logger.error(`Error calling service ${domain}.${service}:`, error);
+  }
 }
 
 /**
- * Open a URL
- * (Moved from actions.ts)
+ * Open a URL with security validation
  *
  * @param actionConfig - Action configuration
  */
 export function openUrl(actionConfig: Types.ActionConfig): void {
-  if (!actionConfig.url_path) return;
+  if (!actionConfig.url_path) {
+    Logger.warn('Cannot open URL - no URL path provided');
+    return;
+  }
 
-  window.open(actionConfig.url_path, '_blank');
-}
+  Logger.info(`Opening URL: ${actionConfig.url_path}`);
 
-/**
- * Remove ripple element from the DOM with proper cleanup
- */
-function cleanupRippleElement(element: HTMLElement | null): void {
-  if (element && element.parentNode) {
-    document.body.removeChild(element);
+  try {
+    // Security check - must be http/https URL or relative path
+    let url = actionConfig.url_path;
+    if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
+      Logger.warn(`Potentially unsafe URL: ${url} - adding https://`);
+      url = 'https://' + url;
+    }
+
+    // Open URL in new tab with security best practices
+    const newTab = window.open(url, '_blank');
+    if (newTab) {
+      newTab.opener = null; // Remove reference to opener for security
+    }
+  } catch (error) {
+    Logger.error('Error opening URL:', error);
   }
 }
 
 /**
- * Direct shadow DOM handler for interaction module
- * Creates globally unique style element with highest specificity
- */
-function applyGlobalShadowDomStyles(): void {
-  // Create main style element if it doesn't exist
-  if (!document.getElementById('calendar-card-shadow-styles')) {
-    const shadowStyle = document.createElement('style');
-    shadowStyle.id = 'calendar-card-shadow-styles';
-
-    // Use extremely high specificity and use custom properties
-    shadowStyle.textContent = `
-      /* Define custom properties for interactions */
-      html {
-        --calendar-card-hover-transform: translateY(-2px);
-        --calendar-card-hover-shadow: var(--ha-card-box-shadow, 
-                                      0 2px 2px 0 rgba(0, 0, 0, 0.14), 
-                                      0 1px 5px 0 rgba(0, 0, 0, 0.12), 
-                                      0 3px 1px -2px rgba(0, 0, 0, 0.2));
-        --calendar-card-ripple-color: var(--primary-color, currentColor);
-        --calendar-card-ripple-opacity: 0.15;
-      }
-      
-      /* Boost selector specificity for hover effects */
-      html body .hover-effect-target:hover,
-      html body div.card-container.card-interactive:hover,
-      html body ha-card.card-interactive:hover,
-      html body div.card-interactive ha-card:hover,
-      html body *[data-interactive="true"]:hover {
-        box-shadow: var(--calendar-card-hover-shadow) !important;
-        transform: var(--calendar-card-hover-transform) !important;
-        z-index: 1 !important;
-      }
-      
-      /* Force extra visibility on ripples */
-      html body .card-ripple {
-        visibility: visible !important;
-        display: block !important;
-        opacity: var(--calendar-card-ripple-opacity) !important;
-      }
-    `;
-
-    // Add to document head
-    document.head.appendChild(shadowStyle);
-    Logger.info('Applied global shadow DOM interaction styles');
-  }
-}
-
-/**
- * Initialize the interaction module once on load
- */
-(function initializeInteractionModule() {
-  // Set up global styles only once
-  setupGlobalStyles();
-
-  // Apply shadow DOM penetrating styles
-  applyGlobalShadowDomStyles();
-
-  Logger.info('Interaction module initialized');
-})();
-
-/**
- * Get Shadow DOM compatible styles for interactions
- * Separate function to get style text that can be inserted directly into shadow DOM
+ * Create interaction styles element with all necessary CSS
+ * Following exact specifications from HA Tile Card reference
  *
- * @returns {string} CSS styles text for direct inclusion in shadow DOM
+ * @returns Style element with interaction styles
  */
-export function getShadowStyles(): string {
-  return `
-    /* Direct Hover Effect Styles */
-    @media (hover: hover) {
-      .card-container {
-        transition: transform 180ms ease-in-out, box-shadow 180ms ease-in-out !important;
-        will-change: transform, box-shadow !important;
-      }
-      
-      .card-container:hover {
-        box-shadow: var(--ha-card-box-shadow, 
-                    0 2px 2px 0 rgba(0, 0, 0, 0.14), 
-                    0 1px 5px 0 rgba(0, 0, 0, 0.12), 
-                    0 3px 1px -2px rgba(0, 0, 0, 0.2)) !important;
-        transform: translateY(-2px) !important;
-      }
+export function createInteractionStyles(): HTMLStyleElement {
+  const layeredStyles = document.createElement('style');
+  layeredStyles.id = 'calendar-card-interaction-styles';
+
+  // Update style definition with enhanced performance optimizations
+  layeredStyles.textContent = `
+    /* Base container */
+    .card-container {
+      position: relative;
+      background: transparent !important; /* Keep container transparent */
+      overflow: visible; /* Allow hover effect to extend outside */
+      cursor: pointer;
+      transition: transform 180ms ease-in-out;
+      will-change: transform; /* Hint for browser to use GPU */
+      transform: translateZ(0); /* Force GPU acceleration */
+      -webkit-backface-visibility: hidden; /* Prevent flickering on Safari */
     }
-    
-    /* Direct Ripple Styles */
+
+    /* Background layer - Add compositing hint */
+    .card-bg-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 1 !important;
+      background-color: var(--ha-card-background, var(--card-background-color, white));
+      border-radius: var(--ha-card-border-radius, 4px);
+      transform: translateZ(0); /* Force compositing layer */
+    }
+
+    /* Content layer - EXPLICIT TRANSPARENCY */
+    .card-content-layer {
+      position: relative;
+      z-index: 3 !important;
+      background: transparent !important; /* Force transparency */
+      transform: translateZ(0.1px); /* Small offset to ensure proper stacking */
+      will-change: transform; /* Hint for browser to use GPU */
+    }
+
+    /* Ripple container - Enhanced performance */
     .card-ripple-container {
-      position: absolute !important;
-      top: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      bottom: 0 !important;
-      overflow: hidden !important;
-      pointer-events: none !important;
-      z-index: 1 !important;
+      position: absolute;
+      inset: 0;
+      z-index: 2 !important; /* Between bg (1) and content (3) */
+      pointer-events: none;
+      overflow: hidden;
+      border-radius: var(--ha-card-border-radius, 4px);
+      will-change: transform; /* Performance optimization */
+      transform: translateZ(0.05px); /* Very small offset to ensure proper layer */
     }
     
+    /* Force transparency for all child elements that might have backgrounds */
+    .card-content-layer > * {
+      background-color: transparent !important;
+    }
+
+    /* Individual ripple - REFINED ANIMATION */
     .card-ripple {
-      position: absolute !important;
-      border-radius: 50% !important;
-      background-color: var(--primary-color, currentColor) !important;
+      position: absolute;
+      border-radius: 50%;
+      background-color: var(--card-accent-color);
       opacity: 0;
-      pointer-events: none !important;
-      transition: opacity 300ms linear, transform 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
-      z-index: 1 !important;
+      transform: translate(-50%, -50%) scale(0);
+      pointer-events: none;
+      will-change: transform, opacity;
+      transition: opacity 300ms linear, transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+      backface-visibility: hidden; /* Prevent flickering */
+      perspective: 1000px; /* Additional performance boost */
+    }
+
+    /* Hold indicator - ENHANCED ANIMATION */
+    .card-hold-indicator {
+      position: fixed;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: var(--card-accent-color);
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.9); /* Start slightly smaller */
+      pointer-events: none;
+      will-change: transform, opacity;
+      transition: opacity 150ms ease-in-out, transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 9999;
+      backface-visibility: hidden; /* Prevent flickering */
     }
     
-    .ripple-animate {
-      opacity: 0.15 !important;
-      transform: scale(1) !important;
+    /* Touch devices - bigger hold indicator */
+    @media (pointer: coarse) {
+      .card-hold-indicator {
+        width: 48px;
+        height: 48px;
+      }
+    }
+
+    /* Hover effect - REFINED TRANSITION */
+    @media (hover: hover) {
+      .card-container:hover::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: var(--card-accent-color);
+        opacity: 0.05;
+        z-index: 2;
+        border-radius: var(--ha-card-border-radius, 4px);
+        pointer-events: none;
+        transition: opacity 180ms ease-in-out; /* Match container transition */
+        will-change: opacity; /* Performance optimization */
+      }
     }
   `;
+
+  return layeredStyles;
 }
 
 /**
- * Create a style element with interaction styles for shadow DOM
- * @returns {HTMLStyleElement} Style element with interaction styles
+ * Create the three-layer DOM structure required for interactions
+ *
+ * @returns Object containing the container and layer elements
  */
-export function createShadowStyleElement(): HTMLStyleElement {
-  const styleElement = document.createElement('style');
-  styleElement.id = 'shadow-interaction-styles';
-  styleElement.textContent = getShadowStyles();
-  return styleElement;
+export function createInteractionDom(): {
+  container: HTMLDivElement;
+  bgLayer: HTMLDivElement;
+  rippleContainer: HTMLDivElement;
+  contentLayer: HTMLDivElement;
+} {
+  // Create layered container structure
+  const container = document.createElement('div');
+  container.className = 'card-container';
+
+  // Create and add background layer
+  const bgLayer = document.createElement('div');
+  bgLayer.className = 'card-bg-layer';
+  container.appendChild(bgLayer);
+
+  // Create ripple container
+  const rippleContainer = document.createElement('div');
+  rippleContainer.className = 'card-ripple-container';
+  container.appendChild(rippleContainer);
+
+  // Create content layer
+  const contentLayer = document.createElement('div');
+  contentLayer.className = 'card-content-layer';
+  container.appendChild(contentLayer);
+
+  return { container, bgLayer, rippleContainer, contentLayer };
 }
 
 /**
- * Enhanced interaction setup specifically for shadow DOM environments
+ * Move existing content into the content layer of the three-layer structure
+ * Ensures all content has transparent background while preserving styles
+ *
+ * @param sourceContainer - Original container with content
+ * @param contentLayer - Target content layer
  */
-export function setupShadowDomInteractions(
-  element: HTMLElement,
-  config: Types.InteractionConfig,
-  shadowRoot: ShadowRoot,
-): () => void {
-  // Standard setup
-  const cleanup = setupInteractions(element, config);
+export function moveContentToLayer(sourceContainer: HTMLElement, contentLayer: HTMLElement): void {
+  if (!(sourceContainer instanceof HTMLElement)) return;
 
-  // Add shadow DOM specific styles
-  const styleElement = createShadowStyleElement();
-  shadowRoot.appendChild(styleElement);
+  // Copy padding from original container
+  const containerStyles = window.getComputedStyle(sourceContainer);
+  contentLayer.style.padding = containerStyles.padding;
+  contentLayer.style.backgroundColor = 'transparent'; // Force transparency
 
-  // Return enhanced cleanup function
-  return () => {
-    cleanup();
-    if (styleElement.parentNode) {
-      styleElement.parentNode.removeChild(styleElement);
+  // Move all children to content layer
+  while (sourceContainer.firstChild) {
+    const child = sourceContainer.firstChild;
+    if (child instanceof HTMLElement) {
+      // Remove any background from child elements
+      child.style.backgroundColor = 'transparent';
     }
+    contentLayer.appendChild(child);
+  }
+}
+
+/**
+ * Set up layered DOM structure for interactions
+ * This is an enhanced version of the stub that actually implements the functionality
+ *
+ * @param container - The container element to convert to a layered structure
+ * @returns Object containing the created layers
+ */
+export function setupInteractionDom(container: HTMLElement): {
+  bgLayer: HTMLElement;
+  rippleContainer: HTMLElement;
+  contentLayer: HTMLElement;
+} {
+  Logger.info('Setting up interaction DOM structure');
+
+  // First, ensure the container has position relative and transparent background
+  if (window.getComputedStyle(container).position === 'static') {
+    container.style.position = 'relative';
+  }
+  container.style.background = 'transparent';
+  container.style.overflow = 'visible'; // Allow hover effect to extend outside
+  container.classList.add('card-container');
+
+  // Create background layer
+  const bgLayer = document.createElement('div');
+  bgLayer.className = 'card-bg-layer';
+
+  // Create ripple container
+  const rippleContainer = document.createElement('div');
+  rippleContainer.className = 'card-ripple-container';
+
+  // Create content layer
+  const contentLayer = document.createElement('div');
+  contentLayer.className = 'card-content-layer';
+
+  // Store existing children
+  const existingContent = Array.from(container.children);
+
+  // Insert new layers
+  container.appendChild(bgLayer);
+  container.appendChild(rippleContainer);
+  container.appendChild(contentLayer);
+
+  // Move existing content to content layer
+  existingContent.forEach((child) => {
+    if (child instanceof HTMLElement) {
+      child.style.backgroundColor = 'transparent';
+    }
+    contentLayer.appendChild(child);
+  });
+
+  return { bgLayer, rippleContainer, contentLayer };
+}
+
+/**
+ * Set up ripple effects for an element
+ * Uses the new DOM-based ripple implementation
+ *
+ * @param container - Container element
+ * @param rippleContainer - Container for ripple effects
+ * @returns Cleanup function to remove event listeners
+ */
+export function setupRippleEffects(
+  container: HTMLElement,
+  rippleContainer: HTMLElement,
+): () => void {
+  Logger.info('Setting up ripple effects');
+
+  // Clean up existing handler if it exists
+  if (container._rippleHandler) {
+    container.removeEventListener('pointerdown', container._rippleHandler);
+    delete container._rippleHandler;
+  }
+
+  // Create new handler for ripple creation that checks state first
+  container._rippleHandler = (ev: PointerEvent) => {
+    Logger.debug('Ripple handler triggered', {
+      pointerId: ev.pointerId,
+      time: new Date().toISOString(),
+    });
+
+    // Create the ripple effect in the ripple container
+    const ripple = createRippleEffect(ev, rippleContainer);
+
+    // Clean up ripple after animation
+    setTimeout(() => {
+      removeRippleEffect(ripple);
+    }, 300);
+  };
+
+  // Attach the handler
+  container.addEventListener('pointerdown', container._rippleHandler);
+
+  // Return cleanup function
+  return () => {
+    if (container._rippleHandler) {
+      container.removeEventListener('pointerdown', container._rippleHandler);
+      delete container._rippleHandler;
+    }
+  };
+}
+
+/**
+ * Create and animate a ripple effect at the specified position
+ * Follows exact specifications from HA Tile Card (v2025.3)
+ * Enhanced with smoother animation transition
+ *
+ * @param event - Pointer event that triggered the ripple
+ * @param rippleContainer - Container element to add the ripple to
+ * @returns The created ripple element
+ */
+export function createRippleEffect(event: PointerEvent, rippleContainer: HTMLElement): HTMLElement {
+  Logger.info('Creating ripple effect', {
+    x: event.clientX,
+    y: event.clientY,
+    container: rippleContainer.className,
+  });
+
+  // Get container dimensions for proper sizing
+  const rect = rippleContainer.getBoundingClientRect();
+
+  // Calculate position relative to container
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+
+  // Size ripple to ensure it covers the entire container (2.5x size)
+  const size = Math.max(rect.width, rect.height) * 2.5;
+
+  // Create ripple element with proper initial styling
+  const ripple = document.createElement('div');
+  ripple.className = 'card-ripple';
+
+  // No need to set background-color here as it's defined in the CSS
+  // The element will inherit the background-color from the class
+
+  // Position and size the ripple
+  ripple.style.width = `${size}px`;
+  ripple.style.height = `${size}px`;
+  ripple.style.left = `${x}px`;
+  ripple.style.top = `${y}px`;
+
+  // Set initial state (invisible and scaled to zero)
+  ripple.style.opacity = '0';
+  ripple.style.transform = 'translate(-50%, -50%) scale(0)';
+
+  // Add to container
+  rippleContainer.appendChild(ripple);
+
+  // Force a reflow before animation starts to ensure smooth transition
+  // This prevents the browser from batching the creation and animation
+  ripple.offsetWidth; // eslint-disable-line no-unused-expressions
+
+  // Use requestAnimationFrame for smoother animation start
+  requestAnimationFrame(() => {
+    // Trigger animation with exact specs from HA Tile Card
+    ripple.style.opacity = '0.12'; // Confirmed exact opacity per HA specs
+    ripple.style.transform = 'translate(-50%, -50%) scale(1)';
+  });
+
+  return ripple;
+}
+
+/**
+ * Remove ripple effect with proper animation
+ *
+ * @param ripple - Ripple element to remove
+ * @param delay - Optional delay before starting fade-out animation (default: 0ms)
+ */
+export function removeRippleEffect(ripple: HTMLElement, delay = 0): void {
+  if (!ripple || !ripple.parentNode) return;
+
+  // If delay specified, wait before starting fade-out
+  setTimeout(() => {
+    // Start fade-out animation
+    ripple.style.opacity = '0'; // This maintains the 300ms linear transition from CSS
+
+    // Remove from DOM after animation completes (300ms per specs)
+    setTimeout(() => {
+      if (ripple.parentNode) {
+        ripple.parentNode.removeChild(ripple);
+      }
+    }, 300); // Exact match to transition duration
+  }, delay);
+}
+
+/**
+ * Create hold indicator that appears after hold threshold (500ms)
+ * Uses exact specifications from HA Tile Card
+ * Enhanced with smoother animation and transition from ripple effect
+ *
+ * @param event - Pointer event that triggered the hold
+ * @returns The created hold indicator element
+ */
+export function createHoldIndicator(event: PointerEvent): HTMLElement {
+  Logger.info('Creating hold indicator', {
+    x: event.clientX,
+    y: event.clientY,
+  });
+
+  // Create hold indicator element with correct class
+  const indicator = document.createElement('div');
+  indicator.className = 'card-hold-indicator';
+
+  // No need to set background-color here as it's defined in the CSS
+  // The element will inherit the background-color from the class
+
+  // Position the indicator at exact pointer coordinates (viewport-relative)
+  indicator.style.left = `${event.clientX}px`;
+  indicator.style.top = `${event.clientY}px`;
+
+  // Set exact initial state (invisible and slightly smaller)
+  indicator.style.opacity = '0';
+  indicator.style.transform = 'translate(-50%, -50%) scale(0.9)';
+
+  // Size the indicator differently based on device type per HA specs
+  const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+  indicator.style.width = isTouchDevice ? '48px' : '32px';
+  indicator.style.height = isTouchDevice ? '48px' : '32px';
+
+  // DEBUGGING: Add data attribute to help identify potential orphaned indicators
+  indicator.dataset.createdAt = Date.now().toString();
+
+  // Add to document body (not the ripple container)
+  document.body.appendChild(indicator);
+
+  // Force a reflow before animation starts to ensure smooth transition
+  indicator.offsetWidth; // eslint-disable-line no-unused-expressions
+
+  // Trigger appear animation with exact specs
+  requestAnimationFrame(() => {
+    indicator.style.opacity = '0.28'; // Confirmed exact opacity from HA specs
+    indicator.style.transform = 'translate(-50%, -50%) scale(1)'; // Scale to full size
+  });
+
+  return indicator;
+}
+
+/**
+ * Remove hold indicator with proper animation
+ * Enhanced with smoother exit animation
+ *
+ * @param indicator - Hold indicator element to remove
+ */
+export function removeHoldIndicator(indicator: HTMLElement): void {
+  if (!indicator || !indicator.parentNode) return;
+
+  // Start fade-out animation with transform for smoother effect
+  indicator.style.opacity = '0';
+  indicator.style.transform = 'translate(-50%, -50%) scale(0.9)';
+
+  // Remove from DOM after animation completes
+  setTimeout(() => {
+    if (indicator.parentNode) {
+      indicator.parentNode.removeChild(indicator);
+    }
+  }, 300); // Matches HA specs for fade-out duration
+}
+
+/**
+ * Interface for interaction state
+ * Ensures consistent state management across interaction lifecycle
+ */
+interface InteractionState {
+  instanceId: string; // Add unique instance identifier
+  holdTimer: number | null;
+  holdTriggered: boolean;
+  holdIndicator: HTMLElement | null; // Added to track hold indicator
+  activePointerId: number | null;
+  lastActionTime: number;
+  pendingHoldAction: boolean; // Added to track hold action state
+}
+
+/**
+ * Set up complete interactions for a card element
+ */
+export function setupInteractions(
+  element: HTMLElement,
+  config: Types.Config,
+  hass: Types.Hass | null,
+  entityId: string,
+  toggleExpanded: () => void,
+): () => void {
+  // Generate a unique instance ID for this specific setup
+  const instanceId = `interaction_${Math.random().toString(36).substr(2, 9)}`;
+  Logger.debug(`Creating interaction setup with ID: ${instanceId}`);
+
+  // Early return if no actions configured
+  if (
+    (!config.tap_action || config.tap_action.action === 'none') &&
+    (!config.hold_action || config.hold_action.action === 'none')
+  ) {
+    return () => {}; // Return no-op cleanup function
+  }
+
+  // Find or create required DOM elements
+  const rippleContainer = element.querySelector('.card-ripple-container') as HTMLElement;
+
+  if (!rippleContainer) {
+    Logger.warn('Cannot set up interactions - missing ripple container');
+    return () => {};
+  }
+
+  // Track all ripples created for proper cleanup
+  let activeRipples: HTMLElement[] = [];
+
+  // Function to completely clear the ripple container
+  const clearRippleContainer = () => {
+    if (rippleContainer) {
+      // Remove all children from ripple container
+      while (rippleContainer.firstChild) {
+        rippleContainer.removeChild(rippleContainer.firstChild);
+      }
+      activeRipples = [];
+    }
+  };
+
+  // Factory function to create a fresh state object
+  const createFreshState = (): InteractionState => ({
+    instanceId,
+    holdTimer: null,
+    holdTriggered: false,
+    holdIndicator: null,
+    activePointerId: null,
+    lastActionTime: 0,
+    pendingHoldAction: false,
+  });
+
+  // Create initial state
+  let state = createFreshState();
+
+  // Function to completely reset interaction system
+  const resetInteractions = () => {
+    // Clean up existing state
+    if (state.holdTimer !== null) {
+      clearTimeout(state.holdTimer);
+      state.holdTimer = null;
+    }
+
+    if (state.holdIndicator && state.holdIndicator.parentNode) {
+      state.holdIndicator.parentNode.removeChild(state.holdIndicator);
+      state.holdIndicator = null;
+    }
+
+    // Clean up all ripples
+    clearRippleContainer();
+
+    // Create completely new state object (not just reset properties)
+    state = createFreshState();
+
+    Logger.debug(`Interaction state fully reset for ${instanceId}`);
+  };
+
+  // Create pointer down handler with enclosed fresh state
+  const createHandlerWithFreshState = () => {
+    return function pointerDownHandler(ev: PointerEvent) {
+      // Reset flags for this interaction
+      state.holdTriggered = false;
+      state.pendingHoldAction = false;
+      state.activePointerId = ev.pointerId;
+
+      // Detect touch devices
+      const isTouch = ev.pointerType === 'touch';
+
+      // Create visual ripple and track it
+      const ripple = createRippleEffect(ev, rippleContainer);
+      activeRipples.push(ripple);
+
+      // Set up hold timer with proper state access
+      if (config.hold_action && config.hold_action.action !== 'none') {
+        // Clear existing timer
+        if (state.holdTimer !== null) {
+          clearTimeout(state.holdTimer);
+          state.holdTimer = null;
+        }
+
+        // Create new timer that only marks state
+        state.holdTimer = window.setTimeout(() => {
+          if (state.activePointerId === ev.pointerId) {
+            Logger.debug(`Hold threshold reached for ${instanceId}`, { state });
+
+            // Mark pending hold action - NOT executing it yet
+            state.holdTriggered = true;
+            state.pendingHoldAction = true;
+
+            // Create hold indicator
+            state.holdIndicator = createHoldIndicator(ev);
+
+            // Optional haptic feedback for touch devices
+            if (isTouch && window.navigator.vibrate) {
+              try {
+                window.navigator.vibrate(50);
+              } catch (e) {
+                // Ignore vibration errors
+              }
+            }
+          }
+        }, 500);
+      }
+
+      // Movement tracking for this interaction
+      let hasMoved = false;
+      const startX = ev.clientX;
+      const startY = ev.clientY;
+
+      const handlePointerMove = (moveEv: PointerEvent) => {
+        // Skip if not our pointer
+        if (state.activePointerId !== ev.pointerId) return;
+
+        // Calculate movement
+        const dx = moveEv.clientX - startX;
+        const dy = moveEv.clientY - startY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > 10) {
+          hasMoved = true;
+          // Cancel hold timer on movement
+          if (state.holdTimer !== null) {
+            clearTimeout(state.holdTimer);
+            state.holdTimer = null;
+          }
+        }
+      };
+
+      const handlePointerUp = (upEv: PointerEvent) => {
+        // Remove move listener
+        window.removeEventListener('pointermove', handlePointerMove);
+
+        // Skip if not our pointer
+        if (state.activePointerId !== ev.pointerId) return;
+
+        // Clear hold timer
+        if (state.holdTimer !== null) {
+          clearTimeout(state.holdTimer);
+          state.holdTimer = null;
+        }
+
+        // Reset pointer tracking
+        state.activePointerId = null;
+
+        // Execute proper action based on state
+        if (state.pendingHoldAction && !hasMoved) {
+          // Hold action triggers ON RELEASE
+          Logger.debug(`Executing hold action on pointer up for ${instanceId}`, { state });
+          if (config.hold_action && config.hold_action.action !== 'none') {
+            handleAction(config.hold_action, hass, element, entityId, toggleExpanded);
+            state.lastActionTime = Date.now();
+          }
+
+          state.pendingHoldAction = false;
+        } else if (
+          !state.holdTriggered &&
+          !hasMoved &&
+          config.tap_action &&
+          config.tap_action.action !== 'none'
+        ) {
+          // Tap action if no hold or movement
+          Logger.debug(`Executing tap action for ${instanceId}`, { state });
+          handleAction(config.tap_action, hass, element, entityId, toggleExpanded);
+          state.lastActionTime = Date.now();
+        }
+
+        // Clean up hold indicator
+        if (state.holdIndicator && state.holdIndicator.parentNode) {
+          removeHoldIndicator(state.holdIndicator);
+          state.holdIndicator = null;
+        }
+
+        // Reset hold state
+        state.holdTriggered = false;
+        state.pendingHoldAction = false;
+
+        // Fade out ripple after a delay
+        setTimeout(() => {
+          // Safe removal - check if ripple is still in array
+          const index = activeRipples.indexOf(ripple);
+          if (index !== -1) {
+            removeRippleEffect(ripple, 100);
+            activeRipples.splice(index, 1);
+          }
+        }, 100);
+
+        // Remove temporary event listeners
+        window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerCancel);
+      };
+
+      const handlePointerCancel = () => {
+        // Remove move listener
+        window.removeEventListener('pointermove', handlePointerMove);
+
+        // Clear hold timer
+        if (state.holdTimer !== null) {
+          clearTimeout(state.holdTimer);
+          state.holdTimer = null;
+        }
+
+        // Reset tracking state
+        state.activePointerId = null;
+        state.holdTriggered = false;
+        state.pendingHoldAction = false;
+
+        // Clean up hold indicator
+        if (state.holdIndicator && state.holdIndicator.parentNode) {
+          removeHoldIndicator(state.holdIndicator);
+          state.holdIndicator = null;
+        }
+
+        // Remove ripple
+        const index = activeRipples.indexOf(ripple);
+        if (index !== -1) {
+          removeRippleEffect(ripple);
+          activeRipples.splice(index, 1);
+        }
+
+        // Remove event listeners
+        window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerCancel);
+      };
+
+      // Add global listeners
+      window.addEventListener('pointermove', handlePointerMove, { passive: true });
+      window.addEventListener('pointerup', handlePointerUp, { once: true });
+      window.addEventListener('pointercancel', handlePointerCancel, { once: true });
+    };
+  };
+
+  // Create initial handler
+  let currentHandler = createHandlerWithFreshState();
+
+  // Attach handler to element
+  element.addEventListener('pointerdown', currentHandler);
+
+  // Navigation handler with complete state recreation
+  const navigationListener = () => {
+    Logger.info(`Navigation detected for ${instanceId}, rebuilding interaction system`);
+
+    // Use longer delay to ensure DOM is ready
+    setTimeout(() => {
+      if (element.isConnected) {
+        // 1. Remove existing handler
+        element.removeEventListener('pointerdown', currentHandler);
+
+        // 2. Reset all state and clear DOM
+        resetInteractions();
+
+        // 3. Create completely fresh handler
+        currentHandler = createHandlerWithFreshState();
+
+        // 4. Attach new handler
+        element.addEventListener('pointerdown', currentHandler);
+
+        Logger.debug(`Interaction system fully rebuilt after navigation for ${instanceId}`);
+      }
+    }, 250);
+  };
+
+  // Add navigation listener
+  window.addEventListener('location-changed', navigationListener);
+
+  // Return cleanup function
+  return () => {
+    element.removeEventListener('pointerdown', currentHandler);
+    window.removeEventListener('location-changed', navigationListener);
+    resetInteractions();
+    Logger.debug(`Interaction system cleanup complete for ${instanceId}`);
   };
 }

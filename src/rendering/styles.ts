@@ -39,6 +39,7 @@ export function generateCustomProperties(config: Types.Config): string {
       --card-icon-size: ${config.time_location_icon_size};
       --card-date-column-width: ${parseFloat(config.day_font_size) * 1.75}px;
       --card-custom-background: ${config.background_color};
+      --card-accent-color: var(--card-line-color-vertical, var(--primary-color, #03a9f4));
     }
   `;
 }
