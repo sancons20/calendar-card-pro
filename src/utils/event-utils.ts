@@ -322,7 +322,7 @@ export function groupEventsByDay(
 /**
  * Fetch calendar events from Home Assistant API
  *
- * @param hass - Home Assistant interface
+ * @param hass - Home Assistant instance
  * @param entities - Calendar entities to fetch events for
  * @param timeWindow - Time window to fetch events in
  * @returns Array of calendar events
@@ -336,10 +336,15 @@ export async function fetchEvents(
 
   for (const entityConfig of entities) {
     try {
-      const events = await hass.callApi(
-        'GET',
-        `calendars/${entityConfig.entity}?start=${timeWindow.start.toISOString()}&end=${timeWindow.end.toISOString()}`,
-      );
+      // CRITICAL FIX: Use correct API method with proper URL formation
+      // The correct format for calendar API calls
+      const path = `calendars/${entityConfig.entity}?start=${timeWindow.start.toISOString()}&end=${timeWindow.end.toISOString()}`;
+
+      // Log the exact API path for debugging
+      Logger.info(`Fetching calendar events with path: ${path}`);
+
+      // Use callApi method from hass object which handles authentication correctly
+      const events = await hass.callApi('GET', path);
 
       if (!events || !Array.isArray(events)) {
         Logger.warn(`Invalid response for ${entityConfig.entity}`);
@@ -357,7 +362,18 @@ export async function fetchEvents(
       );
       allEvents.push(...processedEvents);
     } catch (error) {
+      // Enhanced error logging
       Logger.error(`Failed to fetch events for ${entityConfig.entity}:`, error);
+
+      // Also try to log the hass object structure (safely) to see what's available
+      try {
+        Logger.info(
+          'Available hass API methods:',
+          Object.keys(hass).filter((k) => typeof hass[k as keyof Types.Hass] === 'function'),
+        );
+      } catch (e) {
+        // Silent
+      }
     }
   }
 

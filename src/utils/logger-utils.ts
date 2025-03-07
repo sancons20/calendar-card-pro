@@ -194,6 +194,29 @@ export function isDebugEnabled(): boolean {
 }
 
 /**
+ * Check if diagnostics mode is enabled
+ * @returns {boolean} True if diagnostics mode is enabled
+ */
+export function isDiagnosticsEnabled(): boolean {
+  return localStorage.getItem('calendar-card-diagnostics') === 'true';
+}
+
+if (isDiagnosticsEnabled()) {
+  interactionStyles.textContent += `
+    /* Diagnostic outlines for layer visualization */
+    .card-container::before {
+      outline: 2px solid blue !important;
+    }
+    .card-container::after {
+      outline: 2px solid red !important;
+    }
+    .card-content {
+      outline: 2px solid green !important;
+    }
+  `;
+}
+
+/**
  * Custom error class for Calendar Card Pro
  * Imported from error-utils.ts
  */

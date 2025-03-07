@@ -427,7 +427,7 @@ function safeCleanupVisualEffects(state: Types.InteractionState): void {
  */
 function handleHoldActionStart(
   ev: PointerEvent,
-  config: Types.InteractionConfig,
+  _config: Types.InteractionConfig,
   state: Types.InteractionState,
 ): void {
   // Already triggered or moved - don't trigger again

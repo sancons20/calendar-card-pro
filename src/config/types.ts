@@ -154,8 +154,13 @@ export interface ActionConfig {
  */
 export interface Hass {
   states: Record<string, { state: string }>;
-  callApi: (method: string, path: string) => Promise<unknown>;
+  // Fix API call method signature to match what Home Assistant actually provides
+  callApi: (method: string, path: string, parameters?: object) => Promise<unknown>;
   callService: (domain: string, service: string, serviceData?: object) => void;
+  // Add connection property that may be needed
+  connection?: {
+    subscribeEvents: (callback: (event: any) => void, eventType: string) => Promise<() => void>;
+  };
 }
 
 // -----------------------------------------------------------------------------
