@@ -262,18 +262,19 @@ export function createInteractionStyles(): HTMLStyleElement {
       background-color: transparent !important;
     }
 
-    /* Individual ripple - REFINED ANIMATION */
+    /* Individual ripple - EXACT HA TILE CARD ANIMATION */
     .card-ripple {
       position: absolute;
       border-radius: 50%;
       background-color: var(--card-accent-color);
       opacity: 0;
-      transform: translate(-50%, -50%) scale(0);
+      transform: translate(-50%, -50%) scale(0.1);
       pointer-events: none;
       will-change: transform, opacity;
-      transition: opacity 300ms linear, transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform 550ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms linear;
       backface-visibility: hidden; /* Prevent flickering */
       perspective: 1000px; /* Additional performance boost */
+      z-index: 5 !important; /* Ensure above all content */
     }
 
     /* Hold indicator - UPDATED TO MATCH HA TILE CARD EXACTLY */
@@ -500,8 +501,8 @@ export function createRippleEffect(event: PointerEvent, rippleContainer: HTMLEle
   const ripple = document.createElement('div');
   ripple.className = 'card-ripple';
 
-  // No need to set background-color here as it's defined in the CSS
-  // The element will inherit the background-color from the class
+  // ADDED: Set fixed z-index to ensure ripple is above all content
+  ripple.style.zIndex = '5';
 
   // Position and size the ripple
   ripple.style.width = `${size}px`;
@@ -517,14 +518,23 @@ export function createRippleEffect(event: PointerEvent, rippleContainer: HTMLEle
   rippleContainer.appendChild(ripple);
 
   // Force a reflow before animation starts to ensure smooth transition
-  // This prevents the browser from batching the creation and animation
   ripple.offsetWidth; // eslint-disable-line no-unused-expressions
 
-  // Use requestAnimationFrame for smoother animation start
+  // FIXED: Exact HA ripple implementation from source code
   requestAnimationFrame(() => {
-    // Trigger animation with exact specs from HA Tile Card
-    ripple.style.opacity = '0.12'; // Confirmed exact opacity per HA specs
+    // Set initial state for more pronounced wave effect - this is critical
+    ripple.style.transform = 'translate(-50%, -50%) scale(0.1)';
+    ripple.style.opacity = '0';
+
+    // Force layout calculation before animation
+    ripple.offsetWidth; // eslint-disable-line no-unused-expressions
+
+    // Apply the precise HA animation parameters
+    ripple.style.transition = 'transform 550ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms linear';
     ripple.style.transform = 'translate(-50%, -50%) scale(1)';
+
+    // Immediate start to opacity for better wave visibility
+    ripple.style.opacity = '0.15';
   });
 
   return ripple;
@@ -542,14 +552,14 @@ export function removeRippleEffect(ripple: HTMLElement, delay = 0): void {
   // If delay specified, wait before starting fade-out
   setTimeout(() => {
     // Start fade-out animation
-    ripple.style.opacity = '0'; // This maintains the 300ms linear transition from CSS
+    ripple.style.opacity = '0';
 
-    // Remove from DOM after animation completes (300ms per specs)
+    // Remove from DOM after animation completes (using the longer of the two durations)
     setTimeout(() => {
       if (ripple.parentNode) {
         ripple.parentNode.removeChild(ripple);
       }
-    }, 300); // Exact match to transition duration
+    }, 550); // Match the exact transform duration from HA implementation
   }, delay);
 }
 
