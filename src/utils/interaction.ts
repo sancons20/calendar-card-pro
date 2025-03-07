@@ -641,18 +641,21 @@ export function removeHoldIndicator(indicator: HTMLElement): void {
  * Interface for interaction state
  * Ensures consistent state management across interaction lifecycle
  */
-interface InteractionState {
-  instanceId: string; // Add unique instance identifier
+export interface InteractionState {
   holdTimer: number | null;
   holdTriggered: boolean;
-  holdIndicator: HTMLElement | null; // Added to track hold indicator
+  holdIndicator: HTMLElement | null;
   activePointerId: number | null;
   lastActionTime: number;
-  pendingHoldAction: boolean; // Added to track hold action state
+  pendingHoldAction: boolean;
+  lastPointerEvent: PointerEvent | null;
 }
 
+// Since setupComponentIntegratedInteractions is our preferred implementation,
+// we can deprecate the other setupInteractions function
 /**
- * Set up complete interactions for a card element
+ * @deprecated Use setupComponentIntegratedInteractions instead
+ * This will be removed in a future version
  */
 export function setupInteractions(
   element: HTMLElement,
@@ -661,288 +664,252 @@ export function setupInteractions(
   entityId: string,
   toggleExpanded: () => void,
 ): () => void {
-  // Generate a unique instance ID for this specific setup
-  const instanceId = `interaction_${Math.random().toString(36).substr(2, 9)}`;
-  Logger.debug(`Creating interaction setup with ID: ${instanceId}`);
+  Logger.warn(
+    'setupInteractions() is deprecated, use setupComponentIntegratedInteractions() instead',
+  );
 
-  // Early return if no actions configured
-  if (
-    (!config.tap_action || config.tap_action.action === 'none') &&
-    (!config.hold_action || config.hold_action.action === 'none')
-  ) {
-    return () => {}; // Return no-op cleanup function
-  }
-
-  // Find or create required DOM elements
-  const rippleContainer = element.querySelector('.card-ripple-container') as HTMLElement;
-
-  if (!rippleContainer) {
-    Logger.warn('Cannot set up interactions - missing ripple container');
-    return () => {};
-  }
-
-  // Track all ripples created for proper cleanup
-  let activeRipples: HTMLElement[] = [];
-
-  // Function to completely clear the ripple container
-  const clearRippleContainer = () => {
-    if (rippleContainer) {
-      // Remove all children from ripple container
-      while (rippleContainer.firstChild) {
-        rippleContainer.removeChild(rippleContainer.firstChild);
-      }
-      activeRipples = [];
-    }
-  };
-
-  // Factory function to create a fresh state object
-  const createFreshState = (): InteractionState => ({
-    instanceId,
+  // Create a temporary state object and delegate to the preferred implementation
+  const tempState: InteractionState = {
     holdTimer: null,
     holdTriggered: false,
     holdIndicator: null,
     activePointerId: null,
     lastActionTime: 0,
     pendingHoldAction: false,
-  });
-
-  // Create initial state
-  let state = createFreshState();
-
-  // Function to completely reset interaction system
-  const resetInteractions = () => {
-    // Clean up existing state
-    if (state.holdTimer !== null) {
-      clearTimeout(state.holdTimer);
-      state.holdTimer = null;
-    }
-
-    if (state.holdIndicator && state.holdIndicator.parentNode) {
-      state.holdIndicator.parentNode.removeChild(state.holdIndicator);
-      state.holdIndicator = null;
-    }
-
-    // Clean up all ripples
-    clearRippleContainer();
-
-    // Create completely new state object (not just reset properties)
-    state = createFreshState();
-
-    Logger.debug(`Interaction state fully reset for ${instanceId}`);
+    lastPointerEvent: null,
   };
 
-  // Create pointer down handler with enclosed fresh state
-  const createHandlerWithFreshState = () => {
-    return function pointerDownHandler(ev: PointerEvent) {
-      // Reset flags for this interaction
-      state.holdTriggered = false;
-      state.pendingHoldAction = false;
-      state.activePointerId = ev.pointerId;
+  return setupComponentIntegratedInteractions(
+    element,
+    config,
+    hass,
+    entityId,
+    toggleExpanded,
+    tempState,
+  );
+}
 
-      // Detect touch devices
-      const isTouch = ev.pointerType === 'touch';
+/**
+ * Setup interactions with component-managed state
+ * This version uses the component's state object directly for better lifecycle integration
+ */
+export function setupComponentIntegratedInteractions(
+  element: HTMLElement,
+  config: Types.Config,
+  hass: Types.Hass | null,
+  entityId: string,
+  toggleExpanded: () => void,
+  componentState: InteractionState, // Note: state is passed directly from component
+): () => void {
+  Logger.debug('Setting up component-integrated interactions');
 
-      // Create visual ripple and track it
-      const ripple = createRippleEffect(ev, rippleContainer);
-      activeRipples.push(ripple);
+  // Find ripple container - critical for operation
+  const rippleContainer = element.querySelector('.card-ripple-container') as HTMLElement;
+  if (!rippleContainer) {
+    Logger.warn('Cannot set up interactions - missing ripple container');
+    return () => {};
+  }
 
-      // Set up hold timer with proper state access
-      if (config.hold_action && config.hold_action.action !== 'none') {
-        // Clear existing timer
-        if (state.holdTimer !== null) {
-          clearTimeout(state.holdTimer);
-          state.holdTimer = null;
-        }
+  // Clean up any existing timers in component state
+  if (componentState.holdTimer !== null) {
+    clearTimeout(componentState.holdTimer);
+    componentState.holdTimer = null;
+  }
 
-        // Create new timer that only marks state
-        state.holdTimer = window.setTimeout(() => {
-          if (state.activePointerId === ev.pointerId) {
-            Logger.debug(`Hold threshold reached for ${instanceId}`, { state });
+  // Track active ripples for proper cleanup
+  let activeRipples: HTMLElement[] = [];
 
-            // Mark pending hold action - NOT executing it yet
-            state.holdTriggered = true;
-            state.pendingHoldAction = true;
+  // Reset component state for this interaction setup
+  componentState.holdTriggered = false;
+  componentState.pendingHoldAction = false;
+  componentState.activePointerId = null;
 
-            // Create hold indicator
-            state.holdIndicator = createHoldIndicator(ev);
+  // Create pointer down handler that works with component's state
+  const handlePointerDown = (ev: PointerEvent) => {
+    // Store pointer ID in component state
+    componentState.activePointerId = ev.pointerId;
+    componentState.holdTriggered = false;
+    componentState.pendingHoldAction = false;
 
-            // Optional haptic feedback for touch devices
-            if (isTouch && window.navigator.vibrate) {
-              try {
-                window.navigator.vibrate(50);
-              } catch (e) {
-                // Ignore vibration errors
-              }
-            }
-          }
-        }, 500);
+    // Create visual ripple effect in ripple container
+    const ripple = createRippleEffect(ev, rippleContainer);
+    activeRipples.push(ripple);
+
+    // Set up hold timer using component state
+    if (config.hold_action && config.hold_action.action !== 'none') {
+      // Clear any existing timer
+      if (componentState.holdTimer !== null) {
+        clearTimeout(componentState.holdTimer);
       }
 
-      // Movement tracking for this interaction
-      let hasMoved = false;
-      const startX = ev.clientX;
-      const startY = ev.clientY;
+      // Set up new timer in component state
+      componentState.holdTimer = window.setTimeout(() => {
+        if (componentState.activePointerId === ev.pointerId) {
+          Logger.debug('Hold threshold reached');
 
-      const handlePointerMove = (moveEv: PointerEvent) => {
-        // Skip if not our pointer
-        if (state.activePointerId !== ev.pointerId) return;
+          // Mark hold triggered in component state but DON'T execute yet
+          componentState.holdTriggered = true;
+          componentState.pendingHoldAction = true;
 
-        // Calculate movement
-        const dx = moveEv.clientX - startX;
-        const dy = moveEv.clientY - startY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance > 10) {
-          hasMoved = true;
-          // Cancel hold timer on movement
-          if (state.holdTimer !== null) {
-            clearTimeout(state.holdTimer);
-            state.holdTimer = null;
-          }
+          // Create hold indicator
+          componentState.holdIndicator = createHoldIndicator(ev);
         }
-      };
+      }, 500);
+    }
 
-      const handlePointerUp = (upEv: PointerEvent) => {
-        // Remove move listener
-        window.removeEventListener('pointermove', handlePointerMove);
+    // Set up movement tracking
+    let hasMoved = false;
+    const startX = ev.clientX;
+    const startY = ev.clientY;
 
-        // Skip if not our pointer
-        if (state.activePointerId !== ev.pointerId) return;
+    // Pointer move handler to detect significant movement
+    const handlePointerMove = (moveEv: PointerEvent) => {
+      // Only track for this pointer
+      if (componentState.activePointerId !== ev.pointerId) return;
 
-        // Clear hold timer
-        if (state.holdTimer !== null) {
-          clearTimeout(state.holdTimer);
-          state.holdTimer = null;
+      // Calculate movement distance
+      const dx = moveEv.clientX - startX;
+      const dy = moveEv.clientY - startY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      // If moved more than threshold, cancel hold
+      if (distance > 10) {
+        hasMoved = true;
+        // Cancel hold timer
+        if (componentState.holdTimer !== null) {
+          clearTimeout(componentState.holdTimer);
+          componentState.holdTimer = null;
+        }
+        componentState.pendingHoldAction = false;
+      }
+    };
+
+    // Pointer up handler - CRITICAL for proper action execution
+    const handlePointerUp = (_upEv: PointerEvent) => {
+      // Use underscore to mark as intentionally unused
+      // Clean up move listener
+      window.removeEventListener('pointermove', handlePointerMove);
+
+      // Only process if this is our tracked pointer
+      if (componentState.activePointerId !== ev.pointerId) return;
+
+      // Clear hold timer
+      if (componentState.holdTimer !== null) {
+        clearTimeout(componentState.holdTimer);
+        componentState.holdTimer = null;
+      }
+
+      // Reset active pointer tracking
+      componentState.activePointerId = null;
+
+      // Execute proper action based on component state
+      if (componentState.pendingHoldAction && !hasMoved) {
+        // Execute hold action ONLY on pointer up
+        Logger.debug('Executing hold action on pointer up');
+
+        if (config.hold_action && config.hold_action.action !== 'none') {
+          handleAction(config.hold_action, hass, element, entityId, toggleExpanded);
+          componentState.lastActionTime = Date.now();
         }
 
-        // Reset pointer tracking
-        state.activePointerId = null;
-
-        // Execute proper action based on state
-        if (state.pendingHoldAction && !hasMoved) {
-          // Hold action triggers ON RELEASE
-          Logger.debug(`Executing hold action on pointer up for ${instanceId}`, { state });
-          if (config.hold_action && config.hold_action.action !== 'none') {
-            handleAction(config.hold_action, hass, element, entityId, toggleExpanded);
-            state.lastActionTime = Date.now();
-          }
-
-          state.pendingHoldAction = false;
-        } else if (
-          !state.holdTriggered &&
-          !hasMoved &&
-          config.tap_action &&
-          config.tap_action.action !== 'none'
-        ) {
-          // Tap action if no hold or movement
-          Logger.debug(`Executing tap action for ${instanceId}`, { state });
+        componentState.pendingHoldAction = false;
+      }
+      // Only execute tap if hold not triggered and no significant movement
+      else if (!componentState.holdTriggered && !hasMoved) {
+        if (config.tap_action && config.tap_action.action !== 'none') {
+          Logger.debug('Executing tap action');
           handleAction(config.tap_action, hass, element, entityId, toggleExpanded);
-          state.lastActionTime = Date.now();
+          componentState.lastActionTime = Date.now();
         }
+      }
 
-        // Clean up hold indicator
-        if (state.holdIndicator && state.holdIndicator.parentNode) {
-          removeHoldIndicator(state.holdIndicator);
-          state.holdIndicator = null;
-        }
+      // Remove hold indicator if it exists
+      if (componentState.holdIndicator) {
+        removeHoldIndicator(componentState.holdIndicator);
+        componentState.holdIndicator = null;
+      }
 
-        // Reset hold state
-        state.holdTriggered = false;
-        state.pendingHoldAction = false;
+      // Reset hold state
+      componentState.holdTriggered = false;
+      componentState.pendingHoldAction = false;
 
-        // Fade out ripple after a delay
-        setTimeout(() => {
-          // Safe removal - check if ripple is still in array
-          const index = activeRipples.indexOf(ripple);
-          if (index !== -1) {
-            removeRippleEffect(ripple, 100);
-            activeRipples.splice(index, 1);
-          }
-        }, 100);
-
-        // Remove temporary event listeners
-        window.removeEventListener('pointerup', handlePointerUp);
-        window.removeEventListener('pointercancel', handlePointerCancel);
-      };
-
-      const handlePointerCancel = () => {
-        // Remove move listener
-        window.removeEventListener('pointermove', handlePointerMove);
-
-        // Clear hold timer
-        if (state.holdTimer !== null) {
-          clearTimeout(state.holdTimer);
-          state.holdTimer = null;
-        }
-
-        // Reset tracking state
-        state.activePointerId = null;
-        state.holdTriggered = false;
-        state.pendingHoldAction = false;
-
-        // Clean up hold indicator
-        if (state.holdIndicator && state.holdIndicator.parentNode) {
-          removeHoldIndicator(state.holdIndicator);
-          state.holdIndicator = null;
-        }
-
-        // Remove ripple
+      // Fade out ripple
+      setTimeout(() => {
         const index = activeRipples.indexOf(ripple);
         if (index !== -1) {
           removeRippleEffect(ripple);
           activeRipples.splice(index, 1);
         }
+      }, 100);
 
-        // Remove event listeners
-        window.removeEventListener('pointerup', handlePointerUp);
-        window.removeEventListener('pointercancel', handlePointerCancel);
-      };
-
-      // Add global listeners
-      window.addEventListener('pointermove', handlePointerMove, { passive: true });
-      window.addEventListener('pointerup', handlePointerUp, { once: true });
-      window.addEventListener('pointercancel', handlePointerCancel, { once: true });
+      // Remove global listeners
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerCancel);
     };
-  };
 
-  // Create initial handler
-  let currentHandler = createHandlerWithFreshState();
+    // Define handlePointerCancel function that was missing
+    const handlePointerCancel = () => {
+      // Clean up move listener
+      window.removeEventListener('pointermove', handlePointerMove);
 
-  // Attach handler to element
-  element.addEventListener('pointerdown', currentHandler);
-
-  // Navigation handler with complete state recreation
-  const navigationListener = () => {
-    Logger.info(`Navigation detected for ${instanceId}, rebuilding interaction system`);
-
-    // Use longer delay to ensure DOM is ready
-    setTimeout(() => {
-      if (element.isConnected) {
-        // 1. Remove existing handler
-        element.removeEventListener('pointerdown', currentHandler);
-
-        // 2. Reset all state and clear DOM
-        resetInteractions();
-
-        // 3. Create completely fresh handler
-        currentHandler = createHandlerWithFreshState();
-
-        // 4. Attach new handler
-        element.addEventListener('pointerdown', currentHandler);
-
-        Logger.debug(`Interaction system fully rebuilt after navigation for ${instanceId}`);
+      // Clear hold timer
+      if (componentState.holdTimer !== null) {
+        clearTimeout(componentState.holdTimer);
+        componentState.holdTimer = null;
       }
-    }, 250);
+
+      // Reset tracking state
+      componentState.activePointerId = null;
+      componentState.holdTriggered = false;
+      componentState.pendingHoldAction = false;
+
+      // Clean up hold indicator if it exists
+      if (componentState.holdIndicator && componentState.holdIndicator.parentNode) {
+        removeHoldIndicator(componentState.holdIndicator);
+        componentState.holdIndicator = null;
+      }
+
+      // Remove ripple effect immediately
+      const index = activeRipples.indexOf(ripple);
+      if (index !== -1) {
+        removeRippleEffect(ripple);
+        activeRipples.splice(index, 1);
+      }
+
+      // Remove temporary global event listeners
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerCancel);
+    };
+
+    // Add global event listeners with appropriate options
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    window.addEventListener('pointerup', handlePointerUp, { once: true });
+    window.addEventListener('pointercancel', handlePointerCancel, { once: true });
   };
 
-  // Add navigation listener
-  window.addEventListener('location-changed', navigationListener);
+  // Add event listener to the element
+  element.addEventListener('pointerdown', handlePointerDown);
+
+  // No need for navigation listener - we're now integrated with component lifecycle
 
   // Return cleanup function
   return () => {
-    element.removeEventListener('pointerdown', currentHandler);
-    window.removeEventListener('location-changed', navigationListener);
-    resetInteractions();
-    Logger.debug(`Interaction system cleanup complete for ${instanceId}`);
+    element.removeEventListener('pointerdown', handlePointerDown);
+
+    // Clean up any active ripples
+    activeRipples.forEach((ripple) => {
+      if (ripple && ripple.parentNode) {
+        ripple.parentNode.removeChild(ripple);
+      }
+    });
+    activeRipples = [];
+
+    // Clean up hold indicator if needed
+    if (componentState.holdIndicator && componentState.holdIndicator.parentNode) {
+      componentState.holdIndicator.parentNode.removeChild(componentState.holdIndicator);
+      componentState.holdIndicator = null;
+    }
+
+    Logger.debug('Component-integrated interaction cleanup complete');
   };
 }

@@ -74,17 +74,6 @@ class CalendarCardPro extends HTMLElement {
   private config!: Types.Config;
   private events: Types.CalendarEventData[] = [];
   private _hass: Types.Hass | null = null;
-  private touchState: {
-    touchStartY: number;
-    touchStartX: number;
-    holdTimer: number | null;
-    holdTriggered: boolean;
-  } = {
-    touchStartY: 0,
-    touchStartX: 0,
-    holdTimer: null,
-    holdTriggered: false,
-  };
   private isLoading = true;
   private isExpanded = false;
   private performanceMetrics: Types.PerformanceData = {
@@ -108,6 +97,23 @@ class CalendarCardPro extends HTMLElement {
     stop: () => void;
   };
   private eventListenerCleanup: (() => void) | null = null;
+  private interactionManager: {
+    state: Interaction.InteractionState;
+    container: HTMLElement | null;
+    cleanup: (() => void) | null;
+  } = {
+    state: {
+      holdTimer: null,
+      holdTriggered: false,
+      holdIndicator: null,
+      activePointerId: null,
+      pendingHoldAction: false,
+      lastActionTime: 0,
+      lastPointerEvent: null,
+    },
+    container: null,
+    cleanup: null,
+  };
 
   /******************************************************************************
    * STATIC CONFIGURATION
@@ -214,6 +220,21 @@ class CalendarCardPro extends HTMLElement {
       this.eventListenerCleanup();
       this.eventListenerCleanup = null;
     }
+
+    // Clean up interaction manager
+    if (this.interactionManager.cleanup) {
+      this.interactionManager.cleanup();
+      this.interactionManager.cleanup = null;
+    }
+
+    // Reset sensitive state but maintain reference
+    if (this.interactionManager.state.holdTimer) {
+      clearTimeout(this.interactionManager.state.holdTimer);
+      this.interactionManager.state.holdTimer = null;
+    }
+    this.interactionManager.state.holdTriggered = false;
+    this.interactionManager.state.pendingHoldAction = false;
+    this.interactionManager.state.activePointerId = null;
   }
 
   /******************************************************************************
@@ -233,7 +254,6 @@ class CalendarCardPro extends HTMLElement {
     this.config = initialState.config;
     this.events = initialState.events;
     this._hass = initialState.hass;
-    this.touchState = initialState.touchState;
     this.isLoading = initialState.isLoading;
     this.isExpanded = initialState.isExpanded;
   }
@@ -295,7 +315,7 @@ class CalendarCardPro extends HTMLElement {
       this.config.show_past_events,
     );
 
-    // Check if data-affecting configuration has changed
+    // Check if data-affect configuration has changed
     const configChanged = Config.hasConfigChanged(previousConfig, this.config);
 
     if (configChanged) {
@@ -513,22 +533,26 @@ class CalendarCardPro extends HTMLElement {
       this.shadowRoot?.appendChild(style); // Original styles
       this.shadowRoot?.appendChild(layeredContainer);
 
-      // Clean up previous listeners
-      if (this.eventListenerCleanup) {
-        this.eventListenerCleanup();
-        this.eventListenerCleanup = null;
+      // Clean up previous interaction listeners
+      if (this.interactionManager.cleanup) {
+        this.interactionManager.cleanup();
+        this.interactionManager.cleanup = null;
       }
 
       // Get primary entity ID for interactions
       const entityId = Interaction.getPrimaryEntityId(this.config.entities);
 
-      // UPDATED: Use the complete interaction system
-      this.eventListenerCleanup = Interaction.setupInteractions(
+      // Store reference to container
+      this.interactionManager.container = layeredContainer;
+
+      // Setup interactions with component-managed state and container reference
+      this.interactionManager.cleanup = Interaction.setupComponentIntegratedInteractions(
         layeredContainer,
         this.config,
         this._hass,
         entityId,
         () => this.toggleExpanded(),
+        this.interactionManager.state, // Pass component's state object
       );
     } catch (error) {
       Logger.error('Render error:', error);
@@ -539,152 +563,26 @@ class CalendarCardPro extends HTMLElement {
   }
 
   /**
-   * Set up interaction handlers for the card using CSS custom properties
-   * @param container - The container element to attach interactions to
-   */
-  private _setupCardInteractions(container: HTMLElement) {
-    // Create direct interaction handler using CSS custom properties approach
-    this._handlePointerDown = (ev: PointerEvent) => {
-      // Create ripple effect using CSS custom properties
-      this._createRippleEffectWithCustomProps(ev, container);
-
-      // Set up timer for hold action if configured
-      if (this.config.hold_action && this.config.hold_action.action !== 'none') {
-        if (this.touchState.holdTimer !== null) {
-          clearTimeout(this.touchState.holdTimer);
-        }
-
-        this.touchState.holdTriggered = false;
-        this.touchState.holdTimer = window.setTimeout(() => {
-          this.touchState.holdTriggered = true;
-          this.handleAction(this.config.hold_action);
-        }, 500);
-      }
-
-      // Set up pointer up and cancel handlers
-      const handlePointerUp = (_upEv: PointerEvent) => {
-        // Clear hold timer
-        if (this.touchState.holdTimer !== null) {
-          clearTimeout(this.touchState.holdTimer);
-          this.touchState.holdTimer = null;
-        }
-
-        // Only trigger tap action if hold wasn't triggered
-        if (!this.touchState.holdTriggered && this.config.tap_action) {
-          this.handleAction(this.config.tap_action);
-        }
-
-        // Reset state
-        this.touchState.holdTriggered = false;
-
-        // Reset ripple effect after a short delay
-        setTimeout(() => {
-          this._resetRippleEffect(container);
-        }, 300);
-
-        // Remove temporary listeners
-        window.removeEventListener('pointerup', handlePointerUp);
-        window.removeEventListener('pointercancel', handlePointerCancel);
-      };
-
-      const handlePointerCancel = () => {
-        // Clear hold timer
-        if (this.touchState.holdTimer !== null) {
-          clearTimeout(this.touchState.holdTimer);
-          this.touchState.holdTimer = null;
-        }
-
-        // Reset state
-        this.touchState.holdTriggered = false;
-
-        // Reset ripple immediately
-        this._resetRippleEffect(container);
-
-        // Remove temporary listeners
-        window.removeEventListener('pointerup', handlePointerUp);
-        window.removeEventListener('pointercancel', handlePointerCancel);
-      };
-
-      // Add temporary global listeners to catch events outside element
-      window.addEventListener('pointerup', handlePointerUp, { once: true });
-      window.addEventListener('pointercancel', handlePointerCancel, { once: true });
-    };
-
-    // Attach the pointer down handler
-    container.addEventListener('pointerdown', this._handlePointerDown);
-
-    // Initialize ripple-related custom properties
-    this._resetRippleEffect(container);
-  }
-
-  /**
-   * Handle pointer down events and create ripple effect
-   */
-  private _handlePointerDown: (ev: PointerEvent) => void = () => {};
-
-  /**
-   * Create ripple effect using CSS custom properties with higher contrast
-   */
-  private _createRippleEffectWithCustomProps(ev: PointerEvent, container: HTMLElement) {
-    Logger.info('Creating ripple effect with CSS vars', {
-      x: ev.clientX,
-      y: ev.clientY,
-      element: container.tagName,
-    });
-
-    // Get element dimensions
-    const rect = container.getBoundingClientRect();
-
-    // Calculate position relative to container
-    const x = ev.clientX - rect.left;
-    const y = ev.clientY - rect.top;
-
-    // Calculate ripple size to cover container
-    const size = Math.max(rect.width, rect.height) * 2.5;
-
-    // Use darker ripple color for visibility against both light and dark backgrounds
-    container.style.setProperty('--ripple-color', 'var(--primary-text-color, rgba(0,0,0,0.87))');
-
-    // Set the CSS custom properties directly on the container
-    container.style.setProperty('--ripple-x', `${x}px`);
-    container.style.setProperty('--ripple-y', `${y}px`);
-    container.style.setProperty('--ripple-size', `${size}px`);
-
-    // Force reflow to ensure animation works
-    container.offsetWidth;
-
-    // Start animation with higher opacity for better visibility
-    requestAnimationFrame(() => {
-      // Higher opacity (0.35 instead of 0.2) for better visibility on solid backgrounds
-      container.style.setProperty('--ripple-opacity', '0.35');
-      container.style.setProperty('--ripple-scale', '1');
-      Logger.info('Ripple animation properties set with enhanced visibility');
-    });
-  }
-
-  /**
-   * Reset ripple effect by zeroing out the CSS custom properties
-   */
-  private _resetRippleEffect(container: HTMLElement) {
-    container.style.setProperty('--ripple-opacity', '0');
-    container.style.setProperty('--ripple-scale', '0');
-  }
-
-  /**
    * Add navigation detection to connected callback
    */
   connectedCallback() {
-    // ...existing code...
+    // If we have a container reference but no cleanup function,
+    // reconnect the interactions (this happens during navigation)
+    if (this.interactionManager.container && !this.interactionManager.cleanup) {
+      const entityId = Interaction.getPrimaryEntityId(this.config.entities);
 
-    // If we have saved interaction state, restore it
-    if (this.shadowRoot) {
-      const container = this.shadowRoot.querySelector('.card-container');
-      if (container instanceof HTMLElement) {
-        this._setupCardInteractions(container);
-      }
+      // Re-establish interactions with the same state object
+      this.interactionManager.cleanup = Interaction.setupComponentIntegratedInteractions(
+        this.interactionManager.container,
+        this.config,
+        this._hass,
+        entityId,
+        () => this.toggleExpanded(),
+        this.interactionManager.state,
+      );
+
+      Logger.debug('Restored interaction handlers in connectedCallback');
     }
-
-    // ...existing code...
   }
 
   /**
@@ -764,109 +662,6 @@ class CalendarCardPro extends HTMLElement {
 
   private handleError(error: unknown): void {
     Logger.logError(error);
-  }
-
-  /**
-   * Set up ripple effects using our interaction module
-   */
-  private setupRippleEffects(container?: HTMLElement, rippleContainer?: HTMLElement) {
-    // Find elements if not provided
-    if (!container || !rippleContainer) {
-      container = this.shadowRoot?.querySelector('.card-container') as HTMLElement;
-      rippleContainer = this.shadowRoot?.querySelector('.card-ripple-container') as HTMLElement;
-      if (!container || !rippleContainer) return;
-    }
-
-    // Use the new interaction module to set up ripple effects
-    const cleanup = Interaction.setupRippleEffects(container, rippleContainer);
-
-    // Keep track of the cleanup function
-    if (this.eventListenerCleanup) {
-      this.eventListenerCleanup();
-    }
-
-    // Create new handler for tap/hold actions
-    const actionHandler = (ev: PointerEvent) => {
-      // Set up timer for hold action if configured
-      if (this.config.hold_action && this.config.hold_action.action !== 'none') {
-        if (this.touchState.holdTimer !== null) {
-          clearTimeout(this.touchState.holdTimer);
-        }
-
-        this.touchState.holdTriggered = false;
-        this.touchState.holdTimer = window.setTimeout(() => {
-          this.touchState.holdTriggered = true;
-
-          // Create hold indicator using interaction module
-          const holdIndicator = Interaction.createHoldIndicator(ev);
-
-          // Execute hold action using interaction module
-          this.handleAction(this.config.hold_action);
-
-          // Remove hold indicator after animation
-          setTimeout(() => {
-            Interaction.removeHoldIndicator(holdIndicator);
-          }, 300);
-        }, 500);
-      }
-
-      // Set up pointer up handler
-      const handlePointerUp = (_upEv: PointerEvent) => {
-        // Clear hold timer
-        if (this.touchState.holdTimer !== null) {
-          clearTimeout(this.touchState.holdTimer);
-          this.touchState.holdTimer = null;
-        }
-
-        // Only trigger tap action if hold wasn't triggered
-        if (!this.touchState.holdTriggered && this.config.tap_action) {
-          this.handleAction(this.config.tap_action);
-        }
-
-        // Reset state
-        this.touchState.holdTriggered = false;
-
-        // Remove temporary listeners
-        window.removeEventListener('pointerup', handlePointerUp);
-        window.removeEventListener('pointercancel', handlePointerCancel);
-      };
-
-      const handlePointerCancel = () => {
-        // Clear hold timer
-        if (this.touchState.holdTimer !== null) {
-          clearTimeout(this.touchState.holdTimer);
-          this.touchState.holdTimer = null;
-        }
-
-        // Reset state
-        this.touchState.holdTriggered = false;
-
-        // Remove temporary listeners
-        window.removeEventListener('pointerup', handlePointerUp);
-        window.removeEventListener('pointercancel', handlePointerCancel);
-      };
-
-      // Add temporary global listeners to catch events outside element
-      window.addEventListener('pointerup', handlePointerUp, { once: true });
-      window.addEventListener('pointercancel', handlePointerCancel, { once: true });
-    };
-
-    // Add event listener for action handling
-    container.addEventListener('pointerdown', actionHandler);
-
-    // Return cleanup function that combines all cleanup tasks
-    this.eventListenerCleanup = () => {
-      cleanup(); // Clean up ripple effects
-      container?.removeEventListener('pointerdown', actionHandler);
-      window.removeEventListener('location-changed', navigationListener);
-    };
-
-    // Add handler for navigation changes
-    const navigationListener = () => {
-      Logger.info('Location changed, restoring interactions');
-      setTimeout(() => this.setupRippleEffects(), 100);
-    };
-    window.addEventListener('location-changed', navigationListener);
   }
 }
 

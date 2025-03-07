@@ -5,6 +5,7 @@
  * Handles component state initialization, cleanup, and management.
  */
 
+import * as Config from '../config/config';
 import * as Types from '../config/types';
 import * as EventUtils from './event-utils';
 import * as Logger from './logger-utils';
@@ -17,27 +18,14 @@ import * as Logger from './logger-utils';
 export function initializeState(): {
   config: Types.Config;
   events: Types.CalendarEventData[];
-  hass: null;
-  touchState: {
-    touchStartY: number;
-    touchStartX: number;
-    holdTimer: number | null;
-    holdTriggered: boolean;
-  };
+  hass: Types.Hass | null;
   isLoading: boolean;
   isExpanded: boolean;
 } {
-  // Return a clean initial state object with minimal properties
   return {
-    config: {} as Types.Config,
+    config: { ...Config.DEFAULT_CONFIG },
     events: [],
     hass: null,
-    touchState: {
-      touchStartY: 0,
-      touchStartX: 0,
-      holdTimer: null,
-      holdTriggered: false,
-    },
     isLoading: true,
     isExpanded: false,
   };
