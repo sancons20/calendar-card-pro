@@ -213,7 +213,6 @@ export function createInteractionStyles(): HTMLStyleElement {
   const layeredStyles = document.createElement('style');
   layeredStyles.id = 'calendar-card-interaction-styles';
 
-  // Update style definition with enhanced performance optimizations
   layeredStyles.textContent = `
     /* Base container */
     .card-container {
@@ -277,28 +276,18 @@ export function createInteractionStyles(): HTMLStyleElement {
       perspective: 1000px; /* Additional performance boost */
     }
 
-    /* Hold indicator - ENHANCED ANIMATION */
+    /* Hold indicator - UPDATED TO MATCH HA TILE CARD EXACTLY */
     .card-hold-indicator {
       position: fixed;
-      width: 32px;
-      height: 32px;
       border-radius: 50%;
-      background-color: var(--card-accent-color);
-      opacity: 0;
-      transform: translate(-50%, -50%) scale(0.9); /* Start slightly smaller */
+      background-color: var(--card-accent-color, var(--primary-color, #03a9f4));
+      transform: translate(-50%, -50%) scale(0);
+      transform-origin: center center;
       pointer-events: none;
       will-change: transform, opacity;
-      transition: opacity 150ms ease-in-out, transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
-      z-index: 9999;
+      transition: transform 200ms cubic-bezier(0.2, 0, 0, 1), opacity 200ms cubic-bezier(0.2, 0, 0, 1);
+      z-index: 99999;
       backface-visibility: hidden; /* Prevent flickering */
-    }
-    
-    /* Touch devices - bigger hold indicator */
-    @media (pointer: coarse) {
-      .card-hold-indicator {
-        width: 48px;
-        height: 48px;
-      }
     }
 
     /* Hover effect - REFINED TRANSITION */
@@ -580,37 +569,55 @@ export function createHoldIndicator(event: PointerEvent): HTMLElement {
 
   // Create hold indicator element with correct class
   const indicator = document.createElement('div');
-  indicator.className = 'card-hold-indicator';
+  // DON'T use the class - this prevents any CSS conflicts
+  // indicator.className = 'card-hold-indicator';
 
-  // No need to set background-color here as it's defined in the CSS
-  // The element will inherit the background-color from the class
-
-  // Position the indicator at exact pointer coordinates (viewport-relative)
-  indicator.style.left = `${event.clientX}px`;
-  indicator.style.top = `${event.clientY}px`;
-
-  // Set exact initial state (invisible and slightly smaller)
-  indicator.style.opacity = '0';
-  indicator.style.transform = 'translate(-50%, -50%) scale(0.9)';
-
-  // Size the indicator differently based on device type per HA specs
+  // Determine if this is a touch device for proper sizing
+  // FIXED: Correct Home Assistant Tile Card sizes (v2025.3)
   const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
-  indicator.style.width = isTouchDevice ? '48px' : '32px';
-  indicator.style.height = isTouchDevice ? '48px' : '32px';
+  const size = isTouchDevice ? 96 : 48; // Double the previous sizes for visual matching
 
-  // DEBUGGING: Add data attribute to help identify potential orphaned indicators
-  indicator.dataset.createdAt = Date.now().toString();
+  // Apply ALL styles inline with !important flags to prevent any overrides
+  indicator.style.cssText = `
+    position: fixed !important;
+    width: ${size}px !important; 
+    height: ${size}px !important;
+    left: ${event.clientX}px !important;
+    top: ${event.clientY}px !important;
+    border-radius: 50% !important;
+    background-color: var(--card-accent-color, var(--primary-color, #03a9f4)) !important;
+    opacity: 0 !important;
+    transform: translate(-50%, -50%) scale(0) !important;
+    transform-origin: center center !important;
+    pointer-events: none !important;
+    will-change: transform, opacity !important;
+    transition: transform 200ms cubic-bezier(0.2, 0, 0, 1), opacity 200ms cubic-bezier(0.2, 0, 0, 1) !important;
+    z-index: 999999 !important;
+    backface-visibility: hidden !important;
+  `;
 
-  // Add to document body (not the ripple container)
+  // Log size details for debugging
+  Logger.info(`Creating ${isTouchDevice ? 'touch' : 'mouse'} hold indicator with size: ${size}px`);
+
+  // Add to document body
   document.body.appendChild(indicator);
 
-  // Force a reflow before animation starts to ensure smooth transition
+  // Force a reflow to ensure the initial state is rendered
   indicator.offsetWidth; // eslint-disable-line no-unused-expressions
 
-  // Trigger appear animation with exact specs
+  // Animate to full size with explicit size check after animation
   requestAnimationFrame(() => {
-    indicator.style.opacity = '0.28'; // Confirmed exact opacity from HA specs
-    indicator.style.transform = 'translate(-50%, -50%) scale(1)'; // Scale to full size
+    indicator.style.opacity = '0.28';
+    indicator.style.transform = 'translate(-50%, -50%) scale(1)';
+
+    // Double-check actual rendered size
+    setTimeout(() => {
+      const computedStyle = window.getComputedStyle(indicator);
+      Logger.info('Hold indicator rendered size:', {
+        width: computedStyle.width,
+        height: computedStyle.height,
+      });
+    }, 50);
   });
 
   return indicator;
