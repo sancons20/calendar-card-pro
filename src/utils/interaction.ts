@@ -474,7 +474,7 @@ export function setupRippleEffects(
 
 /**
  * Create and animate a ripple effect at the specified position
- * CORRECTED: Now using exact Home Assistant v2025.3 ripple gradient
+ * Updated to match Home Assistant's edge-slowing behavior
  *
  * @param event - Pointer event that triggered the ripple
  * @param rippleContainer - Container element to add the ripple to
@@ -501,7 +501,7 @@ export function createRippleEffect(event: PointerEvent, rippleContainer: HTMLEle
   const ripple = document.createElement('div');
   ripple.className = 'card-ripple';
 
-  // ADDED: Track animation state and start time for smart removal
+  // Track animation state and start time for smart removal
   ripple.dataset.expansionComplete = 'false';
   ripple.dataset.startTime = Date.now().toString();
 
@@ -511,16 +511,15 @@ export function createRippleEffect(event: PointerEvent, rippleContainer: HTMLEle
     .trim();
   const rgbValues = extractRgbValues(accentColor);
 
-  // Apply inline gradient for ripple if we extracted valid RGB values
+  // Keep the gradient as requested - this better matches the visual appearance
   if (rgbValues) {
     // This is the exact gradient pattern Home Assistant uses in v2025.3
     ripple.style.backgroundImage = `radial-gradient(
       circle at center,
       ${accentColor} 50%, 
       rgba(${rgbValues}, 0.5) 60%,
-      rgba(${rgbValues}, 0.2) 70%,
-      rgba(${rgbValues}, 0.1) 80%,
-      rgba(${rgbValues}, 0) 90%
+      rgba(${rgbValues}, 0.25) 70%,
+      rgba(${rgbValues}, 0) 80%
     )`;
   }
 
@@ -540,7 +539,6 @@ export function createRippleEffect(event: PointerEvent, rippleContainer: HTMLEle
   // Force a reflow before animation starts to ensure smooth transition
   ripple.offsetWidth; // eslint-disable-line no-unused-expressions
 
-  // FIXED: Exact HA ripple implementation from source code
   requestAnimationFrame(() => {
     // Set initial state for more pronounced wave effect - this is critical
     ripple.style.transform = 'translate(-50%, -50%) scale(0.1)';
@@ -549,19 +547,19 @@ export function createRippleEffect(event: PointerEvent, rippleContainer: HTMLEle
     // Force layout calculation before animation
     ripple.offsetWidth; // eslint-disable-line no-unused-expressions
 
-    // Apply the precise HA animation parameters
-    ripple.style.transition = 'transform 550ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms linear';
+    // ENHANCED: Use modified cubic-bezier that slows down more dramatically at the end
+    // The 4th parameter (0.1 instead of 0.2) makes it slow down more at the edges
+    ripple.style.transition = 'transform 400ms cubic-bezier(0.4, 0.7, 1, 1), opacity 200ms linear';
     ripple.style.transform = 'translate(-50%, -50%) scale(1)';
 
     // Immediate start to opacity for better wave visibility
-    ripple.style.opacity = '0.1';
+    ripple.style.opacity = '0.12';
 
-    // ADDED: Set up timer to mark expansion as complete
-    // This timer matches the transform animation duration exactly
+    // Set up timer to mark expansion as complete
     setTimeout(() => {
       ripple.dataset.expansionComplete = 'true';
       Logger.debug('Ripple expansion complete');
-    }, 550);
+    }, 400);
   });
 
   return ripple;
@@ -607,7 +605,7 @@ function extractRgbValues(color: string): string | null {
 
 /**
  * Remove ripple effect with proper animation
- * ADJUSTED: Use a shorter grace period rather than forcing full expansion
+ * Now using a smart inverse grace period that matches HA's behavior
  *
  * @param ripple - Ripple element to remove
  * @param delay - Optional delay before starting fade-out animation (default: 0ms)
@@ -617,21 +615,35 @@ export function removeRippleEffect(ripple: HTMLElement, delay = 0): void {
 
   // If delay specified, wait before starting removal logic
   setTimeout(() => {
-    // ENHANCED: Check if expansion is already complete or in progress
-    if (ripple.dataset.expansionComplete === 'true') {
-      // Expansion already complete, fade out immediately
+    // Check if expansion is already complete
+    const expansionComplete = ripple.dataset.expansionComplete === 'true';
+
+    if (expansionComplete) {
+      // If expansion is complete, fade out immediately (grace period = 0)
       fadeOutRipple(ripple);
     } else {
-      // Expansion not complete - provide a shorter grace period (150ms)
-      // This ensures the ripple has time to become visible and expand partially
-      // without forcing the full 550ms expansion animation
-      const gracePeriod = 150; // Shorter grace period matching HA behavior
+      // Calculate expansion progress
+      const startTime = parseInt(ripple.dataset.startTime || '0', 10);
+      const elapsedTime = Date.now() - startTime;
+      const totalDuration = 400; // The full ripple expansion animation duration
+      const expansionProgress = Math.min(1, elapsedTime / totalDuration);
 
-      Logger.debug('Ripple expansion not complete, using grace period', {
+      // SMART GRACE PERIOD: Longer for early interrupts, shorter as animation progresses
+      // - Early tap release (progress ~0.1): Use maximum grace (~300ms)
+      // - Middle interruption (progress ~0.5): Use medium grace (~150ms)
+      // - Late interruption (progress ~0.9): Use minimum grace (~30ms)
+      const MAX_GRACE = 300;
+      const MIN_GRACE = 30;
+
+      // Calculate inverse grace period - as progress increases, grace decreases
+      const gracePeriod = Math.round(MAX_GRACE * (1 - expansionProgress) + MIN_GRACE);
+
+      Logger.debug('Using dynamic grace period', {
+        expansionProgress,
         gracePeriod,
       });
 
-      // Wait for grace period before fading out
+      // Wait for calculated grace period before fading out
       setTimeout(() => fadeOutRipple(ripple), gracePeriod);
     }
   }, delay);
@@ -639,20 +651,50 @@ export function removeRippleEffect(ripple: HTMLElement, delay = 0): void {
 
 /**
  * Helper function to handle the fade-out and removal of ripple element
- *
- * @param ripple - Ripple element to fade out and remove
+ * Updated with faster initial fade for a more responsive feel
  */
 function fadeOutRipple(ripple: HTMLElement): void {
-  // Start fade-out animation
-  ripple.style.opacity = '0';
+  // Check if the ripple expansion was complete
+  const expansionComplete = ripple.dataset.expansionComplete === 'true';
+  const startTime = parseInt(ripple.dataset.startTime || '0', 10);
+  const elapsedTime = Date.now() - startTime;
+  const expansionProgress = Math.min(1, elapsedTime / 400); // 400ms is the expansion duration
 
-  // Remove from DOM after animation completes
-  // Use the longer of the two animations (transform) to ensure smooth transition
-  setTimeout(() => {
-    if (ripple.parentNode) {
-      ripple.parentNode.removeChild(ripple);
-    }
-  }, 550); // Match transform duration for full animation cycle
+  if (expansionComplete) {
+    // CASE 1: Ripple fully expanded - simple fade out without scale change
+    ripple.style.transition = 'opacity 200ms linear';
+    ripple.style.opacity = '0';
+    // No transform change - keep the fully expanded scale
+
+    // Remove after animation completes
+    setTimeout(() => {
+      if (ripple.parentNode) {
+        ripple.parentNode.removeChild(ripple);
+      }
+    }, 200);
+  } else {
+    // CASE 2: Ripple interrupted mid-expansion
+    // CRITICAL FIX: Use a SINGLE UNIFIED ANIMATION that continues expansion but at slower rate
+
+    // Calculate a larger target scale than current progress to ensure continued outward movement
+    // The key is that we want the ripple to CONTINUE expanding but at a slower pace
+    const currentScale = 0.1 + 0.9 * expansionProgress; // Current scale based on progress
+    const targetScale = currentScale + 0.9 * (1 - expansionProgress); // Continue expanding but slower
+
+    // Use single transition that handles both opacity and transform together
+    ripple.style.transition = 'opacity 250ms linear, transform 150ms cubic-bezier(0.0, 0, 0.2, 1)';
+
+    // Apply both changes at once to create unified animation
+    ripple.style.opacity = '0';
+    ripple.style.transform = `translate(-50%, -50%) scale(${targetScale})`;
+
+    // Remove after the animation completes
+    setTimeout(() => {
+      if (ripple.parentNode) {
+        ripple.parentNode.removeChild(ripple);
+      }
+    }, 250);
+  }
 }
 
 /**
@@ -941,16 +983,14 @@ export function setupComponentIntegratedInteractions(
       componentState.holdTriggered = false;
       componentState.pendingHoldAction = false;
 
-      // ENHANCED: Smart ripple fade out with proper timing
-      // Only fade out ripple after allowing 100ms for visual persistence
-      setTimeout(() => {
-        const index = activeRipples.indexOf(ripple);
-        if (index !== -1) {
-          // Use our new enhanced removeRippleEffect function that checks expansion state
-          removeRippleEffect(ripple);
-          activeRipples.splice(index, 1);
-        }
-      }, 100);
+      // FIXED: Remove delay before starting fade-out process
+      // The native HA implementation starts fade-out immediately
+      // Change from setTimeout(..., 100) to immediate execution
+      const index = activeRipples.indexOf(ripple);
+      if (index !== -1) {
+        removeRippleEffect(ripple);
+        activeRipples.splice(index, 1);
+      }
 
       // Remove global listeners
       window.removeEventListener('pointerup', handlePointerUp);
