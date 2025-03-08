@@ -534,7 +534,7 @@ export function createRippleEffect(event: PointerEvent, rippleContainer: HTMLEle
     ripple.style.transform = 'translate(-50%, -50%) scale(1)';
 
     // Immediate start to opacity for better wave visibility
-    ripple.style.opacity = '0.15';
+    ripple.style.opacity = '0.1';
   });
 
   return ripple;
@@ -583,9 +583,8 @@ export function createHoldIndicator(event: PointerEvent): HTMLElement {
   // indicator.className = 'card-hold-indicator';
 
   // Determine if this is a touch device for proper sizing
-  // FIXED: Correct Home Assistant Tile Card sizes (v2025.3)
   const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
-  const size = isTouchDevice ? 96 : 48; // Double the previous sizes for visual matching
+  const size = isTouchDevice ? 100 : 50;
 
   // Apply ALL styles inline with !important flags to prevent any overrides
   indicator.style.cssText = `
@@ -617,7 +616,7 @@ export function createHoldIndicator(event: PointerEvent): HTMLElement {
 
   // Animate to full size with explicit size check after animation
   requestAnimationFrame(() => {
-    indicator.style.opacity = '0.28';
+    indicator.style.opacity = '0.20';
     indicator.style.transform = 'translate(-50%, -50%) scale(1)';
 
     // Double-check actual rendered size
