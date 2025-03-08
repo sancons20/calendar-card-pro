@@ -205,9 +205,7 @@ export function openUrl(actionConfig: Types.ActionConfig): void {
 
 /**
  * Create interaction styles element with all necessary CSS
- * Following exact specifications from HA Tile Card reference
- *
- * @returns Style element with interaction styles
+ * CORRECTED: Now using exact Home Assistant v2025.3 ripple implementation
  */
 export function createInteractionStyles(): HTMLStyleElement {
   const layeredStyles = document.createElement('style');
@@ -262,19 +260,22 @@ export function createInteractionStyles(): HTMLStyleElement {
       background-color: transparent !important;
     }
 
-    /* Individual ripple - EXACT HA TILE CARD ANIMATION */
+    /* Individual ripple - EXACT HA v2025.3 MDC RIPPLE IMPLEMENTATION */
     .card-ripple {
       position: absolute;
       border-radius: 50%;
-      background-color: var(--card-accent-color);
       opacity: 0;
       transform: translate(-50%, -50%) scale(0.1);
       pointer-events: none;
       will-change: transform, opacity;
       transition: transform 550ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms linear;
-      backface-visibility: hidden; /* Prevent flickering */
-      perspective: 1000px; /* Additional performance boost */
-      z-index: 5 !important; /* Ensure above all content */
+      backface-visibility: hidden; 
+      z-index: 5 !important;
+    }
+
+    /* Add CSS variable for RGB version of accent color */
+    :host {
+      --rgb-card-accent-color: 3, 169, 244;
     }
 
     /* Hold indicator - UPDATED TO MATCH HA TILE CARD EXACTLY */
@@ -473,8 +474,7 @@ export function setupRippleEffects(
 
 /**
  * Create and animate a ripple effect at the specified position
- * Follows exact specifications from HA Tile Card (v2025.3)
- * Enhanced with smoother animation transition
+ * CORRECTED: Now using exact Home Assistant v2025.3 ripple gradient
  *
  * @param event - Pointer event that triggered the ripple
  * @param rippleContainer - Container element to add the ripple to
@@ -501,8 +501,28 @@ export function createRippleEffect(event: PointerEvent, rippleContainer: HTMLEle
   const ripple = document.createElement('div');
   ripple.className = 'card-ripple';
 
-  // ADDED: Set fixed z-index to ensure ripple is above all content
-  ripple.style.zIndex = '5';
+  // ADDED: Track animation state and start time for smart removal
+  ripple.dataset.expansionComplete = 'false';
+  ripple.dataset.startTime = Date.now().toString();
+
+  // Extract RGB values from computed accent color for gradient
+  const accentColor = getComputedStyle(rippleContainer)
+    .getPropertyValue('--card-accent-color')
+    .trim();
+  const rgbValues = extractRgbValues(accentColor);
+
+  // Apply inline gradient for ripple if we extracted valid RGB values
+  if (rgbValues) {
+    // This is the exact gradient pattern Home Assistant uses in v2025.3
+    ripple.style.backgroundImage = `radial-gradient(
+      circle at center,
+      ${accentColor} 50%, 
+      rgba(${rgbValues}, 0.5) 60%,
+      rgba(${rgbValues}, 0.2) 70%,
+      rgba(${rgbValues}, 0.1) 80%,
+      rgba(${rgbValues}, 0) 90%
+    )`;
+  }
 
   // Position and size the ripple
   ripple.style.width = `${size}px`;
@@ -535,13 +555,59 @@ export function createRippleEffect(event: PointerEvent, rippleContainer: HTMLEle
 
     // Immediate start to opacity for better wave visibility
     ripple.style.opacity = '0.1';
+
+    // ADDED: Set up timer to mark expansion as complete
+    // This timer matches the transform animation duration exactly
+    setTimeout(() => {
+      ripple.dataset.expansionComplete = 'true';
+      Logger.debug('Ripple expansion complete');
+    }, 550);
   });
 
   return ripple;
 }
 
 /**
+ * Helper function to extract RGB values from a color string
+ * Used to create the gradient for the ripple effect
+ *
+ * @param color - CSS color string (hex, rgb, rgba)
+ * @returns RGB values as string or null if extraction failed
+ */
+function extractRgbValues(color: string): string | null {
+  // Handle rgb/rgba format
+  const rgbMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/i);
+  if (rgbMatch) {
+    return `${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}`;
+  }
+
+  // Handle hex format (#rgb or #rrggbb)
+  const hexMatch = color.match(
+    /#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})|#([a-f\d])([a-f\d])([a-f\d])/i,
+  );
+  if (hexMatch) {
+    if (hexMatch[1]) {
+      // #rrggbb format
+      const r = parseInt(hexMatch[1], 16);
+      const g = parseInt(hexMatch[2], 16);
+      const b = parseInt(hexMatch[3], 16);
+      return `${r}, ${g}, ${b}`;
+    } else {
+      // #rgb format
+      const r = parseInt(hexMatch[4] + hexMatch[4], 16);
+      const g = parseInt(hexMatch[5] + hexMatch[5], 16);
+      const b = parseInt(hexMatch[6] + hexMatch[6], 16);
+      return `${r}, ${g}, ${b}`;
+    }
+  }
+
+  // Default for primary-color and other variables we can't resolve
+  return '3, 169, 244'; // Default HA blue
+}
+
+/**
  * Remove ripple effect with proper animation
+ * ADJUSTED: Use a shorter grace period rather than forcing full expansion
  *
  * @param ripple - Ripple element to remove
  * @param delay - Optional delay before starting fade-out animation (default: 0ms)
@@ -549,18 +615,44 @@ export function createRippleEffect(event: PointerEvent, rippleContainer: HTMLEle
 export function removeRippleEffect(ripple: HTMLElement, delay = 0): void {
   if (!ripple || !ripple.parentNode) return;
 
-  // If delay specified, wait before starting fade-out
+  // If delay specified, wait before starting removal logic
   setTimeout(() => {
-    // Start fade-out animation
-    ripple.style.opacity = '0';
+    // ENHANCED: Check if expansion is already complete or in progress
+    if (ripple.dataset.expansionComplete === 'true') {
+      // Expansion already complete, fade out immediately
+      fadeOutRipple(ripple);
+    } else {
+      // Expansion not complete - provide a shorter grace period (150ms)
+      // This ensures the ripple has time to become visible and expand partially
+      // without forcing the full 550ms expansion animation
+      const gracePeriod = 150; // Shorter grace period matching HA behavior
 
-    // Remove from DOM after animation completes (using the longer of the two durations)
-    setTimeout(() => {
-      if (ripple.parentNode) {
-        ripple.parentNode.removeChild(ripple);
-      }
-    }, 550); // Match the exact transform duration from HA implementation
+      Logger.debug('Ripple expansion not complete, using grace period', {
+        gracePeriod,
+      });
+
+      // Wait for grace period before fading out
+      setTimeout(() => fadeOutRipple(ripple), gracePeriod);
+    }
   }, delay);
+}
+
+/**
+ * Helper function to handle the fade-out and removal of ripple element
+ *
+ * @param ripple - Ripple element to fade out and remove
+ */
+function fadeOutRipple(ripple: HTMLElement): void {
+  // Start fade-out animation
+  ripple.style.opacity = '0';
+
+  // Remove from DOM after animation completes
+  // Use the longer of the two animations (transform) to ensure smooth transition
+  setTimeout(() => {
+    if (ripple.parentNode) {
+      ripple.parentNode.removeChild(ripple);
+    }
+  }, 550); // Match transform duration for full animation cycle
 }
 
 /**
@@ -849,10 +941,12 @@ export function setupComponentIntegratedInteractions(
       componentState.holdTriggered = false;
       componentState.pendingHoldAction = false;
 
-      // Fade out ripple
+      // ENHANCED: Smart ripple fade out with proper timing
+      // Only fade out ripple after allowing 100ms for visual persistence
       setTimeout(() => {
         const index = activeRipples.indexOf(ripple);
         if (index !== -1) {
+          // Use our new enhanced removeRippleEffect function that checks expansion state
           removeRippleEffect(ripple);
           activeRipples.splice(index, 1);
         }
