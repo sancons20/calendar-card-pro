@@ -2,12 +2,11 @@ import { css, html, LitElement } from 'lit';
 
 /**
  * Calendar Ripple - A lightweight wrapper around Home Assistant's ha-ripple
+ * Provides compatibility with our action system while using native HA ripple
  */
 export class CalendarRipple extends LitElement {
-  // Replace @property decorator with standard property + getter/setter
   private _disabled = false;
 
-  // Standard getter/setter instead of decorator
   get disabled() {
     return this._disabled;
   }
@@ -24,13 +23,14 @@ export class CalendarRipple extends LitElement {
   }
 
   private control: HTMLElement | null = null;
+  private haRipple: HTMLElement | null = null;
 
   connectedCallback() {
     super.connectedCallback();
 
     // Create ha-ripple element
-    const haRipple = document.createElement('ha-ripple');
-    this.appendChild(haRipple);
+    this.haRipple = document.createElement('ha-ripple');
+    this.appendChild(this.haRipple);
 
     // Attach to control if already available
     if (this.control) {
@@ -38,16 +38,44 @@ export class CalendarRipple extends LitElement {
     }
   }
 
+  /**
+   * Attach this ripple to a control element
+   * Handles both the ha-ripple attachment and our custom event forwarding
+   */
   attach(control: HTMLElement) {
     this.control = control;
     this.attachRipple(control);
+
+    // Listen for ha-ripple action events and forward them as mdw:action
+    control.addEventListener('click', this._handleClick);
   }
 
+  /**
+   * Forward click events as mdw:action events
+   * This bridges the gap between ha-ripple and our action system
+   */
+  private _handleClick = () => {
+    // Forward the click as an mdw:action event
+    const actionEvent = new CustomEvent('mdw:action', {
+      bubbles: true,
+      composed: true,
+      detail: { source: 'click' },
+    });
+
+    if (this.control) {
+      this.control.dispatchEvent(actionEvent);
+    } else {
+      this.dispatchEvent(actionEvent);
+    }
+  };
+
+  /**
+   * Attach the ripple to the given control element
+   */
   private attachRipple(control: HTMLElement) {
-    const haRipple = this.querySelector('ha-ripple');
-    if (haRipple && 'attach' in haRipple) {
+    if (this.haRipple && 'attach' in this.haRipple) {
       try {
-        (haRipple as any).attach(control);
+        (this.haRipple as any).attach(control);
       } catch (e) {
         console.warn('Failed to attach ha-ripple:', e);
       }
@@ -57,16 +85,36 @@ export class CalendarRipple extends LitElement {
   detach() {
     if (!this.control) return;
 
-    const haRipple = this.querySelector('ha-ripple');
-    if (haRipple && 'detach' in haRipple) {
+    // Remove our click handler
+    this.control.removeEventListener('click', this._handleClick);
+
+    // Detach the ha-ripple
+    if (this.haRipple && 'detach' in this.haRipple) {
       try {
-        (haRipple as any).detach();
+        (this.haRipple as any).detach();
       } catch (e) {
         console.warn('Failed to detach ha-ripple:', e);
       }
     }
 
     this.control = null;
+  }
+
+  /**
+   * Manually dispatch an action event (useful for testing)
+   */
+  dispatchAction(source: 'click' | 'holdEnd' = 'click') {
+    const actionEvent = new CustomEvent('mdw:action', {
+      bubbles: true,
+      composed: true,
+      detail: { source },
+    });
+
+    if (this.control) {
+      this.control.dispatchEvent(actionEvent);
+    } else {
+      this.dispatchEvent(actionEvent);
+    }
   }
 
   render() {
@@ -80,10 +128,12 @@ export class CalendarRipple extends LitElement {
       inset: 0;
       overflow: hidden;
       border-radius: inherit;
+
+      /* Map our calendar-specific variables to MD ripple variables */
       --md-ripple-hover-opacity: var(--ha-ripple-hover-opacity, 0.08);
       --md-ripple-pressed-opacity: var(--ha-ripple-pressed-opacity, 0.12);
-      --md-ripple-hover-color: var(--ha-ripple-hover-color,var(--ha-ripple-color, var(--secondary-text-color));
-      --md-ripple-pressed-color: var(--ha-ripple-pressed-color,var(--ha-ripple-color, var(--secondary-text-color)));
+      --md-ripple-hover-color: var(--ha-ripple-color, var(--primary-color));
+      --md-ripple-pressed-color: var(--ha-ripple-color, var(--primary-color));
     }
   `;
 }

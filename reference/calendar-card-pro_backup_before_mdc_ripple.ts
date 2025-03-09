@@ -32,8 +32,6 @@ import * as Render from './rendering/render';
 import * as DomUtils from './utils/dom-utils';
 import * as Logger from './utils/logger-utils';
 import * as Editor from './rendering/editor';
-import './utils/calendar-ripple';
-import type { MDWActionEvent } from './utils/custom-events';
 
 // Ensure this file is treated as a module
 export {};
@@ -472,7 +470,7 @@ class CalendarCardPro extends HTMLElement {
    * Main rendering method that orchestrates the display of the calendar card
    */
   async renderCard() {
-    // Use the performance tracker
+    // Use the performance tracker instead of direct function calls
     const metrics = this.performanceTracker.beginMeasurement(this.events.length);
 
     if (!this.isValidState()) {
@@ -501,10 +499,8 @@ class CalendarCardPro extends HTMLElement {
     }
 
     try {
-      Logger.debug('Creating card structure');
-
       // Get the calendar content using the render module
-      const { container: contentContainer, style } = await Render.renderCalendarCard(
+      const { container, style } = await Render.renderCalendarCard(
         this.config,
         eventsByDay,
         (event) => this.formatEventTime(event),
@@ -513,207 +509,51 @@ class CalendarCardPro extends HTMLElement {
         Helpers.PERFORMANCE_CONSTANTS.RENDER_DELAY,
       );
 
-      // Clean up any previous interaction handlers
+      // Clear the shadow DOM before adding new content
+      DomUtils.clearShadowRoot(this.shadowRoot!);
+
+      // Use our interaction module for styles and DOM structure
+      const interactionStyles = Interaction.createInteractionStyles();
+
+      // Create the layered DOM structure
+      const {
+        container: layeredContainer,
+        bgLayer,
+        rippleContainer,
+        contentLayer,
+      } = Interaction.createInteractionDom();
+
+      // Move content from the original container to our content layer
+      if (container instanceof HTMLElement) {
+        Interaction.moveContentToLayer(container, contentLayer);
+      }
+
+      // Add layers to shadow DOM
+      this.shadowRoot?.appendChild(interactionStyles);
+      this.shadowRoot?.appendChild(style); // Original styles
+      this.shadowRoot?.appendChild(layeredContainer);
+
+      // Clean up previous interaction listeners
       if (this.interactionManager.cleanup) {
         this.interactionManager.cleanup();
         this.interactionManager.cleanup = null;
       }
 
-      // Clear the shadow DOM before adding new content
-      DomUtils.clearShadowRoot(this.shadowRoot!);
-
       // Get primary entity ID for interactions
       const entityId = Interaction.getPrimaryEntityId(this.config.entities);
 
-      // Create container with proper structure
-      const container = document.createElement('div');
-      container.className = 'card-container';
-      container.setAttribute('role', 'button');
-      container.setAttribute('tabindex', '0');
+      // Store reference to container
+      this.interactionManager.container = layeredContainer;
 
-      // Create our ripple element
-      const ripple = document.createElement('calendar-ripple');
-
-      // Create content container
-      const content = document.createElement('div');
-      content.className = 'card-content';
-
-      // Move content from the render container to our content element
-      if (contentContainer instanceof HTMLElement) {
-        while (contentContainer.firstChild) {
-          content.appendChild(contentContainer.firstChild);
-        }
-      }
-
-      // Add the ripple first, then content to create proper layering
-      container.appendChild(ripple);
-      container.appendChild(content);
-
-      // Add styles and container to shadow DOM
-      this.shadowRoot?.appendChild(style);
-      this.shadowRoot?.appendChild(container);
-
-      // Store container reference for later
-      this.interactionManager.container = container;
-
-      // Set up action handler for ripple events and hold detection
-      const setupActions = () => {
-        // Event handler for mdw:action events (clicks from ripple)
-        const handleAction = (ev: CustomEvent) => {
-          if (!this._hass) return;
-
-          // Only handle click events if hold wasn't triggered
-          if (!this.interactionManager.state.holdTriggered && this.config.tap_action) {
-            Logger.debug('Executing tap action from mdw:action event');
-            Interaction.handleAction(this.config.tap_action, this._hass, container, entityId, () =>
-              this.toggleExpanded(),
-            );
-          }
-
-          // Reset hold state after any action
-          this.interactionManager.state.holdTriggered = false;
-        };
-
-        // Add event listener for mdw:action events from ripple
-        container.addEventListener('mdw:action', handleAction as EventListener);
-
-        // Attach ripple to container
-        if (ripple instanceof HTMLElement && 'attach' in ripple) {
-          (ripple as any).attach(container);
-        }
-
-        // Set up hold detection using pointer events
-        let holdTimer: number | null = null;
-        let activePointerId: number | null = null;
-
-        // Handle pointer down - start hold timer
-        const handlePointerDown = (ev: PointerEvent) => {
-          // Track this pointer
-          activePointerId = ev.pointerId;
-          this.interactionManager.state.holdTriggered = false;
-
-          // Only set up hold timer if hold action is configured
-          if (this.config.hold_action?.action !== 'none') {
-            // Clear any existing timer
-            if (holdTimer) {
-              clearTimeout(holdTimer);
-            }
-
-            // Start hold timer
-            holdTimer = window.setTimeout(() => {
-              if (activePointerId === ev.pointerId) {
-                Logger.debug('Hold threshold reached');
-                this.interactionManager.state.holdTriggered = true;
-
-                // Create hold indicator
-                this.interactionManager.state.holdIndicator = Interaction.createHoldIndicator(ev);
-              }
-            }, 500);
-          }
-        };
-
-        // Handle pointer up - check if hold was triggered
-        const handlePointerUp = (ev: PointerEvent) => {
-          // Only process if this is the tracked pointer
-          if (activePointerId !== ev.pointerId) return;
-
-          // Clear hold timer
-          if (holdTimer) {
-            clearTimeout(holdTimer);
-            holdTimer = null;
-          }
-
-          // Reset pointer tracking
-          activePointerId = null;
-
-          // If hold was triggered, handle hold action
-          if (this.interactionManager.state.holdTriggered && this.config.hold_action) {
-            Logger.debug('Executing hold action on pointer up');
-            Interaction.handleAction(
-              this.config.hold_action,
-              this._hass!,
-              container,
-              entityId,
-              () => this.toggleExpanded(),
-            );
-          }
-
-          // Remove hold indicator if it exists
-          if (this.interactionManager.state.holdIndicator) {
-            Interaction.removeHoldIndicator(this.interactionManager.state.holdIndicator);
-            this.interactionManager.state.holdIndicator = null;
-          }
-        };
-
-        // Handle pointer cancel
-        const handlePointerCancel = () => {
-          // Clear hold timer
-          if (holdTimer) {
-            clearTimeout(holdTimer);
-            holdTimer = null;
-          }
-
-          // Reset tracking state
-          activePointerId = null;
-          this.interactionManager.state.holdTriggered = false;
-
-          // Remove hold indicator if it exists
-          if (this.interactionManager.state.holdIndicator) {
-            Interaction.removeHoldIndicator(this.interactionManager.state.holdIndicator);
-            this.interactionManager.state.holdIndicator = null;
-          }
-        };
-
-        // Add pointer event listeners
-        container.addEventListener('pointerdown', handlePointerDown);
-        container.addEventListener('pointerup', handlePointerUp);
-        container.addEventListener('pointercancel', handlePointerCancel);
-
-        // Add support for keyboard interactions (accessibility)
-        const handleKeyDown = (ev: KeyboardEvent) => {
-          if (ev.key === 'Enter' || ev.key === ' ') {
-            ev.preventDefault();
-            // Use the tap action for keyboard events
-            if (this.config.tap_action) {
-              Interaction.handleAction(
-                this.config.tap_action,
-                this._hass!,
-                container,
-                entityId,
-                () => this.toggleExpanded(),
-              );
-            }
-          }
-        };
-        container.addEventListener('keydown', handleKeyDown);
-
-        // Return cleanup function
-        return () => {
-          container.removeEventListener('mdw:action', handleAction as EventListener);
-          container.removeEventListener('keydown', handleKeyDown);
-          container.removeEventListener('pointerdown', handlePointerDown);
-          container.removeEventListener('pointerup', handlePointerUp);
-          container.removeEventListener('pointercancel', handlePointerCancel);
-
-          // Clear any active timers
-          if (holdTimer) {
-            clearTimeout(holdTimer);
-          }
-
-          // Clean up hold indicator if it exists
-          if (this.interactionManager.state.holdIndicator) {
-            Interaction.removeHoldIndicator(this.interactionManager.state.holdIndicator);
-            this.interactionManager.state.holdIndicator = null;
-          }
-
-          if (ripple instanceof HTMLElement && 'detach' in ripple) {
-            (ripple as any).detach();
-          }
-        };
-      };
-
-      // Setup and store the cleanup function
-      this.interactionManager.cleanup = setupActions();
+      // Setup interactions with component-managed state and container reference
+      this.interactionManager.cleanup = Interaction.setupComponentIntegratedInteractions(
+        layeredContainer,
+        this.config,
+        this._hass,
+        entityId,
+        () => this.toggleExpanded(),
+        this.interactionManager.state, // Pass component's state object
+      );
     } catch (error) {
       Logger.error('Render error:', error);
       Render.renderErrorToDOM(this.shadowRoot!, 'error', this.config);
@@ -729,146 +569,29 @@ class CalendarCardPro extends HTMLElement {
     // If we have a container reference but no cleanup function,
     // reconnect the interactions (this happens during navigation)
     if (this.interactionManager.container && !this.interactionManager.cleanup) {
-      // Find our ripple element
-      const ripple = this.interactionManager.container.querySelector('calendar-ripple');
       const entityId = Interaction.getPrimaryEntityId(this.config.entities);
-      const container = this.interactionManager.container;
 
-      if (ripple) {
-        // Set up hold detection using pointer events
-        let holdTimer: number | null = null;
-        let activePointerId: number | null = null;
+      // Re-establish interactions with the same state object
+      this.interactionManager.cleanup = Interaction.setupComponentIntegratedInteractions(
+        this.interactionManager.container,
+        this.config,
+        this._hass,
+        entityId,
+        () => this.toggleExpanded(),
+        this.interactionManager.state,
+      );
 
-        // Handle pointer down - start hold timer
-        const handlePointerDown = (ev: PointerEvent) => {
-          // Track this pointer
-          activePointerId = ev.pointerId;
-          this.interactionManager.state.holdTriggered = false;
-
-          // Only set up hold timer if hold action is configured
-          if (this.config.hold_action?.action !== 'none') {
-            // Clear any existing timer
-            if (holdTimer) {
-              clearTimeout(holdTimer);
-            }
-
-            // Start hold timer
-            holdTimer = window.setTimeout(() => {
-              if (activePointerId === ev.pointerId) {
-                Logger.debug('Hold threshold reached in connectedCallback');
-                this.interactionManager.state.holdTriggered = true;
-
-                // Create hold indicator
-                this.interactionManager.state.holdIndicator = Interaction.createHoldIndicator(ev);
-              }
-            }, 500);
-          }
-        };
-
-        // Handle pointer up - check if hold was triggered
-        const handlePointerUp = (ev: PointerEvent) => {
-          // Only process if this is the tracked pointer
-          if (activePointerId !== ev.pointerId) return;
-
-          // Clear hold timer
-          if (holdTimer) {
-            clearTimeout(holdTimer);
-            holdTimer = null;
-          }
-
-          // Reset pointer tracking
-          activePointerId = null;
-
-          // If hold was triggered, handle hold action
-          if (this.interactionManager.state.holdTriggered && this.config.hold_action) {
-            Logger.debug('Executing hold action from connectedCallback');
-            Interaction.handleAction(
-              this.config.hold_action,
-              this._hass!,
-              container,
-              entityId,
-              () => this.toggleExpanded(),
-            );
-          }
-
-          // Remove hold indicator if it exists
-          if (this.interactionManager.state.holdIndicator) {
-            Interaction.removeHoldIndicator(this.interactionManager.state.holdIndicator);
-            this.interactionManager.state.holdIndicator = null;
-          }
-        };
-
-        // Handle pointer cancel
-        const handlePointerCancel = () => {
-          // Clear hold timer
-          if (holdTimer) {
-            clearTimeout(holdTimer);
-            holdTimer = null;
-          }
-
-          // Reset tracking state
-          activePointerId = null;
-          this.interactionManager.state.holdTriggered = false;
-
-          // Remove hold indicator if it exists
-          if (this.interactionManager.state.holdIndicator) {
-            Interaction.removeHoldIndicator(this.interactionManager.state.holdIndicator);
-            this.interactionManager.state.holdIndicator = null;
-          }
-        };
-
-        // Set up action handler for mdw:action events (clicks)
-        const handleAction = (ev: CustomEvent) => {
-          if (!this._hass) return;
-
-          // Only handle click events if hold wasn't triggered
-          if (!this.interactionManager.state.holdTriggered && this.config.tap_action) {
-            Interaction.handleAction(this.config.tap_action, this._hass, container, entityId, () =>
-              this.toggleExpanded(),
-            );
-          }
-
-          // Reset hold state after any action
-          this.interactionManager.state.holdTriggered = false;
-        };
-
-        // Add event listeners
-        container.addEventListener('mdw:action', handleAction as EventListener);
-        container.addEventListener('pointerdown', handlePointerDown);
-        container.addEventListener('pointerup', handlePointerUp);
-        container.addEventListener('pointercancel', handlePointerCancel);
-
-        // Re-attach ripple
-        if ('attach' in ripple) {
-          (ripple as any).attach(container);
-        }
-
-        // Store cleanup function
-        this.interactionManager.cleanup = () => {
-          container.removeEventListener('mdw:action', handleAction as EventListener);
-          container.removeEventListener('pointerdown', handlePointerDown);
-          container.removeEventListener('pointerup', handlePointerUp);
-          container.removeEventListener('pointercancel', handlePointerCancel);
-
-          // Clear any active timers
-          if (holdTimer) {
-            clearTimeout(holdTimer);
-          }
-
-          // Clean up hold indicator if it exists
-          if (this.interactionManager.state.holdIndicator) {
-            Interaction.removeHoldIndicator(this.interactionManager.state.holdIndicator);
-            this.interactionManager.state.holdIndicator = null;
-          }
-
-          if ('detach' in ripple) {
-            (ripple as any).detach();
-          }
-        };
-
-        Logger.debug('Restored interaction handlers with hold support in connectedCallback');
-      }
+      Logger.debug('Restored interaction handlers in connectedCallback');
     }
+  }
+
+  /**
+   * Handle and display different card states
+   * @param {'loading' | 'empty' | 'error'} state - Current card state
+   * @private
+   */
+  renderError(state: 'loading' | 'empty' | 'error') {
+    Render.renderErrorToDOM(this.shadowRoot!, state, this.config);
   }
 
   /******************************************************************************

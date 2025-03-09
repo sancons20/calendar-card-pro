@@ -205,80 +205,45 @@ export function openUrl(actionConfig: Types.ActionConfig): void {
 
 /**
  * Create interaction styles element with all necessary CSS
- * CORRECTED: Now using exact Home Assistant v2025.3 ripple implementation
+ * This simplified version focuses on hold indicator and hover effects
  */
 export function createInteractionStyles(): HTMLStyleElement {
-  const layeredStyles = document.createElement('style');
-  layeredStyles.id = 'calendar-card-interaction-styles';
+  const interactionStyles = document.createElement('style');
+  interactionStyles.id = 'calendar-card-interaction-styles';
 
-  layeredStyles.textContent = `
+  interactionStyles.textContent = `
     /* Base container */
     .card-container {
       position: relative;
-      background: transparent !important; /* Keep container transparent */
-      overflow: visible; /* Allow hover effect to extend outside */
       cursor: pointer;
       transition: transform 180ms ease-in-out;
-      will-change: transform; /* Hint for browser to use GPU */
-      transform: translateZ(0); /* Force GPU acceleration */
-      -webkit-backface-visibility: hidden; /* Prevent flickering on Safari */
-    }
-
-    /* Background layer - Add compositing hint */
-    .card-bg-layer {
-      position: absolute;
-      inset: 0;
-      z-index: 1 !important;
-      background-color: var(--ha-card-background, var(--card-background-color, white));
-      border-radius: var(--ha-card-border-radius, 4px);
-      transform: translateZ(0); /* Force compositing layer */
-    }
-
-    /* Content layer - EXPLICIT TRANSPARENCY */
-    .card-content-layer {
-      position: relative;
-      z-index: 3 !important;
-      background: transparent !important; /* Force transparency */
-      transform: translateZ(0.1px); /* Small offset to ensure proper stacking */
-      will-change: transform; /* Hint for browser to use GPU */
-    }
-
-    /* Ripple container - Enhanced performance */
-    .card-ripple-container {
-      position: absolute;
-      inset: 0;
-      z-index: 2 !important; /* Between bg (1) and content (3) */
-      pointer-events: none;
+      will-change: transform;
+      transform: translateZ(0);
+      -webkit-backface-visibility: hidden;
+      border-radius: var(--ha-card-border-radius, 10px);
       overflow: hidden;
-      border-radius: var(--ha-card-border-radius, 4px);
-      will-change: transform; /* Performance optimization */
-      transform: translateZ(0.05px); /* Very small offset to ensure proper layer */
+    }
+
+    /* Content styling */
+    .card-content {
+      background: var(--card-custom-background, var(--card-background-color, #FFF));
+      border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, var(--divider-color));
+      border-radius: var(--ha-card-border-radius, 10px);
+      padding: 16px;
+      padding-top: calc(16px + var(--card-spacing-additional));
+      padding-bottom: calc(16px + var(--card-spacing-additional));
+    }
+
+    /* Focus styles for accessibility */
+    .card-container:focus {
+      outline: none;
     }
     
-    /* Force transparency for all child elements that might have backgrounds */
-    .card-content-layer > * {
-      background-color: transparent !important;
+    .card-container:focus-visible {
+      box-shadow: 0 0 0 2px var(--card-accent-color, var(--primary-color));
     }
 
-    /* Individual ripple - EXACT HA v2025.3 MDC RIPPLE IMPLEMENTATION */
-    .card-ripple {
-      position: absolute;
-      border-radius: 50%;
-      opacity: 0;
-      transform: translate(-50%, -50%) scale(0.1);
-      pointer-events: none;
-      will-change: transform, opacity;
-      transition: transform 550ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms linear;
-      backface-visibility: hidden; 
-      z-index: 5 !important;
-    }
-
-    /* Add CSS variable for RGB version of accent color */
-    :host {
-      --rgb-card-accent-color: 3, 169, 244;
-    }
-
-    /* Hold indicator - UPDATED TO MATCH HA TILE CARD EXACTLY */
+    /* Hold indicator - for hold actions */
     .card-hold-indicator {
       position: fixed;
       border-radius: 50%;
@@ -289,407 +254,11 @@ export function createInteractionStyles(): HTMLStyleElement {
       will-change: transform, opacity;
       transition: transform 200ms cubic-bezier(0.2, 0, 0, 1), opacity 200ms cubic-bezier(0.2, 0, 0, 1);
       z-index: 99999;
-      backface-visibility: hidden; /* Prevent flickering */
-    }
-
-    /* Hover effect - REFINED TRANSITION */
-    @media (hover: hover) {
-      .card-container:hover::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: var(--card-accent-color);
-        opacity: 0.05;
-        z-index: 2;
-        border-radius: var(--ha-card-border-radius, 4px);
-        pointer-events: none;
-        transition: opacity 180ms ease-in-out; /* Match container transition */
-        will-change: opacity; /* Performance optimization */
-      }
+      backface-visibility: hidden;
     }
   `;
 
-  return layeredStyles;
-}
-
-/**
- * Create the DOM structure required for interactions with MDC ripple
- */
-export function createInteractionDom(): {
-  container: HTMLDivElement;
-  ripple: Element;
-  contentLayer: HTMLDivElement;
-} {
-  // Create container with proper attributes
-  const container = document.createElement('div');
-  container.className = 'card-container';
-  container.setAttribute('role', 'button');
-  container.setAttribute('tabindex', '0');
-
-  // Create the ripple element (using our custom element)
-  const ripple = document.createElement('calendar-ripple');
-
-  // Create content layer
-  const contentLayer = document.createElement('div');
-  contentLayer.className = 'card-content-layer';
-
-  // Add ripple first, then content (same structure as HA)
-  container.appendChild(ripple);
-  container.appendChild(contentLayer);
-
-  return { container, ripple, contentLayer };
-}
-
-/**
- * Move existing content into the content layer of the three-layer structure
- * Ensures all content has transparent background while preserving styles
- *
- * @param sourceContainer - Original container with content
- * @param contentLayer - Target content layer
- */
-export function moveContentToLayer(sourceContainer: HTMLElement, contentLayer: HTMLElement): void {
-  if (!(sourceContainer instanceof HTMLElement)) return;
-
-  // Copy padding from original container
-  const containerStyles = window.getComputedStyle(sourceContainer);
-  contentLayer.style.padding = containerStyles.padding;
-  contentLayer.style.backgroundColor = 'transparent'; // Force transparency
-
-  // Move all children to content layer
-  while (sourceContainer.firstChild) {
-    const child = sourceContainer.firstChild;
-    if (child instanceof HTMLElement) {
-      // Remove any background from child elements
-      child.style.backgroundColor = 'transparent';
-    }
-    contentLayer.appendChild(child);
-  }
-}
-
-/**
- * Set up layered DOM structure for interactions
- * This is an enhanced version of the stub that actually implements the functionality
- *
- * @param container - The container element to convert to a layered structure
- * @returns Object containing the created layers
- */
-export function setupInteractionDom(container: HTMLElement): {
-  bgLayer: HTMLElement;
-  rippleContainer: HTMLElement;
-  contentLayer: HTMLElement;
-} {
-  Logger.info('Setting up interaction DOM structure');
-
-  // First, ensure the container has position relative and transparent background
-  if (window.getComputedStyle(container).position === 'static') {
-    container.style.position = 'relative';
-  }
-  container.style.background = 'transparent';
-  container.style.overflow = 'visible'; // Allow hover effect to extend outside
-  container.classList.add('card-container');
-
-  // Create background layer
-  const bgLayer = document.createElement('div');
-  bgLayer.className = 'card-bg-layer';
-
-  // Create ripple container
-  const rippleContainer = document.createElement('div');
-  rippleContainer.className = 'card-ripple-container';
-
-  // Create content layer
-  const contentLayer = document.createElement('div');
-  contentLayer.className = 'card-content-layer';
-
-  // Store existing children
-  const existingContent = Array.from(container.children);
-
-  // Insert new layers
-  container.appendChild(bgLayer);
-  container.appendChild(rippleContainer);
-  container.appendChild(contentLayer);
-
-  // Move existing content to content layer
-  existingContent.forEach((child) => {
-    if (child instanceof HTMLElement) {
-      child.style.backgroundColor = 'transparent';
-    }
-    contentLayer.appendChild(child);
-  });
-
-  return { bgLayer, rippleContainer, contentLayer };
-}
-
-/**
- * Set up ripple effects for an element
- * Uses the new DOM-based ripple implementation
- *
- * @param container - Container element
- * @param rippleContainer - Container for ripple effects
- * @returns Cleanup function to remove event listeners
- */
-export function setupRippleEffects(
-  container: HTMLElement,
-  rippleContainer: HTMLElement,
-): () => void {
-  Logger.info('Setting up ripple effects');
-
-  // Clean up existing handler if it exists
-  if (container._rippleHandler) {
-    container.removeEventListener('pointerdown', container._rippleHandler);
-    delete container._rippleHandler;
-  }
-
-  // Create new handler for ripple creation that checks state first
-  container._rippleHandler = (ev: PointerEvent) => {
-    Logger.debug('Ripple handler triggered', {
-      pointerId: ev.pointerId,
-      time: new Date().toISOString(),
-    });
-
-    // Create the ripple effect in the ripple container
-    const ripple = createRippleEffect(ev, rippleContainer);
-
-    // Clean up ripple after animation
-    setTimeout(() => {
-      removeRippleEffect(ripple);
-    }, 300);
-  };
-
-  // Attach the handler
-  container.addEventListener('pointerdown', container._rippleHandler);
-
-  // Return cleanup function
-  return () => {
-    if (container._rippleHandler) {
-      container.removeEventListener('pointerdown', container._rippleHandler);
-      delete container._rippleHandler;
-    }
-  };
-}
-
-/**
- * Create and animate a ripple effect at the specified position
- * Updated to match Home Assistant's edge-slowing behavior
- *
- * @param event - Pointer event that triggered the ripple
- * @param rippleContainer - Container element to add the ripple to
- * @returns The created ripple element
- */
-export function createRippleEffect(event: PointerEvent, rippleContainer: HTMLElement): HTMLElement {
-  Logger.info('Creating ripple effect', {
-    x: event.clientX,
-    y: event.clientY,
-    container: rippleContainer.className,
-  });
-
-  // Get container dimensions for proper sizing
-  const rect = rippleContainer.getBoundingClientRect();
-
-  // Calculate position relative to container
-  const x = event.clientX - rect.left;
-  const y = event.clientY - rect.top;
-
-  // Size ripple to ensure it covers the entire container (2.5x size)
-  const size = Math.max(rect.width, rect.height) * 2.5;
-
-  // Create ripple element with proper initial styling
-  const ripple = document.createElement('div');
-  ripple.className = 'card-ripple';
-
-  // Track animation state and start time for smart removal
-  ripple.dataset.expansionComplete = 'false';
-  ripple.dataset.startTime = Date.now().toString();
-
-  // Extract RGB values from computed accent color for gradient
-  const accentColor = getComputedStyle(rippleContainer)
-    .getPropertyValue('--card-accent-color')
-    .trim();
-  const rgbValues = extractRgbValues(accentColor);
-
-  // Keep the gradient as requested - this better matches the visual appearance
-  if (rgbValues) {
-    // This is the exact gradient pattern Home Assistant uses in v2025.3
-    ripple.style.backgroundImage = `radial-gradient(
-      circle at center,
-      ${accentColor} 50%, 
-      rgba(${rgbValues}, 0.5) 60%,
-      rgba(${rgbValues}, 0.25) 70%,
-      rgba(${rgbValues}, 0) 80%
-    )`;
-  }
-
-  // Position and size the ripple
-  ripple.style.width = `${size}px`;
-  ripple.style.height = `${size}px`;
-  ripple.style.left = `${x}px`;
-  ripple.style.top = `${y}px`;
-
-  // Set initial state (invisible and scaled to zero)
-  ripple.style.opacity = '0';
-  ripple.style.transform = 'translate(-50%, -50%) scale(0)';
-
-  // Add to container
-  rippleContainer.appendChild(ripple);
-
-  // Force a reflow before animation starts to ensure smooth transition
-  ripple.offsetWidth; // eslint-disable-line no-unused-expressions
-
-  requestAnimationFrame(() => {
-    // Set initial state for more pronounced wave effect - this is critical
-    ripple.style.transform = 'translate(-50%, -50%) scale(0.1)';
-    ripple.style.opacity = '0';
-
-    // Force layout calculation before animation
-    ripple.offsetWidth; // eslint-disable-line no-unused-expressions
-
-    // ENHANCED: Use modified cubic-bezier that slows down more dramatically at the end
-    // The 4th parameter (0.1 instead of 0.2) makes it slow down more at the edges
-    ripple.style.transition = 'transform 400ms cubic-bezier(0.4, 0.7, 1, 1), opacity 200ms linear';
-    ripple.style.transform = 'translate(-50%, -50%) scale(1)';
-
-    // Immediate start to opacity for better wave visibility
-    ripple.style.opacity = '0.12';
-
-    // Set up timer to mark expansion as complete
-    setTimeout(() => {
-      ripple.dataset.expansionComplete = 'true';
-      Logger.debug('Ripple expansion complete');
-    }, 400);
-  });
-
-  return ripple;
-}
-
-/**
- * Helper function to extract RGB values from a color string
- * Used to create the gradient for the ripple effect
- *
- * @param color - CSS color string (hex, rgb, rgba)
- * @returns RGB values as string or null if extraction failed
- */
-function extractRgbValues(color: string): string | null {
-  // Handle rgb/rgba format
-  const rgbMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/i);
-  if (rgbMatch) {
-    return `${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}`;
-  }
-
-  // Handle hex format (#rgb or #rrggbb)
-  const hexMatch = color.match(
-    /#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})|#([a-f\d])([a-f\d])([a-f\d])/i,
-  );
-  if (hexMatch) {
-    if (hexMatch[1]) {
-      // #rrggbb format
-      const r = parseInt(hexMatch[1], 16);
-      const g = parseInt(hexMatch[2], 16);
-      const b = parseInt(hexMatch[3], 16);
-      return `${r}, ${g}, ${b}`;
-    } else {
-      // #rgb format
-      const r = parseInt(hexMatch[4] + hexMatch[4], 16);
-      const g = parseInt(hexMatch[5] + hexMatch[5], 16);
-      const b = parseInt(hexMatch[6] + hexMatch[6], 16);
-      return `${r}, ${g}, ${b}`;
-    }
-  }
-
-  // Default for primary-color and other variables we can't resolve
-  return '3, 169, 244'; // Default HA blue
-}
-
-/**
- * Remove ripple effect with proper animation
- * Now using a smart inverse grace period that matches HA's behavior
- *
- * @param ripple - Ripple element to remove
- * @param delay - Optional delay before starting fade-out animation (default: 0ms)
- */
-export function removeRippleEffect(ripple: HTMLElement, delay = 0): void {
-  if (!ripple || !ripple.parentNode) return;
-
-  // If delay specified, wait before starting removal logic
-  setTimeout(() => {
-    // Check if expansion is already complete
-    const expansionComplete = ripple.dataset.expansionComplete === 'true';
-
-    if (expansionComplete) {
-      // If expansion is complete, fade out immediately (grace period = 0)
-      fadeOutRipple(ripple);
-    } else {
-      // Calculate expansion progress
-      const startTime = parseInt(ripple.dataset.startTime || '0', 10);
-      const elapsedTime = Date.now() - startTime;
-      const totalDuration = 400; // The full ripple expansion animation duration
-      const expansionProgress = Math.min(1, elapsedTime / totalDuration);
-
-      // SMART GRACE PERIOD: Longer for early interrupts, shorter as animation progresses
-      // - Early tap release (progress ~0.1): Use maximum grace (~300ms)
-      // - Middle interruption (progress ~0.5): Use medium grace (~150ms)
-      // - Late interruption (progress ~0.9): Use minimum grace (~30ms)
-      const MAX_GRACE = 300;
-      const MIN_GRACE = 30;
-
-      // Calculate inverse grace period - as progress increases, grace decreases
-      const gracePeriod = Math.round(MAX_GRACE * (1 - expansionProgress) + MIN_GRACE);
-
-      Logger.debug('Using dynamic grace period', {
-        expansionProgress,
-        gracePeriod,
-      });
-
-      // Wait for calculated grace period before fading out
-      setTimeout(() => fadeOutRipple(ripple), gracePeriod);
-    }
-  }, delay);
-}
-
-/**
- * Helper function to handle the fade-out and removal of ripple element
- * Updated with faster initial fade for a more responsive feel
- */
-function fadeOutRipple(ripple: HTMLElement): void {
-  // Check if the ripple expansion was complete
-  const expansionComplete = ripple.dataset.expansionComplete === 'true';
-  const startTime = parseInt(ripple.dataset.startTime || '0', 10);
-  const elapsedTime = Date.now() - startTime;
-  const expansionProgress = Math.min(1, elapsedTime / 400); // 400ms is the expansion duration
-
-  if (expansionComplete) {
-    // CASE 1: Ripple fully expanded - simple fade out without scale change
-    ripple.style.transition = 'opacity 200ms linear';
-    ripple.style.opacity = '0';
-    // No transform change - keep the fully expanded scale
-
-    // Remove after animation completes
-    setTimeout(() => {
-      if (ripple.parentNode) {
-        ripple.parentNode.removeChild(ripple);
-      }
-    }, 200);
-  } else {
-    // CASE 2: Ripple interrupted mid-expansion
-    // CRITICAL FIX: Use a SINGLE UNIFIED ANIMATION that continues expansion but at slower rate
-
-    // Calculate a larger target scale than current progress to ensure continued outward movement
-    // The key is that we want the ripple to CONTINUE expanding but at a slower pace
-    const currentScale = 0.1 + 0.9 * expansionProgress; // Current scale based on progress
-    const targetScale = currentScale + 0.9 * (1 - expansionProgress); // Continue expanding but slower
-
-    // Use single transition that handles both opacity and transform together
-    ripple.style.transition = 'opacity 250ms linear, transform 150ms cubic-bezier(0.0, 0, 0.2, 1)';
-
-    // Apply both changes at once to create unified animation
-    ripple.style.opacity = '0';
-    ripple.style.transform = `translate(-50%, -50%) scale(${targetScale})`;
-
-    // Remove after the animation completes
-    setTimeout(() => {
-      if (ripple.parentNode) {
-        ripple.parentNode.removeChild(ripple);
-      }
-    }, 250);
-  }
+  return interactionStyles;
 }
 
 /**
@@ -848,21 +417,18 @@ export function setupComponentIntegratedInteractions(
 ): () => void {
   Logger.debug('Setting up component-integrated interactions');
 
-  // Find ripple container - critical for operation
-  const rippleContainer = element.querySelector('.card-ripple-container') as HTMLElement;
-  if (!rippleContainer) {
-    Logger.warn('Cannot set up interactions - missing ripple container');
-    return () => {};
-  }
-
   // Clean up any existing timers in component state
   if (componentState.holdTimer !== null) {
     clearTimeout(componentState.holdTimer);
     componentState.holdTimer = null;
   }
 
-  // Track active ripples for proper cleanup
-  let activeRipples: HTMLElement[] = [];
+  // Find ripple element - critical for operation
+  const rippleElement = element.querySelector('calendar-ripple') as HTMLElement;
+  if (!rippleElement) {
+    Logger.warn('Cannot set up interactions - missing ripple element');
+    return () => {};
+  }
 
   // Reset component state for this interaction setup
   componentState.holdTriggered = false;
@@ -876,9 +442,8 @@ export function setupComponentIntegratedInteractions(
     componentState.holdTriggered = false;
     componentState.pendingHoldAction = false;
 
-    // Create visual ripple effect in ripple container
-    const ripple = createRippleEffect(ev, rippleContainer);
-    activeRipples.push(ripple);
+    // Store this event for hold indicator positioning
+    componentState.lastPointerEvent = ev;
 
     // Set up hold timer using component state
     if (config.hold_action && config.hold_action.action !== 'none') {
@@ -978,21 +543,10 @@ export function setupComponentIntegratedInteractions(
       componentState.holdTriggered = false;
       componentState.pendingHoldAction = false;
 
-      // FIXED: Remove delay before starting fade-out process
-      // The native HA implementation starts fade-out immediately
-      // Change from setTimeout(..., 100) to immediate execution
-      const index = activeRipples.indexOf(ripple);
-      if (index !== -1) {
-        removeRippleEffect(ripple);
-        activeRipples.splice(index, 1);
-      }
-
-      // Remove global listeners
-      window.removeEventListener('pointerup', handlePointerUp);
-      window.removeEventListener('pointercancel', handlePointerCancel);
+      // No need to remove ripple effects as our new calendar-ripple handles this
     };
 
-    // Define handlePointerCancel function that was missing
+    // Define handlePointerCancel function
     const handlePointerCancel = () => {
       // Clean up move listener
       window.removeEventListener('pointermove', handlePointerMove);
@@ -1014,16 +568,7 @@ export function setupComponentIntegratedInteractions(
         componentState.holdIndicator = null;
       }
 
-      // Remove ripple effect immediately
-      const index = activeRipples.indexOf(ripple);
-      if (index !== -1) {
-        removeRippleEffect(ripple);
-        activeRipples.splice(index, 1);
-      }
-
-      // Remove temporary global event listeners
-      window.removeEventListener('pointerup', handlePointerUp);
-      window.removeEventListener('pointercancel', handlePointerCancel);
+      // No need to remove ripple effects as our new calendar-ripple handles this
     };
 
     // Add global event listeners with appropriate options
@@ -1035,19 +580,9 @@ export function setupComponentIntegratedInteractions(
   // Add event listener to the element
   element.addEventListener('pointerdown', handlePointerDown);
 
-  // No need for navigation listener - we're now integrated with component lifecycle
-
   // Return cleanup function
   return () => {
     element.removeEventListener('pointerdown', handlePointerDown);
-
-    // Clean up any active ripples
-    activeRipples.forEach((ripple) => {
-      if (ripple && ripple.parentNode) {
-        ripple.parentNode.removeChild(ripple);
-      }
-    });
-    activeRipples = [];
 
     // Clean up hold indicator if needed
     if (componentState.holdIndicator && componentState.holdIndicator.parentNode) {

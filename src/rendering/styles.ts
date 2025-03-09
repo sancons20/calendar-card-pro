@@ -39,7 +39,8 @@ export function generateCustomProperties(config: Types.Config): string {
       --card-icon-size: ${config.time_location_icon_size};
       --card-date-column-width: ${parseFloat(config.day_font_size) * 1.75}px;
       --card-custom-background: ${config.background_color};
-      --card-accent-color: var(--card-line-color-vertical, var(--primary-color, #03a9f4));
+
+      /* Variables for ripple effect */
       --ha-ripple-hover-opacity: 0.04;
       --ha-ripple-hover-color: var(--card-line-color-vertical, var(--primary-color, #03a9f4));
       --ha-ripple-pressed-opacity: 0.12;
@@ -67,6 +68,25 @@ export function generateBaseStyles(): string {
       border-radius: var(--ha-card-border-radius, 10px);
       transition: transform 180ms ease-in-out;
     }
+    
+    /* Background layer for ripple - matching HA pattern */
+    .background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      right: 0;
+      border-radius: var(--ha-card-border-radius, 12px);
+      margin: calc(-1 * var(--ha-card-border-width, 1px));
+      overflow: hidden;
+    }
+    
+    /* Content container for proper layering */
+    .content-container {
+      position: relative;
+      z-index: 1;
+    }
+    
     .card-content {
       background: var(--card-custom-background, var(--card-background-color, #FFF));
       border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, var(--divider-color));
@@ -157,40 +177,6 @@ export function generateBaseStyles(): string {
       font-style: italic;
       padding: 16px;
     }
-
-
-
-
-    /* IMPORTANT: ALL STYLES BELOW ARE CURRENTLY NOT IN USE BECAUSE THEY ARE HARD-CODED IN THE MAIN CARD */
-
-    calendar-ripple {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      border-radius: inherit;
-    }
-    /* Focus styles for accessibility */
-    .card-container:focus {
-      outline: none;
-    }
-    .card-container:focus-visible {
-      box-shadow: 0 0 0 2px var(--ha-ripple-pressed-color);
-    }
-    
-    /* Hover styles using native CSS */
-    @media (hover: hover) {
-      .card-container:hover::before {
-        opacity: 0.05;
-      }
-      .card-container::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        opacity: 0;
-        background: var(--ha-ripple-hover-color);
-        transition: opacity 180ms ease-in-out;
-        z-index: 1;
-        pointer-events: none;
       }
     }
   `;
