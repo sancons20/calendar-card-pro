@@ -126,7 +126,7 @@ type: module
 | event_color             | string  | var(--primary-text-color)   | Default event title color                        |
 | time_color              | string  | var(--secondary-text-color) | Event time text color                            |
 | location_color          | string  | var(--secondary-text-color) | Location text color                              |
-| tap_action              | object  | { action: "expand" }        | Action on tap/click                              |
+| tap_action              | object  | { action: "none" }          | Action on tap/click                              |
 | hold_action             | object  | { action: "none" }          | Action on long press                             |
 
 ### Advanced Features
@@ -161,7 +161,7 @@ To better control the card's size, you can enable compact mode by setting the `m
 - Maintains a consistent card height
 - Automatically updates as events pass
 
-The card supports toggling between compact and full views by tapping/clicking (default behavior) or through custom tap/hold actions. This provides easy access to all events while maintaining a clean, space-efficient display by default.
+The card supports toggling between compact and full views by tapping/clicking through custom tap/hold actions. This provides easy access to all events while maintaining a clean, space-efficient display by default.
 
 #### Actions
 

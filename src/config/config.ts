@@ -48,7 +48,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   event_color: 'var(--primary-text-color)',
   time_color: 'var(--secondary-text-color)',
   location_color: 'var(--secondary-text-color)',
-  tap_action: { action: 'expand' },
+  tap_action: { action: 'none' },
   hold_action: { action: 'none' },
 };
 

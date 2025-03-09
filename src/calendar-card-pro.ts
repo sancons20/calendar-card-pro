@@ -203,15 +203,21 @@ class CalendarCardPro extends HTMLElement {
     this.refreshTimer.start();
   }
 
+  /**
+   * Enhanced disconnectedCallback to ensure complete cleanup
+   * Prevents memory leaks and visual artifacts when navigating between views
+   */
   disconnectedCallback() {
     // Clean up visibility handler
     if (this.visibilityCleanup) {
       this.visibilityCleanup();
+      this.visibilityCleanup = undefined;
     }
 
     // Use the timer controller to stop the refresh timer
     if (this.refreshTimer) {
       this.refreshTimer.stop();
+      this.refreshTimer = undefined;
     }
 
     clearInterval(this.cleanupInterval);
@@ -234,9 +240,26 @@ class CalendarCardPro extends HTMLElement {
       clearTimeout(this.interactionManager.state.holdTimer);
       this.interactionManager.state.holdTimer = null;
     }
+
+    // Make sure any remaining hold indicator is removed
+    if (this.interactionManager.state.holdIndicator) {
+      Logger.debug('Cleaning up orphaned hold indicator in disconnectedCallback');
+      Interaction.removeHoldIndicator(this.interactionManager.state.holdIndicator);
+      this.interactionManager.state.holdIndicator = null;
+    }
+
     this.interactionManager.state.holdTriggered = false;
     this.interactionManager.state.pendingHoldAction = false;
     this.interactionManager.state.activePointerId = null;
+
+    // Ensure all global hold indicators are cleaned up
+    // This is a safety mechanism for any indicators that might have been orphaned
+    Interaction.cleanupAllHoldIndicators();
+
+    // Clear the shadow DOM completely to prevent memory leaks
+    if (this.shadowRoot) {
+      DomUtils.clearShadowRoot(this.shadowRoot);
+    }
   }
 
   /******************************************************************************
@@ -260,7 +283,33 @@ class CalendarCardPro extends HTMLElement {
     this.isExpanded = initialState.isExpanded;
   }
 
+  /**
+   * Improved cleanup method with explicit cache clearing and hold indicator cleanup
+   */
   cleanup() {
+    // Clear render timeout if any
+    if (this.renderTimeout) {
+      clearTimeout(this.renderTimeout);
+      this.renderTimeout = undefined;
+    }
+
+    // Clear memoization caches - fix the TypeScript error by using type assertion
+    if (this.memoizedFormatTime && 'cache' in this.memoizedFormatTime) {
+      (this.memoizedFormatTime as unknown as { cache: Map<string, any> }).cache?.clear();
+    }
+
+    if (this.memoizedFormatLocation && 'cache' in this.memoizedFormatLocation) {
+      (this.memoizedFormatLocation as unknown as { cache: Map<string, any> }).cache?.clear();
+    }
+
+    // Ensure any hold indicators are cleaned up
+    if (this.interactionManager.state.holdIndicator) {
+      Logger.debug('Cleaning up hold indicator in cleanup method');
+      Interaction.removeHoldIndicator(this.interactionManager.state.holdIndicator);
+      this.interactionManager.state.holdIndicator = null;
+    }
+
+    // Call StateUtils cleanup as a fallback
     StateUtils.cleanup(
       this.renderTimeout,
       this.memoizedFormatTime as unknown as Types.MemoCache<string>,
@@ -439,7 +488,9 @@ class CalendarCardPro extends HTMLElement {
   toggleExpanded() {
     if (this.config.max_events_to_show) {
       this.isExpanded = !this.isExpanded;
-      this.renderCard();
+
+      // Add delay to allow ripple animation to complete before re-rendering
+      setTimeout(() => this.renderCard(), 500); // Match ripple animation duration
     }
   }
 
@@ -559,7 +610,7 @@ class CalendarCardPro extends HTMLElement {
       // Set up action handler for ripple events and hold detection
       const setupActions = () => {
         // Event handler for mdw:action events (clicks from ripple)
-        const handleAction = (ev: CustomEvent) => {
+        const handleAction = (_ev: CustomEvent) => {
           if (!this._hass) return;
 
           // Only handle click events if hold wasn't triggered
@@ -664,10 +715,31 @@ class CalendarCardPro extends HTMLElement {
           }
         };
 
+        // Handle pointer leave - clean up hold state when pointer leaves the card
+        const handlePointerLeave = () => {
+          // Clear hold timer
+          if (holdTimer) {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+          }
+
+          // Reset tracking state
+          activePointerId = null;
+          this.interactionManager.state.holdTriggered = false;
+
+          // Remove hold indicator if it exists
+          if (this.interactionManager.state.holdIndicator) {
+            Logger.debug('Removing hold indicator on pointer leave');
+            Interaction.removeHoldIndicator(this.interactionManager.state.holdIndicator);
+            this.interactionManager.state.holdIndicator = null;
+          }
+        };
+
         // Add pointer event listeners
         container.addEventListener('pointerdown', handlePointerDown);
         container.addEventListener('pointerup', handlePointerUp);
         container.addEventListener('pointercancel', handlePointerCancel);
+        container.addEventListener('pointerleave', handlePointerLeave);
 
         // Add support for keyboard interactions (accessibility)
         const handleKeyDown = (ev: KeyboardEvent) => {
@@ -694,6 +766,7 @@ class CalendarCardPro extends HTMLElement {
           container.removeEventListener('pointerdown', handlePointerDown);
           container.removeEventListener('pointerup', handlePointerUp);
           container.removeEventListener('pointercancel', handlePointerCancel);
+          container.removeEventListener('pointerleave', handlePointerLeave);
 
           // Clear any active timers
           if (holdTimer) {
@@ -724,10 +797,22 @@ class CalendarCardPro extends HTMLElement {
 
   /**
    * Add navigation detection to connected callback
+   * Enhanced to properly restore state after navigation
    */
   connectedCallback() {
-    // If we have a container reference but no cleanup function,
-    // reconnect the interactions (this happens during navigation)
+    Logger.debug('Connected callback called - checking if rendering needed');
+
+    // Check if we have content in the shadow DOM
+    const hasContent = this.shadowRoot?.childElementCount && this.shadowRoot.childElementCount > 0;
+
+    if (!hasContent && this._hass) {
+      // No content, but we have hass - likely returning from navigation
+      Logger.debug('No content found after navigation - triggering render');
+      this.renderCard();
+      return;
+    }
+
+    // The rest of the original connectedCallback logic for interaction restoration
     if (this.interactionManager.container && !this.interactionManager.cleanup) {
       // Find our ripple element
       const ripple = this.interactionManager.container.querySelector('calendar-ripple');
@@ -817,8 +902,28 @@ class CalendarCardPro extends HTMLElement {
           }
         };
 
+        // Handle pointer leave - clean up hold state when pointer leaves the card
+        const handlePointerLeave = () => {
+          // Clear hold timer
+          if (holdTimer) {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+          }
+
+          // Reset tracking state
+          activePointerId = null;
+          this.interactionManager.state.holdTriggered = false;
+
+          // Remove hold indicator if it exists
+          if (this.interactionManager.state.holdIndicator) {
+            Logger.debug('Removing hold indicator on pointer leave');
+            Interaction.removeHoldIndicator(this.interactionManager.state.holdIndicator);
+            this.interactionManager.state.holdIndicator = null;
+          }
+        };
+
         // Set up action handler for mdw:action events (clicks)
-        const handleAction = (ev: CustomEvent) => {
+        const handleAction = (_ev: CustomEvent) => {
           if (!this._hass) return;
 
           // Only handle click events if hold wasn't triggered
@@ -837,6 +942,7 @@ class CalendarCardPro extends HTMLElement {
         container.addEventListener('pointerdown', handlePointerDown);
         container.addEventListener('pointerup', handlePointerUp);
         container.addEventListener('pointercancel', handlePointerCancel);
+        container.addEventListener('pointerleave', handlePointerLeave);
 
         // Re-attach ripple
         if ('attach' in ripple) {
@@ -849,6 +955,7 @@ class CalendarCardPro extends HTMLElement {
           container.removeEventListener('pointerdown', handlePointerDown);
           container.removeEventListener('pointerup', handlePointerUp);
           container.removeEventListener('pointercancel', handlePointerCancel);
+          container.removeEventListener('pointerleave', handlePointerLeave);
 
           // Clear any active timers
           if (holdTimer) {

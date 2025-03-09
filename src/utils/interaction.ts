@@ -14,6 +14,39 @@ import * as Types from '../config/types';
 import * as Logger from './logger-utils';
 
 /**
+ * Global registry for all active hold indicators
+ * Used to ensure cleanup of any orphaned indicators
+ */
+const globalHoldIndicatorRegistry = new Set<HTMLElement>();
+
+/**
+ * Setup window blur event handler to clean up any orphaned indicators
+ * This ensures indicators are removed even if normal cleanup fails
+ */
+window.addEventListener('blur', () => {
+  // Clean up all registered indicators when window loses focus
+  cleanupAllHoldIndicators();
+});
+
+/**
+ * Clean up all registered hold indicators
+ * This is a safety mechanism to prevent orphaned indicators
+ */
+export function cleanupAllHoldIndicators(): void {
+  if (globalHoldIndicatorRegistry.size > 0) {
+    Logger.debug(`Cleaning up ${globalHoldIndicatorRegistry.size} orphaned hold indicators`);
+
+    // Remove all indicators
+    globalHoldIndicatorRegistry.forEach((indicator) => {
+      removeHoldIndicator(indicator);
+    });
+
+    // Clear the registry
+    globalHoldIndicatorRegistry.clear();
+  }
+}
+
+/**
  * Extract primary entity ID from entities configuration
  */
 export function getPrimaryEntityId(
@@ -277,8 +310,6 @@ export function createHoldIndicator(event: PointerEvent): HTMLElement {
 
   // Create hold indicator element with correct class
   const indicator = document.createElement('div');
-  // DON'T use the class - this prevents any CSS conflicts
-  // indicator.className = 'card-hold-indicator';
 
   // Determine if this is a touch device for proper sizing
   const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
@@ -303,28 +334,19 @@ export function createHoldIndicator(event: PointerEvent): HTMLElement {
     backface-visibility: hidden !important;
   `;
 
-  // Log size details for debugging
-  Logger.info(`Creating ${isTouchDevice ? 'touch' : 'mouse'} hold indicator with size: ${size}px`);
-
   // Add to document body
   document.body.appendChild(indicator);
+
+  // Register the indicator in our global registry
+  globalHoldIndicatorRegistry.add(indicator);
 
   // Force a reflow to ensure the initial state is rendered
   indicator.offsetWidth; // eslint-disable-line no-unused-expressions
 
-  // Animate to full size with explicit size check after animation
+  // Animate to full size
   requestAnimationFrame(() => {
     indicator.style.opacity = '0.20';
     indicator.style.transform = 'translate(-50%, -50%) scale(1)';
-
-    // Double-check actual rendered size
-    setTimeout(() => {
-      const computedStyle = window.getComputedStyle(indicator);
-      Logger.info('Hold indicator rendered size:', {
-        width: computedStyle.width,
-        height: computedStyle.height,
-      });
-    }, 50);
   });
 
   return indicator;
@@ -332,16 +354,19 @@ export function createHoldIndicator(event: PointerEvent): HTMLElement {
 
 /**
  * Remove hold indicator with proper animation
- * Enhanced with smoother exit animation
+ * Enhanced with smoother exit animation and registry cleanup
  *
  * @param indicator - Hold indicator element to remove
  */
 export function removeHoldIndicator(indicator: HTMLElement): void {
   if (!indicator || !indicator.parentNode) return;
 
-  // Start fade-out animation with transform for smoother effect
+  // Start fade-out animation
   indicator.style.opacity = '0';
   indicator.style.transform = 'translate(-50%, -50%) scale(0.9)';
+
+  // Remove from registry
+  globalHoldIndicatorRegistry.delete(indicator);
 
   // Remove from DOM after animation completes
   setTimeout(() => {
