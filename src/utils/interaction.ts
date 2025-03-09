@@ -313,36 +313,31 @@ export function createInteractionStyles(): HTMLStyleElement {
 }
 
 /**
- * Create the three-layer DOM structure required for interactions
- *
- * @returns Object containing the container and layer elements
+ * Create the DOM structure required for interactions with MDC ripple
  */
 export function createInteractionDom(): {
   container: HTMLDivElement;
-  bgLayer: HTMLDivElement;
-  rippleContainer: HTMLDivElement;
+  ripple: Element;
   contentLayer: HTMLDivElement;
 } {
-  // Create layered container structure
+  // Create container with proper attributes
   const container = document.createElement('div');
   container.className = 'card-container';
+  container.setAttribute('role', 'button');
+  container.setAttribute('tabindex', '0');
 
-  // Create and add background layer
-  const bgLayer = document.createElement('div');
-  bgLayer.className = 'card-bg-layer';
-  container.appendChild(bgLayer);
-
-  // Create ripple container
-  const rippleContainer = document.createElement('div');
-  rippleContainer.className = 'card-ripple-container';
-  container.appendChild(rippleContainer);
+  // Create the ripple element (using our custom element)
+  const ripple = document.createElement('calendar-ripple');
 
   // Create content layer
   const contentLayer = document.createElement('div');
   contentLayer.className = 'card-content-layer';
+
+  // Add ripple first, then content (same structure as HA)
+  container.appendChild(ripple);
   container.appendChild(contentLayer);
 
-  return { container, bgLayer, rippleContainer, contentLayer };
+  return { container, ripple, contentLayer };
 }
 
 /**

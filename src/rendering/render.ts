@@ -12,7 +12,7 @@ import * as DomUtils from '../utils/dom-utils';
 import * as Styles from './styles';
 
 /**
- * Render a calendar card with proper container setup for ripple effects
+ * Render a calendar card with proper container setup for MDC ripple
  */
 export async function renderCalendarCard(
   config: Types.Config,
@@ -22,34 +22,16 @@ export async function renderCalendarCard(
   chunkSize: number,
   renderDelay: number,
 ): Promise<{ container: HTMLDivElement; style: HTMLStyleElement }> {
-  // Create container for the card
+  // Create container for the card content (not the outer container)
   const container = document.createElement('div');
-  container.className = 'card-container card-interactive hover-effect-target';
-
-  // Add essential styling for interactions
-  container.style.position = 'relative'; // Required for absolute positioning of ripple
-  container.style.overflow = 'hidden'; // Keep ripples contained
-  container.style.display = 'block'; // Ensure block display for proper sizing
-  container.style.width = '100%'; // Fill available width
-  container.style.height = '100%'; // Fill available height
-  container.style.boxSizing = 'border-box'; // Include padding in dimensions
-
-  // Create content div inside container
-  const content = document.createElement('div');
-  content.className = 'card-content';
-  content.style.position = 'relative';
-  content.style.zIndex = '2'; // Above ripples
-
-  // Create ripple container for tap effects
-  const rippleContainer = document.createElement('div');
-  rippleContainer.className = 'card-ripple-container';
+  container.className = 'card-content';
 
   // Add title if configured
   if (config.title) {
     const title = document.createElement('h2');
     title.className = 'title';
     title.textContent = config.title;
-    content.appendChild(title);
+    container.appendChild(title);
   }
 
   // Add calendar content
@@ -62,11 +44,7 @@ export async function renderCalendarCard(
     renderDelay,
   );
 
-  content.appendChild(calendarContent);
-
-  // Layer order matters: ripple container first (under content)
-  container.appendChild(rippleContainer);
-  container.appendChild(content);
+  container.appendChild(calendarContent);
 
   // Create style element
   const style = document.createElement('style');

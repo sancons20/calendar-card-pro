@@ -32,6 +32,8 @@ import * as Render from './rendering/render';
 import * as DomUtils from './utils/dom-utils';
 import * as Logger from './utils/logger-utils';
 import * as Editor from './rendering/editor';
+import './utils/calendar-ripple';
+import type { MDWActionEvent } from './utils/custom-events';
 
 // Ensure this file is treated as a module
 export {};
@@ -499,8 +501,9 @@ class CalendarCardPro extends HTMLElement {
     }
 
     try {
-      // Get the calendar content using the render module
-      const { container, style } = await Render.renderCalendarCard(
+      Logger.debug('Creating card structure');
+      // Create the basic card structure using render module
+      const { container: contentContainer, style } = await Render.renderCalendarCard(
         this.config,
         eventsByDay,
         (event) => this.formatEventTime(event),
@@ -509,52 +512,92 @@ class CalendarCardPro extends HTMLElement {
         Helpers.PERFORMANCE_CONSTANTS.RENDER_DELAY,
       );
 
-      // Clear the shadow DOM before adding new content
-      DomUtils.clearShadowRoot(this.shadowRoot!);
-
-      // Use our interaction module for styles and DOM structure
-      const interactionStyles = Interaction.createInteractionStyles();
-
-      // Create the layered DOM structure
-      const {
-        container: layeredContainer,
-        bgLayer,
-        rippleContainer,
-        contentLayer,
-      } = Interaction.createInteractionDom();
-
-      // Move content from the original container to our content layer
-      if (container instanceof HTMLElement) {
-        Interaction.moveContentToLayer(container, contentLayer);
-      }
-
-      // Add layers to shadow DOM
-      this.shadowRoot?.appendChild(interactionStyles);
-      this.shadowRoot?.appendChild(style); // Original styles
-      this.shadowRoot?.appendChild(layeredContainer);
-
-      // Clean up previous interaction listeners
+      // Clean up any previous interaction handlers
       if (this.interactionManager.cleanup) {
         this.interactionManager.cleanup();
         this.interactionManager.cleanup = null;
       }
 
+      // Clear the shadow DOM before adding new content
+      DomUtils.clearShadowRoot(this.shadowRoot!);
+
       // Get primary entity ID for interactions
       const entityId = Interaction.getPrimaryEntityId(this.config.entities);
 
-      // Store reference to container
-      this.interactionManager.container = layeredContainer;
+      // Create container with HA-style structure
+      const container = document.createElement('div');
+      container.className = 'card-container';
+      container.setAttribute('role', 'button');
+      container.setAttribute('tabindex', '0');
 
-      // Setup interactions with component-managed state and container reference
-      this.interactionManager.cleanup = Interaction.setupComponentIntegratedInteractions(
-        layeredContainer,
-        this.config,
-        this._hass,
-        entityId,
-        () => this.toggleExpanded(),
-        this.interactionManager.state, // Pass component's state object
-      );
+      // Create the actual ripple element
+      const ripple = document.createElement('calendar-ripple');
+
+      // Move the original content into our container
+      if (contentContainer instanceof HTMLElement) {
+        while (contentContainer.firstChild) {
+          container.appendChild(contentContainer.firstChild);
+        }
+      }
+
+      // Add ripple first (this matches HA's pattern)
+      container.insertBefore(ripple, container.firstChild);
+
+      // Add the card to the DOM
+      this.shadowRoot?.appendChild(style);
+      this.shadowRoot?.appendChild(container);
+
+      // After adding to shadow DOM
+      Logger.debug('Added to shadow DOM', {
+        hasStyle: !!style,
+        hasContainer: !!container,
+        rippleFound: !!container.querySelector('calendar-ripple'),
+      });
+
+      // Store container reference
+      this.interactionManager.container = container;
+
+      // Set up action handler for tap/hold actions
+      const setupActions = () => {
+        // Configure action handlers
+        const handleAction = (ev: MDWActionEvent) => {
+          if (!this._hass) return;
+
+          // Determine if this was a hold or tap action
+          const isHold = ev.detail?.source === 'holdEnd';
+
+          if (isHold && this.config.hold_action) {
+            Interaction.handleAction(this.config.hold_action, this._hass, container, entityId, () =>
+              this.toggleExpanded(),
+            );
+          } else if (!isHold && this.config.tap_action) {
+            Interaction.handleAction(this.config.tap_action, this._hass, container, entityId, () =>
+              this.toggleExpanded(),
+            );
+          }
+        };
+
+        // Add event listener for MDC ripple actions
+        container.addEventListener('mdw:action', handleAction as EventListener);
+
+        // Set up touch events
+        if (ripple instanceof HTMLElement && 'attach' in ripple) {
+          (ripple as any).attach(container);
+        }
+
+        // Return cleanup function
+        return () => {
+          container.removeEventListener('mdw:action', handleAction);
+          if (ripple instanceof HTMLElement && 'detach' in ripple) {
+            (ripple as any).detach();
+          }
+        };
+      };
+
+      // Setup and store the cleanup function
+      this.interactionManager.cleanup = setupActions();
     } catch (error) {
+      console.error('Calendar Card Pro - Render error:', error);
       Logger.error('Render error:', error);
       Render.renderErrorToDOM(this.shadowRoot!, 'error', this.config);
     }
@@ -569,29 +612,59 @@ class CalendarCardPro extends HTMLElement {
     // If we have a container reference but no cleanup function,
     // reconnect the interactions (this happens during navigation)
     if (this.interactionManager.container && !this.interactionManager.cleanup) {
+      // Find our ripple element
+      const ripple = this.interactionManager.container.querySelector('calendar-ripple');
       const entityId = Interaction.getPrimaryEntityId(this.config.entities);
 
-      // Re-establish interactions with the same state object
-      this.interactionManager.cleanup = Interaction.setupComponentIntegratedInteractions(
-        this.interactionManager.container,
-        this.config,
-        this._hass,
-        entityId,
-        () => this.toggleExpanded(),
-        this.interactionManager.state,
-      );
+      if (ripple) {
+        // Set up action handler for tap/hold actions
+        const handleAction = (ev: MDWActionEvent) => {
+          if (!this._hass) return;
 
-      Logger.debug('Restored interaction handlers in connectedCallback');
+          // Determine if this was a hold or tap action
+          const isHold = ev.detail?.source === 'holdEnd';
+
+          if (isHold && this.config.hold_action) {
+            Interaction.handleAction(
+              this.config.hold_action,
+              this._hass,
+              this.interactionManager.container!,
+              entityId,
+              () => this.toggleExpanded(),
+            );
+          } else if (!isHold && this.config.tap_action) {
+            Interaction.handleAction(
+              this.config.tap_action,
+              this._hass,
+              this.interactionManager.container!,
+              entityId,
+              () => this.toggleExpanded(),
+            );
+          }
+        };
+
+        // Add event listener for MDC ripple actions
+        this.interactionManager.container.addEventListener(
+          'mdw:action',
+          handleAction as EventListener,
+        );
+
+        // Re-attach ripple
+        if ('attach' in ripple) {
+          (ripple as any).attach(this.interactionManager.container);
+        }
+
+        // Store cleanup function
+        this.interactionManager.cleanup = () => {
+          this.interactionManager.container?.removeEventListener('mdw:action', handleAction);
+          if ('detach' in ripple) {
+            (ripple as any).detach();
+          }
+        };
+
+        Logger.debug('Restored MDC ripple interaction handlers in connectedCallback');
+      }
     }
-  }
-
-  /**
-   * Handle and display different card states
-   * @param {'loading' | 'empty' | 'error'} state - Current card state
-   * @private
-   */
-  renderError(state: 'loading' | 'empty' | 'error') {
-    Render.renderErrorToDOM(this.shadowRoot!, state, this.config);
   }
 
   /******************************************************************************
