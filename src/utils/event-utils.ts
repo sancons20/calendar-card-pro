@@ -10,6 +10,7 @@ import * as Localize from '../translations/localize';
 import * as FormatUtils from './format-utils';
 import * as Helpers from './helpers';
 import * as Logger from './logger-utils';
+import * as Config from '../config/config'; // Add this import
 
 // HIGH-LEVEL API FUNCTIONS FIRST
 
@@ -276,7 +277,7 @@ export function groupEventsByDay(
         : '',
       start: event.start,
       end: event.end,
-      _entityConfig: event._entityConfig,
+      _entityId: event._entityId,
     });
   });
 
@@ -354,10 +355,7 @@ export async function fetchEvents(
       const processedEvents = (events as Types.CalendarEventData[]).map(
         (event: Types.CalendarEventData) => ({
           ...event,
-          _entityConfig: {
-            entity: entityConfig.entity,
-            color: entityConfig.color || 'var(--primary-text-color)',
-          },
+          _entityId: entityConfig.entity,
         }),
       );
       allEvents.push(...processedEvents);
@@ -577,12 +575,14 @@ export function getBaseCacheKey(
   _config: unknown,
 ): string {
   // Extract just entity IDs in a stable format, sorted to ensure consistency
+  // Explicitly ignore entity color since it's a styling property and doesn't affect
+  // the underlying event data that needs to be fetched
   const entityIds = entities
     .map((e) => (typeof e === 'string' ? e : e.entity))
     .sort()
     .join('_');
 
-  // Create a very simple, stable cache key that doesn't depend on instanceId
+  // Create a very simple, stable cache key that doesn't depend on instanceId or styling
   // This allows cache to be shared between component recreations
   return `calendar_data_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}`;
 }
@@ -642,4 +642,131 @@ export function cleanupCache(_prefix: string): void {
   } catch (e) {
     Logger.warn('Cache cleanup failed:', e);
   }
+}
+
+/**
+ * Get entity color from configuration based on entity ID
+ *
+ * @param entityId - The entity ID to find color for
+ * @param config - Current card configuration
+ * @returns Color string from entity config or default
+ */
+export function getEntityColor(entityId: string | undefined, config: Types.Config): string {
+  if (!entityId) return 'var(--primary-text-color)';
+
+  const entityConfig = config.entities.find(
+    (e) =>
+      (typeof e === 'string' && e === entityId) || (typeof e === 'object' && e.entity === entityId),
+  );
+
+  if (!entityConfig) return 'var(--primary-text-color)';
+
+  return typeof entityConfig === 'string'
+    ? 'var(--primary-text-color)'
+    : entityConfig.color || 'var(--primary-text-color)';
+}
+
+/**
+ * Process calendar events from API response
+ *
+ * @param events - Raw events from Home Assistant API
+ * @param entityConfig - Entity configuration with color information
+ * @returns Processed calendar events
+ */
+export function processEvents(
+  events: Types.CalendarEventData[],
+  entityConfig: Types.EntityConfig,
+): Types.CalendarEventData[] {
+  return events.map((event) => {
+    // MODIFIED: Store only entity ID instead of full config with color
+    event._entityId = entityConfig.entity;
+
+    return event;
+  });
+}
+
+/**
+ * Process events for all calendar entities
+ *
+ * @param rawResponse - Raw API response with events
+ * @param entities - Calendar entities configuration
+ * @returns Processed events for all entities
+ */
+export async function processAllEntityEvents(
+  rawResponse: Record<string, Types.CalendarEventData[]>,
+  entities: Types.EntityConfig[],
+): Promise<Types.CalendarEventData[]> {
+  let allEvents: Types.CalendarEventData[] = [];
+
+  for (const entityConfig of entities) {
+    const entityId = entityConfig.entity;
+    const events = rawResponse[entityId] || [];
+
+    // Process events for this entity - MODIFIED to store only entity ID
+    const processedEvents = processEvents(events, entityConfig);
+    allEvents = [...allEvents, ...processedEvents];
+  }
+
+  return allEvents;
+}
+
+/**
+ * Process calendar data from API response
+ *
+ * @param response - API response data
+ * @param config - Card configuration
+ * @returns Processed calendar events
+ */
+export function processCalendarData(
+  response: Record<string, Types.CalendarEventData[]>,
+  config: Types.Config,
+): Types.CalendarEventData[] {
+  // Normalize entities to ensure consistent format
+  const normalizedEntities = Config.normalizeEntities(config.entities);
+
+  let allEvents: Types.CalendarEventData[] = [];
+
+  // Process events for each entity
+  for (const entityConfig of normalizedEntities) {
+    const entityEvents = response[entityConfig.entity] || [];
+
+    // Process and add events for this entity
+    const processedEntityEvents = entityEvents.map((event) => {
+      // MODIFIED: Store only entity ID instead of full config
+      const processedEvent = { ...event };
+      processedEvent._entityId = entityConfig.entity;
+
+      return processedEvent;
+    });
+
+    allEvents = [...allEvents, ...processedEntityEvents];
+  }
+
+  // Sort events by start time
+  return sortEvents(allEvents);
+}
+
+/**
+ * Sort calendar events by start time
+ *
+ * @param events - Calendar events to sort
+ * @returns Sorted events array
+ */
+export function sortEvents(events: Types.CalendarEventData[]): Types.CalendarEventData[] {
+  return [...events].sort((a, b) => {
+    // Get start timestamps for comparison
+    const aStart = a.start.dateTime
+      ? new Date(a.start.dateTime).getTime()
+      : a.start.date
+        ? new Date(a.start.date).getTime()
+        : 0;
+
+    const bStart = b.start.dateTime
+      ? new Date(b.start.dateTime).getTime()
+      : b.start.date
+        ? new Date(b.start.date).getTime()
+        : 0;
+
+    return aStart - bStart;
+  });
 }

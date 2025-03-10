@@ -369,11 +369,19 @@ class CalendarCardPro extends HTMLElement {
     // Check if data-affect configuration has changed
     const configChanged = Config.hasConfigChanged(previousConfig, this.config);
 
+    // Check if only entity colors changed (requires re-render but not data refresh)
+    const colorChanged = Config.haveEntityColorsChanged(previousConfig, this.config);
+
     if (configChanged) {
       Logger.info('Configuration changed, refreshing data');
       this.updateEvents(true); // Force refresh
+    } else if (colorChanged) {
+      // If only entity colors changed, just re-render without data refresh
+      Logger.info('Entity colors changed, re-rendering without data refresh');
+      this.renderCard();
     } else {
-      this.renderCard(); // Just re-render with new styling
+      // Re-render with new styling for other changes
+      this.renderCard();
     }
 
     // Restart the refresh timer with the new configuration
@@ -991,6 +999,9 @@ class CalendarCardPro extends HTMLElement {
     );
   }
 
+  /**
+   * Generate HTML content for a single day's events
+   */
   generateDayContent(day: Types.EventsByDay): string {
     return Render.generateDayContent(
       day,
@@ -998,6 +1009,14 @@ class CalendarCardPro extends HTMLElement {
       (event) => this.formatEventTime(event),
       (location) => this.formatLocation(location),
     );
+  }
+
+  /**
+   * Get entity color for styling
+   * Helper method to access the color utility from the main component
+   */
+  getEntityColor(entityId: string): string {
+    return EventUtils.getEntityColor(entityId, this.config);
   }
 
   /******************************************************************************

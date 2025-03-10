@@ -9,6 +9,7 @@
 import * as Types from '../config/types';
 import * as Localize from '../translations/localize';
 import * as DomUtils from '../utils/dom-utils';
+import * as EventUtils from '../utils/event-utils';
 import * as Styles from './styles';
 
 /**
@@ -175,7 +176,7 @@ export function renderErrorState(
           summary: Localize.translateString(config.language, 'noEvents'),
           time: '', // No time display
           location: '', // No location
-          _entityConfig: { color: 'var(--secondary-text-color)' },
+          _entityId: '', // Use empty entity ID for default color
         },
       ],
     };
@@ -186,7 +187,10 @@ export function renderErrorState(
     const content = document.createElement('div');
     content.className = 'card-content';
 
-    // Modified the empty state to not show time icon
+    // Get default color - using the event color from config since there's no entity
+    const defaultColor = config.event_color || 'var(--secondary-text-color)';
+
+    // Modified the empty state to not show time icon and use default color
     content.innerHTML = `
       <table>
         <tr>
@@ -199,7 +203,7 @@ export function renderErrorState(
           </td>
           <td class="event">
             <div class="event-content">
-              <div class="event-title" style="color: ${emptyDay.events[0]._entityConfig.color}">
+              <div class="event-title" style="color: ${defaultColor}">
                 ${emptyDay.events[0].summary}
               </div>
             </div>
@@ -261,8 +265,11 @@ export function generateCalendarContent(
       if (day.events.length === 0) return '';
 
       const eventRows = day.events
-        .map(
-          (event: Types.CalendarEventData, index: number) => `
+        .map((event: Types.CalendarEventData, index: number) => {
+          // Get color from config based on entity ID
+          const entityColor = EventUtils.getEntityColor(event._entityId, config);
+
+          return `
       <tr>
         ${
           index === 0
@@ -279,7 +286,7 @@ export function generateCalendarContent(
         }
         <td class="event">
           <div class="event-content">
-            <div class="event-title">${event.summary}</div>
+            <div class="event-title" style="color: ${entityColor}">${event.summary}</div>
             <div class="time-location">
               <div class="time">
                 <ha-icon icon="hass:clock-outline"></ha-icon>
@@ -299,8 +306,8 @@ export function generateCalendarContent(
           </div>
         </td>
       </tr>
-    `,
-        )
+    `;
+        })
         .join('');
 
       return `<table>${eventRows}</table>`;
@@ -324,8 +331,11 @@ export function generateDayContent(
   formatLocation: (location: string) => string,
 ): string {
   return day.events
-    .map(
-      (event: Types.CalendarEventData, index: number) => `
+    .map((event: Types.CalendarEventData, index: number) => {
+      // Get color from config based on entity ID
+      const entityColor = EventUtils.getEntityColor(event._entityId, config);
+
+      return `
     <tr>
       ${
         index === 0
@@ -342,9 +352,7 @@ export function generateDayContent(
       }
       <td class="event">
         <div class="event-content">
-          <div class="event-title" style="color: ${
-            event._entityConfig?.color
-          }">${event.summary}</div>
+          <div class="event-title" style="color: ${entityColor}">${event.summary}</div>
           <div class="time-location">
             <div class="time">
               <ha-icon icon="hass:clock-outline"></ha-icon>
@@ -364,7 +372,7 @@ export function generateDayContent(
         </div>
       </td>
     </tr>
-  `,
-    )
+  `;
+    })
     .join('');
 }

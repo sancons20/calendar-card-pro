@@ -99,10 +99,11 @@ export function requiresDataRefresh(
       const prevEntities = previous.entities || [];
       const currEntities = current.entities || [];
 
-      // Compare only the entity IDs, ignoring styling options
+      // Compare only the entity IDs, explicitly ignoring color properties
       const prevIds = new Set(prevEntities.map((e) => (typeof e === 'string' ? e : e.entity)));
       const currIds = new Set(currEntities.map((e) => (typeof e === 'string' ? e : e.entity)));
 
+      // Return true only if actual entities changed (added or removed)
       if (prevIds.size !== currIds.size) return true;
       return Array.from(prevIds).some((id) => !currIds.has(id));
     }
@@ -114,7 +115,6 @@ export function requiresDataRefresh(
 
 /**
  * Determine if configuration changes affect data retrieval
- * Combined implementation that handles both partial and full configs
  */
 export function hasConfigChanged(
   previous: Partial<Types.Config> | undefined,
@@ -125,7 +125,8 @@ export function hasConfigChanged(
     return true;
   }
 
-  // Extract entity IDs without colors for comparison
+  // Extract entity IDs without colors for comparison - entity colors are styling only
+  // and don't require API data refresh
   const previousEntityIds = (previous.entities || [])
     .map((e) => (typeof e === 'string' ? e : e.entity))
     .sort()
@@ -151,6 +152,59 @@ export function hasConfigChanged(
   }
 
   return dataChanged || refreshIntervalChanged;
+}
+
+/**
+ * Check if entity colors have changed in the configuration
+ * This is used to determine if a re-render (but not data refresh) is needed
+ *
+ * @param previous - Previous configuration
+ * @param current - New configuration
+ * @returns True if entity colors have changed
+ */
+export function haveEntityColorsChanged(
+  previous: Partial<Types.Config> | undefined,
+  current: Types.Config,
+): boolean {
+  if (!previous || !previous.entities) return false;
+
+  const prevEntities = previous.entities;
+  const currEntities = current.entities;
+
+  // If entity count changed, let other functions handle it
+  if (prevEntities.length !== currEntities.length) return false;
+
+  // Create a map of entity IDs to colors for previous config
+  const prevColorMap = new Map<string, string>();
+  prevEntities.forEach((entity) => {
+    if (typeof entity === 'string') {
+      prevColorMap.set(entity, 'var(--primary-text-color)');
+    } else {
+      prevColorMap.set(entity.entity, entity.color || 'var(--primary-text-color)');
+    }
+  });
+
+  // Check if any entity colors changed in current config
+  for (const entity of currEntities) {
+    const entityId = typeof entity === 'string' ? entity : entity.entity;
+    const color =
+      typeof entity === 'string'
+        ? 'var(--primary-text-color)'
+        : entity.color || 'var(--primary-text-color)';
+
+    if (!prevColorMap.has(entityId)) {
+      // New entity, let other functions handle it
+      continue;
+    }
+
+    // If color changed for an existing entity, return true
+    if (prevColorMap.get(entityId) !== color) {
+      Logger.info(`Entity color changed for ${entityId}, will re-render`);
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**

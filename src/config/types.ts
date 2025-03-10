@@ -114,7 +114,7 @@ export interface CalendarEventData {
   readonly end: { readonly dateTime?: string; readonly date?: string };
   summary?: string;
   location?: string;
-  _entityConfig?: { color: string; entity: string };
+  _entityId?: string;
   time?: string;
 }
 
