@@ -112,31 +112,45 @@ export function requiresDataRefresh(
   });
 }
 
-// SIMPLIFY config change logging:
-export function hasConfigChanged(previous: Partial<Types.Config>, current: Types.Config): boolean {
+/**
+ * Determine if configuration changes affect data retrieval
+ * Combined implementation that handles both partial and full configs
+ */
+export function hasConfigChanged(
+  previous: Partial<Types.Config> | undefined,
+  current: Types.Config,
+): boolean {
+  // Handle empty/undefined config
   if (!previous || Object.keys(previous).length === 0) {
     return true;
   }
 
-  const dataRefreshNeeded = requiresDataRefresh(previous, current);
+  // Extract entity IDs without colors for comparison
+  const previousEntityIds = (previous.entities || [])
+    .map((e) => (typeof e === 'string' ? e : e.entity))
+    .sort()
+    .join(',');
+
+  const currentEntityIds = (current.entities || [])
+    .map((e) => (typeof e === 'string' ? e : e.entity))
+    .sort()
+    .join(',');
+
+  // Check refresh interval separately (it affects timers but not data)
   const refreshIntervalChanged = previous?.refresh_interval !== current?.refresh_interval;
 
-  if (dataRefreshNeeded || refreshIntervalChanged) {
+  // Check if core data-affecting properties changed
+  const dataChanged =
+    previousEntityIds !== currentEntityIds ||
+    previous.days_to_show !== current.days_to_show ||
+    previous.show_past_events !== current.show_past_events ||
+    previous.cache_duration !== current.cache_duration;
+
+  if (dataChanged || refreshIntervalChanged) {
     Logger.info('Configuration change requires data refresh');
   }
 
-  return dataRefreshNeeded || refreshIntervalChanged;
-}
-
-/**
- * Checks if entities configuration has changed
- */
-export function hasEntitiesChanged(
-  previous: Array<string | { entity: string; color?: string }>,
-  current: Array<string | { entity: string; color?: string }>,
-): boolean {
-  if (previous.length !== current.length) return true;
-  return previous.some((entity, index) => entity !== current[index]);
+  return dataChanged || refreshIntervalChanged;
 }
 
 /**

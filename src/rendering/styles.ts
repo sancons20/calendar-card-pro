@@ -107,6 +107,7 @@ export function generateBaseStyles(): string {
       --mdc-icon-size: var(--card-icon-size);
       vertical-align: middle;
       position: relative;
+      transform: translateZ(0);
     }
     table {
       width: 100%;
