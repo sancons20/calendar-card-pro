@@ -79,7 +79,7 @@ export function handleAction(
     return;
   }
 
-  Logger.info(`Executing action: ${actionConfig.action}`);
+  Logger.debug(`Executing action: ${actionConfig.action}`);
 
   // Specific, typed actions with proper error handling
   try {
@@ -130,7 +130,7 @@ export function fireMoreInfo(element: Element, entityId: string): void {
     return;
   }
 
-  Logger.info(`Firing more-info for entity: ${entityId}`);
+  Logger.debug(`Firing more-info for entity: ${entityId}`);
 
   try {
     // Create a new custom event with proper bubbling
@@ -303,7 +303,7 @@ export function createInteractionStyles(): HTMLStyleElement {
  * @returns The created hold indicator element
  */
 export function createHoldIndicator(event: PointerEvent): HTMLElement {
-  Logger.info('Creating hold indicator', {
+  Logger.debug('Creating hold indicator', {
     x: event.clientX,
     y: event.clientY,
   });

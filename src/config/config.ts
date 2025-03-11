@@ -148,7 +148,7 @@ export function hasConfigChanged(
     previous.cache_duration !== current.cache_duration;
 
   if (dataChanged || refreshIntervalChanged) {
-    Logger.info('Configuration change requires data refresh');
+    Logger.debug('Configuration change requires data refresh');
   }
 
   return dataChanged || refreshIntervalChanged;
@@ -199,7 +199,7 @@ export function haveEntityColorsChanged(
 
     // If color changed for an existing entity, return true
     if (prevColorMap.get(entityId) !== color) {
-      Logger.info(`Entity color changed for ${entityId}, will re-render`);
+      Logger.debug(`Entity color changed for ${entityId}, will re-render`);
       return true;
     }
   }

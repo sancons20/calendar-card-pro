@@ -373,11 +373,11 @@ class CalendarCardPro extends HTMLElement {
     const colorChanged = Config.haveEntityColorsChanged(previousConfig, this.config);
 
     if (configChanged) {
-      Logger.info('Configuration changed, refreshing data');
+      Logger.debug('Configuration changed, refreshing data');
       this.updateEvents(true); // Force refresh
     } else if (colorChanged) {
       // If only entity colors changed, just re-render without data refresh
-      Logger.info('Entity colors changed, re-rendering without data refresh');
+      Logger.debug('Entity colors changed, re-rendering without data refresh');
       this.renderCard();
     } else {
       // Re-render with new styling for other changes
