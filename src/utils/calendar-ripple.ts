@@ -132,10 +132,13 @@ export class CalendarRipple extends LitElement {
       border-radius: inherit;
 
       /* Map our calendar-specific variables to MD ripple variables */
-      --md-ripple-hover-opacity: var(--ha-ripple-hover-opacity, Constants.UI.RIPPLE_OPACITY.HOVER);
+      --md-ripple-hover-opacity: var(
+        --ha-ripple-hover-opacity,
+        ${Constants.UI.RIPPLE_OPACITY.HOVER}
+      );
       --md-ripple-pressed-opacity: var(
         --ha-ripple-pressed-opacity,
-        Constants.UI.RIPPLE_OPACITY.PRESSED
+        ${Constants.UI.RIPPLE_OPACITY.PRESSED}
       );
       --md-ripple-hover-color: var(--ha-ripple-color, var(--primary-color));
       --md-ripple-pressed-color: var(--ha-ripple-color, var(--primary-color));

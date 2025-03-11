@@ -18,7 +18,7 @@ src/
 │   ├── format-utils.ts           # Date & location formatting
 │   ├── dom-utils.ts              # DOM creation and manipulation
 │   ├── error-utils.ts            # Error handling and logging
-│   ├── actions.ts                # Tap/hold action handling
+│   ├── interaction.ts                # Tap/hold action handling
 │   ├── state-utils.ts            # Component state management
 │   └── helpers.ts                # Generic utilities (debounce, memoize)
 └── rendering/                    # UI rendering code
@@ -60,7 +60,7 @@ src/
   - `format-utils.ts`: Formatting dates, times, and locations
   - `dom-utils.ts`: DOM element creation and manipulation utilities
   - `logger-utils.ts`: Standardized error handling and logging
-  - `actions.ts`: Handling user interactions (tap/hold)
+  - `interaction.ts`: Handling user interactions (tap/hold)
   - `state-utils.ts`: Component lifecycle management including visibility tracking and timers
   - `helpers.ts`: Generic utilities with performance tracker for monitoring
 

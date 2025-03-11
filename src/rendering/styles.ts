@@ -5,6 +5,7 @@
  * Contains functions for generating card styles based on configuration.
  */
 
+import * as Constants from '../config/constants';
 import type * as Types from '../config/types';
 
 /**
@@ -39,10 +40,10 @@ export function generateCustomProperties(config: Types.Config): string {
       --card-icon-size: ${config.time_location_icon_size};
       --card-date-column-width: ${parseFloat(config.day_font_size) * 1.75}px;
       --card-custom-background: ${config.background_color};
-      --ha-ripple-hover-opacity: 0.04;
-      --ha-ripple-hover-color: var(--card-line-color-vertical, var(--primary-color, #03a9f4));
-      --ha-ripple-pressed-opacity: 0.12;
-      --ha-ripple-pressed-color: var(--card-line-color-vertical, var(--primary-color, #03a9f4));
+      --ha-ripple-hover-opacity: ${Constants.UI.RIPPLE_OPACITY.HOVER};
+      --ha-ripple-hover-color: ${config.vertical_line_color};
+      --ha-ripple-pressed-opacity: ${Constants.UI.RIPPLE_OPACITY.PRESSED};
+      --ha-ripple-pressed-color: ${config.vertical_line_color};
     }
   `;
 }
