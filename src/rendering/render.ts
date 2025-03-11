@@ -174,14 +174,14 @@ export function generateDayContent(
           <div class="event-title" style="color: ${entityColor}">${event.summary}</div>
           <div class="time-location">
             <div class="time">
-              <ha-icon icon="hass:clock-outline"></ha-icon>
+              <ha-icon icon="mdi:clock-outline"></ha-icon>
               <span>${formatEventTime(event)}</span>
             </div>
             ${
               event.location && config.show_location
                 ? `
               <div class="location">
-                <ha-icon icon="hass:map-marker"></ha-icon>
+                <ha-icon icon="mdi:map-marker"></ha-icon>
                 <span>${formatLocation(event.location)}</span>
               </div>
             `
@@ -214,7 +214,7 @@ export function renderErrorState(
     const content = document.createElement('div');
     content.className = 'card-content';
     content.innerHTML = `
-      <div style="text-align: center; color: var(--primary-text-color);">
+      <div style="text-align: center; color: ${Constants.COLORS.PRIMARY_TEXT};">
         ${Localize.translateString(config.language, 'loading')}
       </div>`;
 
@@ -249,8 +249,8 @@ export function renderErrorState(
     const content = document.createElement('div');
     content.className = 'card-content';
 
-    // Get default color - using the event color from config since there's no entity
-    const defaultColor = config.event_color || 'var(--secondary-text-color)';
+    // Get default color - using default event color from config
+    const defaultColor = config.event_color || `${Constants.COLORS.PRIMARY_TEXT}`;
 
     // Modified the empty state to not show time icon and use default color
     content.innerHTML = `

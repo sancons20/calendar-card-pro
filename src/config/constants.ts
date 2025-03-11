@@ -145,12 +145,6 @@ export const CACHE = {
  * DOM and UI constants
  */
 export const UI = {
-  /** Default icon size for ha-icon */
-  DEFAULT_ICON_SIZE: 16,
-
-  /** Movement threshold in pixels for detecting significant pointer movement */
-  MOVEMENT_THRESHOLD: 10,
-
   /** Ripple effect opacity values */
   RIPPLE_OPACITY: {
     HOVER: 0.04,
@@ -167,6 +161,9 @@ export const UI = {
     /** Size for mouse/pointer devices */
     POINTER_SIZE: 50,
   },
+
+  /** Movement threshold in pixels for detecting significant pointer movement */
+  MOVEMENT_THRESHOLD: 10,
 };
 
 /**
