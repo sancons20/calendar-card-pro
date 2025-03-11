@@ -46,7 +46,6 @@ export async function updateCalendarEvents(
     config.entities,
     config.days_to_show,
     config.show_past_events,
-    config,
   );
   const cacheKey = getCacheKey(baseKey);
 
@@ -123,13 +122,7 @@ export async function orchestrateEventUpdate(options: {
   if (!isValidState(hass, config.entities)) return;
 
   const cacheKey = getCacheKey(
-    getBaseCacheKey(
-      instanceId,
-      config.entities,
-      config.days_to_show,
-      config.show_past_events,
-      config,
-    ),
+    getBaseCacheKey(instanceId, config.entities, config.days_to_show, config.show_past_events),
   );
 
   // Check cache first unless forced refresh
@@ -560,7 +553,6 @@ export function getBaseCacheKey(
   entities: Array<string | { entity: string; color?: string }>,
   daysToShow: number,
   showPastEvents: boolean,
-  _config: unknown,
 ): string {
   const entityIds = entities
     .map((e) => (typeof e === 'string' ? e : e.entity))

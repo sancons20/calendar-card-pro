@@ -98,7 +98,6 @@ class CalendarCardPro extends HTMLElement {
     start: () => void;
     stop: () => void;
   };
-  private eventListenerCleanup: (() => void) | null = null;
   private interactionManager: {
     state: Interaction.InteractionState;
     container: HTMLElement | null;
@@ -222,12 +221,6 @@ class CalendarCardPro extends HTMLElement {
 
     clearInterval(this.cleanupInterval);
     this.cleanup();
-
-    // Add cleanup for event listeners
-    if (this.eventListenerCleanup) {
-      this.eventListenerCleanup();
-      this.eventListenerCleanup = null;
-    }
 
     // Clean up interaction manager
     if (this.interactionManager.cleanup) {
@@ -400,7 +393,6 @@ class CalendarCardPro extends HTMLElement {
       this.config.entities,
       this.config.days_to_show,
       this.config.show_past_events,
-      this.config,
     );
     const keys = EventUtils.getAllCacheKeys(baseKey);
     EventUtils.invalidateCache(keys);
@@ -418,13 +410,7 @@ class CalendarCardPro extends HTMLElement {
 
   getBaseCacheKey() {
     const { entities, days_to_show, show_past_events } = this.config;
-    return EventUtils.getBaseCacheKey(
-      this.instanceId,
-      entities,
-      days_to_show,
-      show_past_events,
-      this.config,
-    );
+    return EventUtils.getBaseCacheKey(this.instanceId, entities, days_to_show, show_past_events);
   }
 
   isValidState() {
