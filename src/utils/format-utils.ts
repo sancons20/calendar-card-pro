@@ -94,7 +94,7 @@ function formatMultiDayTime(
   // Format day differently based on language
   const dayFormat = language === 'de' ? `${endDay}.` : endDay;
 
-  const startTimeStr = formatTime(startDate, true); // Always use 24h for consistency with original code
+  const startTimeStr = formatTime(startDate, true);
   const endTimeStr = formatTime(endDate, true);
 
   return [

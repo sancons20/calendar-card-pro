@@ -3,12 +3,12 @@
  * Provides consistent log formatting, level-based filtering, and error handling
  */
 
-let DEBUG_MODE = false;
+import * as Constants from '../config/constants';
 
 // Add a flag to ensure the banner only shows once per session
 let BANNER_SHOWN = false;
 
-// Different log levels
+// Different log levels - keeping enum in logger-utils.ts
 export enum LogLevel {
   ERROR = 0,
   WARN = 1,
@@ -16,10 +16,10 @@ export enum LogLevel {
   DEBUG = 3,
 }
 
-// Current log level - set to WARN for production
-let CURRENT_LOG_LEVEL = LogLevel.WARN;
+// Use the constant from constants.ts as the default value
+let currentLogLevel = Constants.LOGGING.CURRENT_LOG_LEVEL;
 
-// Styling for log messages
+// Styling for log messages - keeping in logger-utils.ts
 const LOG_STYLES = {
   // Title pill (left side - dark grey with emoji)
   title: [
@@ -60,15 +60,20 @@ const LOG_STYLES = {
 };
 
 /**
+ * Format a log message with consistent prefix and styling
+ * @param message The message to format
+ * @param style The style to apply
+ * @returns Tuple of [formattedMessage, style] for console methods
+ */
+function formatLogMessage(message: string, style: string): [string, string] {
+  return [`%c[${Constants.LOGGING.PREFIX}] ${message}`, style];
+}
+
+/**
  * Initialize the logger with the component version
  * @param version Current component version
- * @param debugMode Whether to enable debug mode
  */
-export function initializeLogger(version: string, debugMode: boolean = false): void {
-  DEBUG_MODE = debugMode;
-  // Use WARN as default production level instead of INFO
-  CURRENT_LOG_LEVEL = debugMode ? LogLevel.DEBUG : LogLevel.WARN;
-
+export function initializeLogger(version: string): void {
   // Show version banner (always show this regardless of log level)
   printVersionBanner(version);
 }
@@ -82,7 +87,7 @@ export function printVersionBanner(version: string): void {
   if (BANNER_SHOWN) return;
 
   console.groupCollapsed(
-    '%c📅 Calendar Card Pro%cv' + version + ' ',
+    `%c${Constants.LOGGING.PREFIX}%cv${version} `,
     LOG_STYLES.title,
     LOG_STYLES.version,
   );
@@ -103,94 +108,172 @@ export function printVersionBanner(version: string): void {
 }
 
 /**
- * Log any error message with flexible argument handling
- * @param messageOrError - String message or Error object
- * @param ...data - Additional data to log
+ * Process unknown context into a usable format for logging
+ * @param context - Any context value that might be provided
+ * @returns A string, object, or undefined that can be safely used in logs
  */
-export function error(messageOrError: string | Error | unknown, ...data: unknown[]): void {
-  if (CURRENT_LOG_LEVEL < LogLevel.ERROR) return;
+function formatUnknownContext(context: unknown): string | Record<string, unknown> | undefined {
+  if (context === undefined || context === null) {
+    return undefined;
+  }
 
-  // Handle Error objects
+  if (typeof context === 'string') {
+    return context;
+  }
+
+  if (typeof context === 'object') {
+    try {
+      // Try to safely convert to Record<string, unknown>
+      return { ...(context as Record<string, unknown>) };
+    } catch (e) {
+      // If conversion fails, stringify it
+      try {
+        return { value: JSON.stringify(context) };
+      } catch {
+        return { value: String(context) };
+      }
+    }
+  }
+
+  // For primitive values, just convert to string
+  return String(context);
+}
+
+/**
+ * Enhanced error logging that handles different error types and contexts
+ * Consolidates error, logError and handleApiError into a single flexible function
+ *
+ * @param messageOrError - Error object, message string, or other value
+ * @param context - Optional context (string, object, or unknown)
+ * @param data - Additional data to include in the log
+ */
+export function error(
+  messageOrError: string | Error | unknown,
+  context?: string | Record<string, unknown> | unknown,
+  ...data: unknown[]
+): void {
+  if (currentLogLevel < LogLevel.ERROR) return;
+
+  // Convert unknown context to a safe format
+  const safeContext = formatUnknownContext(context);
+
+  // Process based on error type and context type
   if (messageOrError instanceof Error) {
-    // Extract error details
+    // Case 1: Error object
     const errorMessage = messageOrError.message || 'Unknown error';
-    console.error(`%c[Calendar-Card-Pro] Error: ${errorMessage}`, LOG_STYLES.error);
+    const contextInfo = typeof safeContext === 'string' ? ` during ${safeContext}` : '';
+    const [formattedMsg, style] = formatLogMessage(
+      `Error${contextInfo}: ${errorMessage}`,
+      LOG_STYLES.error,
+    );
 
-    // Log stack trace if available
+    console.error(formattedMsg, style);
+
+    // Always log stack trace for Error objects
     if (messageOrError.stack) {
       console.error(messageOrError.stack);
     }
 
-    // Log additional data if provided
-    if (data.length > 0) {
-      console.error('Additional context:', ...data);
+    // Add context object if provided
+    if (safeContext && typeof safeContext === 'object') {
+      console.error('Context:', {
+        ...safeContext,
+        timestamp: new Date().toISOString(),
+      });
     }
-  }
-  // Handle string messages
-  else if (typeof messageOrError === 'string') {
+
+    // Include any additional data
     if (data.length > 0) {
-      console.error(`%c[Calendar-Card-Pro] ${messageOrError}`, LOG_STYLES.error, ...data);
-    } else {
-      console.error(`%c[Calendar-Card-Pro] ${messageOrError}`, LOG_STYLES.error);
+      console.error('Additional data:', ...data);
     }
-  }
-  // Handle other types
-  else {
-    console.error(
-      `%c[Calendar-Card-Pro] Unknown error type:`,
+  } else if (typeof messageOrError === 'string') {
+    // Case 2: String message
+    const contextInfo = typeof safeContext === 'string' ? ` during ${safeContext}` : '';
+    const [formattedMsg, style] = formatLogMessage(
+      `${messageOrError}${contextInfo}`,
       LOG_STYLES.error,
-      messageOrError,
-      ...data,
     );
+
+    if (safeContext && typeof safeContext === 'object') {
+      // If context is an object, include it in the log
+      console.error(formattedMsg, style, {
+        context: {
+          ...safeContext,
+          timestamp: new Date().toISOString(),
+        },
+        ...(data.length > 0 ? { additionalData: data } : {}),
+      });
+    } else if (data.length > 0) {
+      // Just include additional data
+      console.error(formattedMsg, style, ...data);
+    } else {
+      // Simple error message
+      console.error(formattedMsg, style);
+    }
+  } else {
+    // Case 3: Unknown error type
+    const contextInfo = typeof safeContext === 'string' ? ` during ${safeContext}` : '';
+    const [formattedMsg, style] = formatLogMessage(
+      `Unknown error${contextInfo}:`,
+      LOG_STYLES.error,
+    );
+
+    console.error(formattedMsg, style, messageOrError);
+
+    // Add context object if provided
+    if (safeContext && typeof safeContext === 'object') {
+      console.error('Context:', {
+        ...safeContext,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Include any additional data
+    if (data.length > 0) {
+      console.error('Additional data:', ...data);
+    }
   }
 }
 
 /**
  * Log a warning message
- * @param message Log message
- * @param data Optional data to include
  */
 export function warn(message: string, ...data: unknown[]): void {
-  // Fix: Current log level must be GREATER than or equal to WARN level to show
-  if (CURRENT_LOG_LEVEL >= LogLevel.WARN) {
-    if (data.length > 0) {
-      console.warn(`%c[Calendar-Card-Pro] ${message}`, LOG_STYLES.warn, ...data);
-    } else {
-      console.warn(`%c[Calendar-Card-Pro] ${message}`, LOG_STYLES.warn);
-    }
+  if (currentLogLevel < LogLevel.WARN) return;
+
+  const [formattedMsg, style] = formatLogMessage(message, LOG_STYLES.warn);
+  if (data.length > 0) {
+    console.warn(formattedMsg, style, ...data);
+  } else {
+    console.warn(formattedMsg, style);
   }
 }
 
 /**
  * Log an info message
- * @param message Log message
- * @param data Optional data to include
  */
 export function info(message: string, ...data: unknown[]): void {
-  // Fix: Current log level must be GREATER than or equal to INFO level to show
-  if (CURRENT_LOG_LEVEL >= LogLevel.INFO) {
-    if (data.length > 0) {
-      console.log(`%c[Calendar-Card-Pro] ${message}`, LOG_STYLES.prefix, ...data);
-    } else {
-      console.log(`%c[Calendar-Card-Pro] ${message}`, LOG_STYLES.prefix);
-    }
+  if (currentLogLevel < LogLevel.INFO) return;
+
+  const [formattedMsg, style] = formatLogMessage(message, LOG_STYLES.prefix);
+  if (data.length > 0) {
+    console.log(formattedMsg, style, ...data);
+  } else {
+    console.log(formattedMsg, style);
   }
 }
 
 /**
- * Log a debug message (only in debug mode)
- * @param message Log message
- * @param data Optional data to include
+ * Log a debug message
  */
 export function debug(message: string, ...data: unknown[]): void {
-  // Fix: Current log level must be GREATER than or equal to DEBUG level to show
-  if (CURRENT_LOG_LEVEL >= LogLevel.DEBUG) {
-    if (data.length > 0) {
-      // Apply consistent styling to debug messages too
-      console.log(`%c[Calendar-Card-Pro] ${message}`, LOG_STYLES.prefix, ...data);
-    } else {
-      console.log(`%c[Calendar-Card-Pro] ${message}`, LOG_STYLES.prefix);
-    }
+  if (currentLogLevel < LogLevel.DEBUG) return;
+
+  const [formattedMsg, style] = formatLogMessage(message, LOG_STYLES.prefix);
+  if (data.length > 0) {
+    console.log(formattedMsg, style, ...data);
+  } else {
+    console.log(formattedMsg, style);
   }
 }
 
@@ -199,63 +282,16 @@ export function debug(message: string, ...data: unknown[]): void {
  * @param level LogLevel to set
  */
 export function setLogLevel(level: LogLevel): void {
-  CURRENT_LOG_LEVEL = level;
+  currentLogLevel = level;
+  debug(`Log level set to ${LogLevel[level]}`);
 }
 
 /**
- * Enable or disable debug mode
- * @param enable Whether to enable debug mode
+ * Check if debug logging is enabled
+ * @returns {boolean} True if debug logging is enabled
  */
-export function setDebugMode(enable: boolean): void {
-  DEBUG_MODE = enable;
-  // Use WARN as default production level instead of INFO
-  CURRENT_LOG_LEVEL = enable ? LogLevel.DEBUG : LogLevel.WARN;
-  info(`Debug mode ${enable ? 'enabled' : 'disabled'}`);
-
-  (window as any).__CALENDAR_CARD_PRO_DEBUG__ = enable;
-}
-
-/**
- * Check if debug mode is enabled
- * @returns {boolean} True if debug mode is enabled
- */
-export function isDebugEnabled(): boolean {
-  // Check for debug flag in localStorage or URL parameters
-  return (
-    localStorage.getItem('calendar-card-debug') === 'true' ||
-    window.location.search.includes('debug=true')
-  );
-}
-
-/**
- * Check if diagnostics mode is enabled
- * @returns {boolean} True if diagnostics mode is enabled
- */
-export function isDiagnosticsEnabled(): boolean {
-  return localStorage.getItem('calendar-card-diagnostics') === 'true';
-}
-
-// Create diagnostic styles if diagnostics are enabled
-if (isDiagnosticsEnabled()) {
-  const diagnosticStyles = document.createElement('style');
-  diagnosticStyles.textContent = `
-    /* Diagnostic outlines for layer visualization */
-    .card-container::before {
-      outline: 2px solid blue !important;
-    }
-    .card-container::after {
-      outline: 2px solid red !important;
-    }
-    .card-content {
-      outline: 2px solid green !important;
-    }
-  `;
-
-  // Append to document head only once
-  if (!document.head.querySelector('#calendar-card-diagnostics')) {
-    diagnosticStyles.id = 'calendar-card-diagnostics';
-    document.head.appendChild(diagnosticStyles);
-  }
+export function isDebugLoggingEnabled(): boolean {
+  return currentLogLevel >= LogLevel.DEBUG;
 }
 
 /**
@@ -275,40 +311,4 @@ export class CalendarCardError extends Error {
     super(message);
     this.name = 'CalendarCardError';
   }
-}
-
-/**
- * Log an error with standard formatting and optional context
- *
- * @param err Error object or message
- * @param context Optional context info about where the error occurred
- */
-export function logError(err: unknown, context?: string): void {
-  const errorMessage = err instanceof Error ? err.message : String(err);
-  const contextInfo = context ? ` during ${context}` : '';
-
-  // Call the error function (not the parameter)
-  error(`Error${contextInfo}: ${errorMessage}`);
-
-  // If it's an actual Error object with stack, log that separately
-  if (err instanceof Error && err.stack) {
-    console.error(err.stack);
-  }
-}
-
-/**
- * Specialized handler for API errors with context
- * @param err - Error from API call (renamed from 'error')
- * @param context - Additional context about the API call
- */
-export function handleApiError(err: unknown, context?: Record<string, unknown>): void {
-  // Create enhanced context
-  const enhancedContext = {
-    ...(context || {}),
-    timestamp: new Date().toISOString(),
-    // Add any API-specific metadata here
-  };
-
-  // Use the main error function with the enhanced context
-  error(err, enhancedContext); // Now using different names
 }

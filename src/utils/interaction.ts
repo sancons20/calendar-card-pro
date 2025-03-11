@@ -238,7 +238,7 @@ export function openUrl(actionConfig: Types.ActionConfig): void {
 }
 
 /**
- * Create hold indicator that appears after hold threshold (500ms)
+ * Create hold indicator that appears after hold threshold
  * Uses exact specifications from HA Tile Card
  * Enhanced with smoother animation and transition from ripple effect
  *
@@ -256,7 +256,9 @@ export function createHoldIndicator(event: PointerEvent): HTMLElement {
 
   // Determine if this is a touch device for proper sizing
   const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
-  const size = isTouchDevice ? 100 : 50;
+  const size = isTouchDevice
+    ? Constants.UI.HOLD_INDICATOR.TOUCH_SIZE
+    : Constants.UI.HOLD_INDICATOR.POINTER_SIZE;
 
   // Apply ALL styles inline with !important flags to prevent any overrides
   indicator.style.cssText = `
@@ -316,7 +318,7 @@ export function removeHoldIndicator(indicator: HTMLElement): void {
     if (indicator.parentNode) {
       indicator.parentNode.removeChild(indicator);
     }
-  }, Constants.TIMING.HOLD_INDICATOR_FADEOUT); // Matches HA specs for fade-out duration
+  }, Constants.TIMING.HOLD_INDICATOR_FADEOUT);
 }
 
 /**

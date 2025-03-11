@@ -159,6 +159,14 @@ export const UI = {
 
   /** Opacity for hold indicators */
   HOLD_INDICATOR_OPACITY: 0.2,
+
+  /** Hold indicator sizes */
+  HOLD_INDICATOR: {
+    /** Size for touch devices */
+    TOUCH_SIZE: 100,
+    /** Size for mouse/pointer devices */
+    POINTER_SIZE: 50,
+  },
 };
 
 /**
@@ -199,4 +207,18 @@ export const PERFORMANCE = {
 
   /** Maximum number of measurements to keep in performance history */
   MAX_MEASUREMENTS: 10,
+};
+
+/**
+ * Logging-related constants
+ */
+export const LOGGING = {
+  /**
+   * Current log level
+   * 0 = ERROR, 1 = WARN, 2 = INFO, 3 = DEBUG
+   */
+  CURRENT_LOG_LEVEL: 3, // Default to INFO level
+
+  /** Standard prefix for log messages */
+  PREFIX: '📅 Calendar Card Pro',
 };

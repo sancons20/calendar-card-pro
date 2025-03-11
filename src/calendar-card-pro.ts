@@ -179,7 +179,7 @@ class CalendarCardPro extends HTMLElement {
     // Create refresh timer controller
     this.refreshTimer = StateUtils.setupRefreshTimer(
       (force = false) => this.updateEvents(force),
-      () => this.config?.refresh_interval || 30,
+      () => this.config?.refresh_interval || Constants.CACHE.DEFAULT_DATA_REFRESH_MINUTES,
     );
 
     // Use the helper functions
