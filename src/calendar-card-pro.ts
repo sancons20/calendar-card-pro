@@ -27,7 +27,6 @@ import * as EventUtils from './utils/event-utils';
 import * as Interaction from './utils/interaction';
 import * as Helpers from './utils/helpers';
 import * as StateUtils from './utils/state-utils';
-import * as Styles from './rendering/styles';
 import * as Render from './rendering/render';
 import * as DomUtils from './utils/dom-utils';
 import * as Logger from './utils/logger-utils';
