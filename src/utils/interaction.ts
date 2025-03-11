@@ -237,64 +237,6 @@ export function openUrl(actionConfig: Types.ActionConfig): void {
 }
 
 /**
- * Create interaction styles element with all necessary CSS
- * This simplified version focuses on hold indicator and hover effects
- */
-export function createInteractionStyles(): HTMLStyleElement {
-  const interactionStyles = document.createElement('style');
-  interactionStyles.id = 'calendar-card-interaction-styles';
-
-  interactionStyles.textContent = `
-    /* Base container */
-    .card-container {
-      position: relative;
-      cursor: pointer;
-      transition: transform 180ms ease-in-out;
-      will-change: transform;
-      transform: translateZ(0);
-      -webkit-backface-visibility: hidden;
-      border-radius: var(--ha-card-border-radius, 10px);
-      overflow: hidden;
-    }
-
-    /* Content styling */
-    .card-content {
-      background: var(--card-custom-background, var(--card-background-color, #FFF));
-      border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, var(--divider-color));
-      border-radius: var(--ha-card-border-radius, 10px);
-      padding: 16px;
-      padding-top: calc(16px + var(--card-spacing-additional));
-      padding-bottom: calc(16px + var(--card-spacing-additional));
-    }
-
-    /* Focus styles for accessibility */
-    .card-container:focus {
-      outline: none;
-    }
-    
-    .card-container:focus-visible {
-      box-shadow: 0 0 0 2px var(--card-accent-color, var(--primary-color));
-    }
-
-    /* Hold indicator - for hold actions */
-    .card-hold-indicator {
-      position: fixed;
-      border-radius: 50%;
-      background-color: var(--card-accent-color, var(--primary-color, #03a9f4));
-      transform: translate(-50%, -50%) scale(0);
-      transform-origin: center center;
-      pointer-events: none;
-      will-change: transform, opacity;
-      transition: transform 200ms cubic-bezier(0.2, 0, 0, 1), opacity 200ms cubic-bezier(0.2, 0, 0, 1);
-      z-index: 99999;
-      backface-visibility: hidden;
-    }
-  `;
-
-  return interactionStyles;
-}
-
-/**
  * Create hold indicator that appears after hold threshold (500ms)
  * Uses exact specifications from HA Tile Card
  * Enhanced with smoother animation and transition from ripple effect
@@ -388,44 +330,6 @@ export interface InteractionState {
   lastActionTime: number;
   pendingHoldAction: boolean;
   lastPointerEvent: PointerEvent | null;
-}
-
-// Since setupComponentIntegratedInteractions is our preferred implementation,
-// we can deprecate the other setupInteractions function
-/**
- * @deprecated Use setupComponentIntegratedInteractions instead
- * This will be removed in a future version
- */
-export function setupInteractions(
-  element: HTMLElement,
-  config: Types.Config,
-  hass: Types.Hass | null,
-  entityId: string,
-  toggleExpanded: () => void,
-): () => void {
-  Logger.warn(
-    'setupInteractions() is deprecated, use setupComponentIntegratedInteractions() instead',
-  );
-
-  // Create a temporary state object and delegate to the preferred implementation
-  const tempState: InteractionState = {
-    holdTimer: null,
-    holdTriggered: false,
-    holdIndicator: null,
-    activePointerId: null,
-    lastActionTime: 0,
-    pendingHoldAction: false,
-    lastPointerEvent: null,
-  };
-
-  return setupComponentIntegratedInteractions(
-    element,
-    config,
-    hass,
-    entityId,
-    toggleExpanded,
-    tempState,
-  );
 }
 
 /**

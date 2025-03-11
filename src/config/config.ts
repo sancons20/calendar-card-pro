@@ -82,38 +82,6 @@ export function normalizeEntities(
 }
 
 /**
- * Checks if configuration changes require data refresh
- */
-export function requiresDataRefresh(
-  previous: Partial<Types.Config>,
-  current: Types.Config,
-): boolean {
-  if (!previous) return true;
-
-  // Only these parameters affect what data we need to fetch
-  const criticalKeys = ['entities', 'days_to_show', 'show_past_events'];
-
-  return criticalKeys.some((key) => {
-    if (key === 'entities') {
-      // Check for actual entity changes (not just styling)
-      const prevEntities = previous.entities || [];
-      const currEntities = current.entities || [];
-
-      // Compare only the entity IDs, explicitly ignoring color properties
-      const prevIds = new Set(prevEntities.map((e) => (typeof e === 'string' ? e : e.entity)));
-      const currIds = new Set(currEntities.map((e) => (typeof e === 'string' ? e : e.entity)));
-
-      // Return true only if actual entities changed (added or removed)
-      if (prevIds.size !== currIds.size) return true;
-      return Array.from(prevIds).some((id) => !currIds.has(id));
-    }
-
-    // Standard comparison for other keys
-    return JSON.stringify(previous[key]) !== JSON.stringify(current[key]);
-  });
-}
-
-/**
  * Determine if configuration changes affect data retrieval
  */
 export function hasConfigChanged(

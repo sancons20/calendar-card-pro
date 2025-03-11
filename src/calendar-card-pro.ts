@@ -515,14 +515,6 @@ class CalendarCardPro extends HTMLElement {
     return FormatUtils.formatEventTime(event, this.config, this.config.language);
   }
 
-  /**
-   * Calculate time window for event fetching
-   * @returns {Object} Object containing start and end dates for the calendar window
-   */
-  getTimeWindow(): { start: Date; end: Date } {
-    return EventUtils.getTimeWindow(this.config.days_to_show);
-  }
-
   /******************************************************************************
    * RENDERING & DISPLAY
    ******************************************************************************/
@@ -987,47 +979,6 @@ class CalendarCardPro extends HTMLElement {
   }
 
   /******************************************************************************
-   * HTML GENERATION
-   ******************************************************************************/
-
-  generateCalendarContent(days: Types.EventsByDay[]): string {
-    return Render.generateCalendarContent(
-      days,
-      this.config,
-      (event) => this.formatEventTime(event),
-      (location) => this.formatLocation(location),
-    );
-  }
-
-  /**
-   * Generate HTML content for a single day's events
-   */
-  generateDayContent(day: Types.EventsByDay): string {
-    return Render.generateDayContent(
-      day,
-      this.config,
-      (event) => this.formatEventTime(event),
-      (location) => this.formatLocation(location),
-    );
-  }
-
-  /**
-   * Get entity color for styling
-   * Helper method to access the color utility from the main component
-   */
-  getEntityColor(entityId: string): string {
-    return EventUtils.getEntityColor(entityId, this.config);
-  }
-
-  /******************************************************************************
-   * STYLING
-   ******************************************************************************/
-
-  getStyles(): string {
-    return Styles.getStyles(this.config);
-  }
-
-  /******************************************************************************
    * UTILITY FUNCTIONS
    ******************************************************************************/
 
@@ -1061,10 +1012,6 @@ class CalendarCardPro extends HTMLElement {
 
   getAverageRenderTime() {
     return this.performanceTracker.getAverageRenderTime(this.performanceMetrics);
-  }
-
-  private handleError(error: unknown): void {
-    Logger.logError(error);
   }
 }
 
