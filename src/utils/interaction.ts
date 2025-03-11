@@ -292,14 +292,6 @@ export function createHoldIndicator(event: PointerEvent): HTMLElement {
     indicator.style.transform = 'translate(-50%, -50%) scale(1)';
   });
 
-  // Start scaling animation
-  setTimeout(() => {
-    if (indicator) {
-      indicator.style.transform = 'translate(-50%, -50%) scale(1)';
-      indicator.style.opacity = '0';
-    }
-  }, Constants.TIMING.HOLD_THRESHOLD / 10); // Slight delay for visual feedback
-
   return indicator;
 }
 
