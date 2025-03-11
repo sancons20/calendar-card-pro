@@ -10,9 +10,9 @@
  * https://github.com/home-assistant/frontend/blob/dev/LICENSE.md
  */
 
+import * as Constants from '../config/constants';
 import * as Types from '../config/types';
 import * as Logger from './logger-utils';
-import * as Constants from '../config/constants';
 
 /**
  * Global registry for all active hold indicators
@@ -272,7 +272,7 @@ export function createHoldIndicator(event: PointerEvent): HTMLElement {
     transform-origin: center center !important;
     pointer-events: none !important;
     will-change: transform, opacity !important;
-    transition: transform 200ms cubic-bezier(0.2, 0, 0, 1), opacity 200ms cubic-bezier(0.2, 0, 0, 1) !important;
+    transition: transform ${Constants.TIMING.HOLD_INDICATOR_TRANSITION}ms cubic-bezier(0.2, 0, 0, 1), opacity ${Constants.TIMING.HOLD_INDICATOR_TRANSITION}ms cubic-bezier(0.2, 0, 0, 1) !important;
     z-index: 999999 !important;
     backface-visibility: hidden !important;
   `;
@@ -288,7 +288,7 @@ export function createHoldIndicator(event: PointerEvent): HTMLElement {
 
   // Animate to full size
   requestAnimationFrame(() => {
-    indicator.style.opacity = '0.20';
+    indicator.style.opacity = String(Constants.UI.HOLD_INDICATOR_OPACITY);
     indicator.style.transform = 'translate(-50%, -50%) scale(1)';
   });
 
@@ -316,7 +316,7 @@ export function removeHoldIndicator(indicator: HTMLElement): void {
     if (indicator.parentNode) {
       indicator.parentNode.removeChild(indicator);
     }
-  }, 300); // Matches HA specs for fade-out duration
+  }, Constants.TIMING.HOLD_INDICATOR_FADEOUT); // Matches HA specs for fade-out duration
 }
 
 /**
@@ -413,7 +413,7 @@ export function setupComponentIntegratedInteractions(
       const distance = Math.sqrt(dx * dx + dy * dy);
 
       // If moved more than threshold, cancel hold
-      if (distance > 10) {
+      if (distance > Constants.UI.MOVEMENT_THRESHOLD) {
         hasMoved = true;
         // Cancel hold timer
         if (componentState.holdTimer !== null) {

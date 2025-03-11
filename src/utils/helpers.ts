@@ -6,9 +6,9 @@
  * performance monitoring, and other common tasks.
  */
 
+import * as Constants from '../config/constants';
 import * as Types from '../config/types';
 import * as Logger from './logger-utils';
-import * as Constants from '../config/constants';
 
 /**
  * Debounce helper to limit function call frequency
@@ -96,8 +96,8 @@ export function endPerfMetrics(
   const mutablePerformanceData = performanceData as { renderTime: number[] };
   mutablePerformanceData.renderTime.push(duration);
 
-  // Keep only last 10 measurements
-  if (mutablePerformanceData.renderTime.length > 10) {
+  // Replace hardcoded max measurements
+  if (mutablePerformanceData.renderTime.length > Constants.PERFORMANCE.MAX_MEASUREMENTS) {
     mutablePerformanceData.renderTime.shift();
   }
 

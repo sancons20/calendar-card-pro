@@ -20,8 +20,8 @@ export const VERSION = '0.1.0';
 
 // Import all types via namespace for cleaner imports
 import * as Config from './config/config';
-import * as Types from './config/types';
 import * as Constants from './config/constants';
+import * as Types from './config/types';
 import * as Localize from './translations/localize';
 import * as FormatUtils from './utils/format-utils';
 import * as EventUtils from './utils/event-utils';
@@ -182,7 +182,10 @@ class CalendarCardPro extends HTMLElement {
     );
 
     // Use the helper functions
-    this.debouncedUpdate = Helpers.debounce(() => this.updateEvents(), 300);
+    this.debouncedUpdate = Helpers.debounce(
+      () => this.updateEvents(),
+      Constants.TIMING.DEBOUNCE_TIME,
+    );
 
     this.memoizedFormatTime = Helpers.memoize(
       (date: Date) => FormatUtils.formatTime(date, this.config.time_24h),
@@ -195,7 +198,10 @@ class CalendarCardPro extends HTMLElement {
       this,
     ) as unknown as (location: string) => string & Types.MemoCache<string>;
 
-    this.cleanupInterval = window.setInterval(() => this.cleanupCache(), 3600000);
+    this.cleanupInterval = window.setInterval(
+      () => EventUtils.cleanupCache(Constants.CACHE.CACHE_KEY_PREFIX, this.config),
+      Constants.CACHE.CLEANUP_CHECK_INTERVAL,
+    );
 
     // Start refresh timer
     this.refreshTimer.start();
@@ -255,14 +261,6 @@ class CalendarCardPro extends HTMLElement {
   }
 
   /******************************************************************************
-   * BASIC UTILITY METHODS
-   ******************************************************************************/
-
-  formatLocation(location: string): string {
-    return FormatUtils.formatLocation(location, this.config.remove_location_country);
-  }
-
-  /******************************************************************************
    * STATE MANAGEMENT
    ******************************************************************************/
 
@@ -307,13 +305,6 @@ class CalendarCardPro extends HTMLElement {
       this.memoizedFormatTime as unknown as Types.MemoCache<string>,
       this.memoizedFormatLocation as unknown as Types.MemoCache<string>,
     );
-  }
-
-  /**
-   * Cleanup cache method - directly calls EventUtils
-   */
-  cleanupCache() {
-    EventUtils.cleanupCache(Constants.CACHE.KEY_PREFIX, this.config);
   }
 
   get translations() {
@@ -399,24 +390,6 @@ class CalendarCardPro extends HTMLElement {
     EventUtils.invalidateCache([baseKey]);
   }
 
-  getAllCacheKeys() {
-    const baseKey = this.getBaseCacheKey();
-    return [baseKey];
-  }
-
-  getCacheKey(): string {
-    return this.getBaseCacheKey();
-  }
-
-  getBaseCacheKey() {
-    const { entities, days_to_show, show_past_events } = this.config;
-    return EventUtils.getBaseCacheKey(this.instanceId, entities, days_to_show, show_past_events);
-  }
-
-  isValidState() {
-    return EventUtils.isValidState(this._hass, this.config.entities);
-  }
-
   /******************************************************************************
    * EVENT FETCHING & PROCESSING
    ******************************************************************************/
@@ -489,19 +462,6 @@ class CalendarCardPro extends HTMLElement {
   }
 
   /******************************************************************************
-   * EVENT PROCESSING
-   ******************************************************************************/
-
-  /**
-   * Format event time based on event type and configuration
-   * @param {Object} event Calendar event object
-   * @returns {string} Formatted time string
-   */
-  formatEventTime(event: Types.CalendarEventData): string {
-    return FormatUtils.formatEventTime(event, this.config, this.config.language);
-  }
-
-  /******************************************************************************
    * RENDERING & DISPLAY
    ******************************************************************************/
 
@@ -512,7 +472,7 @@ class CalendarCardPro extends HTMLElement {
     // Use the performance tracker
     const metrics = this.performanceTracker.beginMeasurement(this.events.length);
 
-    if (!this.isValidState()) {
+    if (!EventUtils.isValidState(this._hass, this.config.entities)) {
       Render.renderErrorToDOM(this.shadowRoot!, 'error', this.config);
       this.performanceTracker.endMeasurement(metrics, this.performanceMetrics);
       return;
@@ -544,8 +504,8 @@ class CalendarCardPro extends HTMLElement {
       const { container: contentContainer, style } = await Render.renderCalendarCard(
         this.config,
         eventsByDay,
-        (event) => this.formatEventTime(event),
-        (location) => this.formatLocation(location),
+        (event) => FormatUtils.formatEventTime(event, this.config, this.config.language),
+        (location) => FormatUtils.formatLocation(location, this.config.remove_location_country),
         Constants.PERFORMANCE.CHUNK_SIZE,
         Constants.PERFORMANCE.RENDER_DELAY,
       );

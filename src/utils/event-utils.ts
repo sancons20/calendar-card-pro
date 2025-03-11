@@ -8,9 +8,7 @@
 import * as Types from '../config/types';
 import * as Localize from '../translations/localize';
 import * as FormatUtils from './format-utils';
-import * as Helpers from './helpers';
 import * as Logger from './logger-utils';
-import * as Config from '../config/config'; // Add this import
 import * as Constants from '../config/constants';
 
 // HIGH-LEVEL API FUNCTIONS FIRST
@@ -551,7 +549,7 @@ export function getBaseCacheKey(
     .sort()
     .join('_');
 
-  return `${Constants.CACHE.KEY_PREFIX}${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}`;
+  return `${Constants.CACHE.CACHE_KEY_PREFIX}${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}`;
 }
 
 /**
@@ -570,7 +568,7 @@ export function cleanupCache(_prefix: string, config?: Types.Config): void {
     const cleanupThreshold = cacheDurationMinutes * 60 * 1000 * Constants.CACHE.CLEANUP_MULTIPLIER;
 
     Object.keys(localStorage)
-      .filter((key) => key.startsWith(Constants.CACHE.KEY_PREFIX))
+      .filter((key) => key.startsWith(Constants.CACHE.CACHE_KEY_PREFIX))
       .forEach((key) => {
         try {
           const cacheEntry = JSON.parse(localStorage.getItem(key) || '') as Types.CacheEntry;

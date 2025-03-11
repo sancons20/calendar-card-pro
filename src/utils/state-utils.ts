@@ -6,8 +6,8 @@
  */
 
 import * as Config from '../config/config';
+import * as Constants from '../config/constants';
 import * as Types from '../config/types';
-import * as EventUtils from './event-utils';
 import * as Logger from './logger-utils';
 
 /**
@@ -64,8 +64,7 @@ export function setupVisibilityHandling(
   const handler = () => {
     if (document.visibilityState === 'visible') {
       const timeSinceUpdate = Date.now() - getLastUpdateTime();
-      if (timeSinceUpdate > 5 * 60 * 1000) {
-        // 5 minutes
+      if (timeSinceUpdate > Constants.TIMING.VISIBILITY_REFRESH_THRESHOLD) {
         updateCallback();
       }
     }

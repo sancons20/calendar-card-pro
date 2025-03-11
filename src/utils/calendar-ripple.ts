@@ -1,4 +1,5 @@
 import { css, html, LitElement } from 'lit';
+import * as Constants from '../config/constants';
 import * as Logger from './logger-utils';
 
 /**
@@ -131,8 +132,11 @@ export class CalendarRipple extends LitElement {
       border-radius: inherit;
 
       /* Map our calendar-specific variables to MD ripple variables */
-      --md-ripple-hover-opacity: var(--ha-ripple-hover-opacity, 0.08);
-      --md-ripple-pressed-opacity: var(--ha-ripple-pressed-opacity, 0.12);
+      --md-ripple-hover-opacity: var(--ha-ripple-hover-opacity, Constants.UI.RIPPLE_OPACITY.HOVER);
+      --md-ripple-pressed-opacity: var(
+        --ha-ripple-pressed-opacity,
+        Constants.UI.RIPPLE_OPACITY.PRESSED
+      );
       --md-ripple-hover-color: var(--ha-ripple-color, var(--primary-color));
       --md-ripple-pressed-color: var(--ha-ripple-color, var(--primary-color));
     }
