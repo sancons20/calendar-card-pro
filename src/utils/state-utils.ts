@@ -88,36 +88,42 @@ export function setupVisibilityHandling(
 }
 
 /**
- * Sets up automatic refresh timer based on configuration
- *
- * @param updateCallback Function to call when timer triggers
- * @param getRefreshInterval Function that returns the refresh interval in minutes
- * @returns Object with timer control methods
+ * Setup refresh timer with proper cleanup
  */
 export function setupRefreshTimer(
-  updateCallback: (force?: boolean) => void,
-  getRefreshInterval: () => number,
-): {
-  start: () => void;
-  stop: () => void;
-} {
-  let timerId: number | undefined;
+  refreshCallback: (force?: boolean) => void,
+  getIntervalMinutes: () => number,
+): { start: () => void; stop: () => void } {
+  let timerId: ReturnType<typeof setTimeout> | undefined;
 
   const start = () => {
-    stop(); // Clear any existing timer
-    const refreshMinutes = getRefreshInterval();
-    timerId = window.setInterval(
-      () => updateCallback(true), // Force refresh
-      refreshMinutes * 60000,
-    );
-    Logger.debug(`Started refresh timer with interval ${refreshMinutes} minutes`);
+    // Clear any existing timer
+    if (timerId) {
+      clearTimeout(timerId);
+      timerId = undefined;
+    }
+
+    // Get interval in minutes, convert to milliseconds
+    const intervalMinutes = getIntervalMinutes();
+    const intervalMs = intervalMinutes * 60 * 1000;
+
+    // Set up new timer
+    Logger.info(`Started refresh timer with interval ${intervalMinutes} minutes`);
+
+    timerId = setTimeout(function refreshFn() {
+      refreshCallback(false);
+
+      // Re-schedule using current interval (which might have changed)
+      const newIntervalMs = getIntervalMinutes() * 60 * 1000;
+      timerId = setTimeout(refreshFn, newIntervalMs);
+    }, intervalMs);
   };
 
   const stop = () => {
-    if (timerId !== undefined) {
-      clearInterval(timerId);
+    if (timerId) {
+      clearTimeout(timerId);
       timerId = undefined;
-      Logger.debug('Stopped refresh timer');
+      Logger.info('Stopped refresh timer');
     }
   };
 

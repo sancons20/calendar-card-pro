@@ -16,8 +16,8 @@ export enum LogLevel {
   DEBUG = 3,
 }
 
-// Current log level - can be changed at runtime
-let CURRENT_LOG_LEVEL = LogLevel.INFO;
+// Current log level - set to WARN for production
+let CURRENT_LOG_LEVEL = LogLevel.WARN;
 
 // Styling for log messages
 const LOG_STYLES = {
@@ -66,7 +66,8 @@ const LOG_STYLES = {
  */
 export function initializeLogger(version: string, debugMode: boolean = false): void {
   DEBUG_MODE = debugMode;
-  CURRENT_LOG_LEVEL = debugMode ? LogLevel.DEBUG : LogLevel.INFO;
+  // Use WARN as default production level instead of INFO
+  CURRENT_LOG_LEVEL = debugMode ? LogLevel.DEBUG : LogLevel.WARN;
 
   // Show version banner (always show this regardless of log level)
   printVersionBanner(version);
@@ -107,6 +108,7 @@ export function printVersionBanner(version: string): void {
  * @param data Optional data to include
  */
 export function error(message: string, ...data: unknown[]): void {
+  // Fix: Current log level must be GREATER than or equal to ERROR level to show
   if (CURRENT_LOG_LEVEL >= LogLevel.ERROR) {
     if (data.length > 0) {
       console.error(`%c[Calendar-Card-Pro] ${message}`, LOG_STYLES.error, ...data);
@@ -122,6 +124,7 @@ export function error(message: string, ...data: unknown[]): void {
  * @param data Optional data to include
  */
 export function warn(message: string, ...data: unknown[]): void {
+  // Fix: Current log level must be GREATER than or equal to WARN level to show
   if (CURRENT_LOG_LEVEL >= LogLevel.WARN) {
     if (data.length > 0) {
       console.warn(`%c[Calendar-Card-Pro] ${message}`, LOG_STYLES.warn, ...data);
@@ -137,6 +140,7 @@ export function warn(message: string, ...data: unknown[]): void {
  * @param data Optional data to include
  */
 export function info(message: string, ...data: unknown[]): void {
+  // Fix: Current log level must be GREATER than or equal to INFO level to show
   if (CURRENT_LOG_LEVEL >= LogLevel.INFO) {
     if (data.length > 0) {
       console.log(`%c[Calendar-Card-Pro] ${message}`, LOG_STYLES.prefix, ...data);
@@ -152,11 +156,13 @@ export function info(message: string, ...data: unknown[]): void {
  * @param data Optional data to include
  */
 export function debug(message: string, ...data: unknown[]): void {
+  // Fix: Current log level must be GREATER than or equal to DEBUG level to show
   if (CURRENT_LOG_LEVEL >= LogLevel.DEBUG) {
     if (data.length > 0) {
-      console.log(`[Calendar-Card-Pro] ${message}`, ...data);
+      // Apply consistent styling to debug messages too
+      console.log(`%c[Calendar-Card-Pro] ${message}`, LOG_STYLES.prefix, ...data);
     } else {
-      console.log(`[Calendar-Card-Pro] ${message}`);
+      console.log(`%c[Calendar-Card-Pro] ${message}`, LOG_STYLES.prefix);
     }
   }
 }
@@ -175,7 +181,8 @@ export function setLogLevel(level: LogLevel): void {
  */
 export function setDebugMode(enable: boolean): void {
   DEBUG_MODE = enable;
-  CURRENT_LOG_LEVEL = enable ? LogLevel.DEBUG : LogLevel.INFO;
+  // Use WARN as default production level instead of INFO
+  CURRENT_LOG_LEVEL = enable ? LogLevel.DEBUG : LogLevel.WARN;
   info(`Debug mode ${enable ? 'enabled' : 'disabled'}`);
 
   (window as any).__CALENDAR_CARD_PRO_DEBUG__ = enable;

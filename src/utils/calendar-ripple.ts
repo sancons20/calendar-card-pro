@@ -140,7 +140,11 @@ export class CalendarRipple extends LitElement {
 
 // Register the custom element with error handling
 try {
-  customElements.define('calendar-ripple', CalendarRipple);
+  // Add a check before registering the element
+  // This prevents a "Failed to execute 'define'" error when multiple cards exist on a page
+  if (!customElements.get('calendar-ripple')) {
+    customElements.define('calendar-ripple', CalendarRipple);
+  }
 } catch (e) {
   console.warn('Could not register calendar-ripple:', e);
 }
