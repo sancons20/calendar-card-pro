@@ -6,6 +6,14 @@
  */
 
 /**
+ * Version information
+ */
+export const VERSION = {
+  /** Current version of Calendar Card Pro */
+  CURRENT: '0.1.0',
+};
+
+/**
  * Default values for configuration
  */
 export const DEFAULTS = {
@@ -117,16 +125,20 @@ export const ACTIONS = {
  * Cache-related constants
  */
 export const CACHE = {
-  /** Default cache duration in minutes (fallback if config not provided) */
-  DEFAULT_DURATION_MINUTES: 30,
-  /** Default refresh interval in minutes */
-  DEFAULT_REFRESH_INTERVAL: 30,
-  /** Multiplier for cleanup duration relative to cache_duration */
-  CLEANUP_MULTIPLIER: 4,
-  /** Interval in milliseconds between cache cleanup operations */
-  CLEANUP_CHECK_INTERVAL: 3600000, // 1 hour
-  /** Prefix for calendar event cache keys */
-  CACHE_KEY_PREFIX: 'calendar_data_',
+  /** Default interval (minutes) for refreshing event data from API */
+  DEFAULT_DATA_REFRESH_MINUTES: 30,
+
+  /** Default lifetime (minutes) for cache entries before they're considered stale */
+  DEFAULT_CACHE_LIFETIME_MINUTES: 30,
+
+  /** Multiplier used with cache lifetime to calculate when entries should be purged */
+  CACHE_EXPIRY_MULTIPLIER: 4,
+
+  /** Interval (milliseconds) between cache cleanup operations */
+  CACHE_CLEANUP_INTERVAL_MS: 3600000, // 1 hour
+
+  /** Prefix for calendar event cache keys in localStorage */
+  EVENT_CACHE_KEY_PREFIX: 'calendar_data_',
 };
 
 /**

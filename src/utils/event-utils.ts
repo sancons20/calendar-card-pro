@@ -298,7 +298,7 @@ export function groupEventsByDay(
   // Sort days and limit to configured number of days
   let days = Object.values(eventsByDay)
     .sort((a, b) => a.timestamp - b.timestamp)
-    .slice(0, config.days_to_show || 3);
+    .slice(0, config.days_to_show || Constants.DEFAULTS.DAYS_TO_SHOW);
 
   // Apply max_events_to_show limit if configured and not expanded
   if (config.max_events_to_show && !isExpanded) {
@@ -407,7 +407,7 @@ export function getTimeWindow(daysToShow: number): { start: Date; end: Date } {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Start of today
   const end = new Date(start);
-  const days = parseInt(daysToShow.toString()) || 3;
+  const days = parseInt(daysToShow.toString()) || Constants.DEFAULTS.DAYS_TO_SHOW;
   end.setDate(start.getDate() + days);
   end.setHours(23, 59, 59, 999);
 
@@ -415,10 +415,11 @@ export function getTimeWindow(daysToShow: number): { start: Date; end: Date } {
 }
 
 // CACHE MANAGEMENT FUNCTIONS
-
-// Replace the hardcoded CACHE_DURATION constant with a function that uses the config
+/**
+ * Get cache duration from config or use default
+ */
 export function getCacheDuration(config?: Types.Config): number {
-  return (config?.cache_duration || 30) * 60 * 1000;
+  return (config?.cache_duration || Constants.CACHE.DEFAULT_CACHE_LIFETIME_MINUTES) * 60 * 1000;
 }
 
 /**
@@ -549,7 +550,7 @@ export function getBaseCacheKey(
     .sort()
     .join('_');
 
-  return `${Constants.CACHE.CACHE_KEY_PREFIX}${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}`;
+  return `${Constants.CACHE.EVENT_CACHE_KEY_PREFIX}${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}`;
 }
 
 /**
@@ -564,11 +565,13 @@ export function cleanupCache(_prefix: string, config?: Types.Config): void {
     const now = Date.now();
 
     // Calculate cleanup threshold using user's cache_duration and the multiplier
-    const cacheDurationMinutes = config?.cache_duration || Constants.CACHE.DEFAULT_DURATION_MINUTES;
-    const cleanupThreshold = cacheDurationMinutes * 60 * 1000 * Constants.CACHE.CLEANUP_MULTIPLIER;
+    const cacheDurationMinutes =
+      config?.cache_duration || Constants.CACHE.DEFAULT_CACHE_LIFETIME_MINUTES;
+    const cleanupThreshold =
+      cacheDurationMinutes * 60 * 1000 * Constants.CACHE.CACHE_EXPIRY_MULTIPLIER;
 
     Object.keys(localStorage)
-      .filter((key) => key.startsWith(Constants.CACHE.CACHE_KEY_PREFIX))
+      .filter((key) => key.startsWith(Constants.CACHE.EVENT_CACHE_KEY_PREFIX))
       .forEach((key) => {
         try {
           const cacheEntry = JSON.parse(localStorage.getItem(key) || '') as Types.CacheEntry;
@@ -597,16 +600,16 @@ export function cleanupCache(_prefix: string, config?: Types.Config): void {
  * @returns Color string from entity config or default
  */
 export function getEntityColor(entityId: string | undefined, config: Types.Config): string {
-  if (!entityId) return 'var(--primary-text-color)';
+  if (!entityId) return Constants.COLORS.PRIMARY_TEXT;
 
   const entityConfig = config.entities.find(
     (e) =>
       (typeof e === 'string' && e === entityId) || (typeof e === 'object' && e.entity === entityId),
   );
 
-  if (!entityConfig) return 'var(--primary-text-color)';
+  if (!entityConfig) return Constants.COLORS.PRIMARY_TEXT;
 
   return typeof entityConfig === 'string'
-    ? 'var(--primary-text-color)'
-    : entityConfig.color || 'var(--primary-text-color)';
+    ? Constants.COLORS.PRIMARY_TEXT
+    : entityConfig.color || Constants.COLORS.PRIMARY_TEXT;
 }

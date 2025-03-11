@@ -16,8 +16,6 @@
  * @version 0.1.0
  */
 
-export const VERSION = '0.1.0';
-
 // Import all types via namespace for cleaner imports
 import * as Config from './config/config';
 import * as Constants from './config/constants';
@@ -33,6 +31,9 @@ import * as DomUtils from './utils/dom-utils';
 import * as Logger from './utils/logger-utils';
 import * as Editor from './rendering/editor';
 import './utils/calendar-ripple';
+
+// Export VERSION from constants for backward compatibility
+export const VERSION = Constants.VERSION.CURRENT;
 
 // Ensure this file is treated as a module
 export {};
@@ -199,8 +200,8 @@ class CalendarCardPro extends HTMLElement {
     ) as unknown as (location: string) => string & Types.MemoCache<string>;
 
     this.cleanupInterval = window.setInterval(
-      () => EventUtils.cleanupCache(Constants.CACHE.CACHE_KEY_PREFIX, this.config),
-      Constants.CACHE.CLEANUP_CHECK_INTERVAL,
+      () => EventUtils.cleanupCache(Constants.CACHE.EVENT_CACHE_KEY_PREFIX, this.config),
+      Constants.CACHE.CACHE_CLEANUP_INTERVAL_MS,
     );
 
     // Start refresh timer

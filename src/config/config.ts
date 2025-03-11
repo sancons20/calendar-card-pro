@@ -18,10 +18,6 @@ export const DEFAULT_CONFIG: Types.Config = {
   show_past_events: Constants.DEFAULTS.SHOW_PAST_EVENTS,
   language: Constants.DEFAULTS.LANGUAGE,
 
-  // Cache and refresh settings
-  refresh_interval: Constants.CACHE.DEFAULT_REFRESH_INTERVAL,
-  cache_duration: Constants.CACHE.DEFAULT_DURATION_MINUTES,
-
   // Display settings
   time_24h: Constants.DISPLAY.TIME_24H,
   show_end_time: Constants.DISPLAY.SHOW_END_TIME,
@@ -61,6 +57,10 @@ export const DEFAULT_CONFIG: Types.Config = {
   // Actions
   tap_action: Constants.ACTIONS.DEFAULT_TAP_ACTION,
   hold_action: Constants.ACTIONS.DEFAULT_HOLD_ACTION,
+
+  // Cache and refresh settings
+  refresh_interval: Constants.CACHE.DEFAULT_DATA_REFRESH_MINUTES,
+  cache_duration: Constants.CACHE.DEFAULT_CACHE_LIFETIME_MINUTES,
 };
 
 /**
