@@ -337,14 +337,10 @@ export async function fetchEvents(
 
   for (const entityConfig of entities) {
     try {
-      // CRITICAL FIX: Use correct API method with proper URL formation
-      // The correct format for calendar API calls
       const path = `calendars/${entityConfig.entity}?start=${timeWindow.start.toISOString()}&end=${timeWindow.end.toISOString()}`;
 
-      // Log the exact API path for debugging
       Logger.info(`Fetching calendar events with path: ${path}`);
 
-      // Use callApi method from hass object which handles authentication correctly
       const events = await hass.callApi('GET', path);
 
       if (!events || !Array.isArray(events)) {
@@ -360,10 +356,8 @@ export async function fetchEvents(
       );
       allEvents.push(...processedEvents);
     } catch (error) {
-      // Enhanced error logging
       Logger.error(`Failed to fetch events for ${entityConfig.entity}:`, error);
 
-      // Also try to log the hass object structure (safely) to see what's available
       try {
         Logger.info(
           'Available hass API methods:',
@@ -440,8 +434,6 @@ export function updateDateObjects(dateObjs: { now: Date; todayStart: Date; today
 
 // Replace the hardcoded CACHE_DURATION constant with a function that uses the config
 export function getCacheDuration(config?: Types.Config): number {
-  // Default to 30 minutes if no config is provided
-  // Convert minutes to milliseconds
   return (config?.cache_duration || 30) * 60 * 1000;
 }
 
@@ -463,7 +455,6 @@ export function getValidCacheEntry(key: string, config?: Types.Config): Types.Ca
     const isValid = now - cache.timestamp < cacheDuration;
 
     if (!isValid) {
-      // Remove expired cache
       localStorage.removeItem(key);
       Logger.info(`Cache expired and removed for ${key}`);
       return null;
@@ -503,7 +494,6 @@ export function getCachedEvents(
  * @returns Boolean indicating if valid cache exists
  */
 export function doesCacheExist(key: string): boolean {
-  // Use the same shared validation function
   return getValidCacheEntry(key) !== null;
 }
 
@@ -522,10 +512,8 @@ export function cacheEvents(key: string, events: Types.CalendarEventData[]): boo
       timestamp: Date.now(),
     };
 
-    // Save to localStorage
     localStorage.setItem(key, JSON.stringify(cacheEntry));
 
-    // Verify the cache was written correctly
     return getValidCacheEntry(key) !== null;
   } catch (e) {
     Logger.error('Failed to cache calendar events:', e);
@@ -574,16 +562,11 @@ export function getBaseCacheKey(
   showPastEvents: boolean,
   _config: unknown,
 ): string {
-  // Extract just entity IDs in a stable format, sorted to ensure consistency
-  // Explicitly ignore entity color since it's a styling property and doesn't affect
-  // the underlying event data that needs to be fetched
   const entityIds = entities
     .map((e) => (typeof e === 'string' ? e : e.entity))
     .sort()
     .join('_');
 
-  // Create a very simple, stable cache key that doesn't depend on instanceId or styling
-  // This allows cache to be shared between component recreations
   return `calendar_data_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}`;
 }
 
@@ -613,28 +596,23 @@ export function getAllCacheKeys(baseKey: string): string[] {
  * @param _prefix - Cache key prefix (unused but kept for API compatibility)
  */
 export function cleanupCache(_prefix: string): void {
-  // Added underscore to mark as unused
   try {
     const keysToRemove: string[] = [];
     const now = Date.now();
 
-    // Find and remove all cache entries that start with 'calendar_data_' and are older than 24 hours
     Object.keys(localStorage)
       .filter((key) => key.startsWith('calendar_data_'))
       .forEach((key) => {
         try {
           const cacheEntry = JSON.parse(localStorage.getItem(key) || '') as Types.CacheEntry;
           if (now - cacheEntry.timestamp > 86400000) {
-            // 24 hours
             keysToRemove.push(key);
           }
         } catch {
-          // If we can't parse it, just remove it
           keysToRemove.push(key);
         }
       });
 
-    // Log and remove old keys
     if (keysToRemove.length > 0) {
       Logger.info(`Cleaned up ${keysToRemove.length} old cache entries`);
       keysToRemove.forEach((key) => localStorage.removeItem(key));
@@ -678,7 +656,6 @@ export function processEvents(
   entityConfig: Types.EntityConfig,
 ): Types.CalendarEventData[] {
   return events.map((event) => {
-    // MODIFIED: Store only entity ID instead of full config with color
     event._entityId = entityConfig.entity;
 
     return event;
@@ -702,7 +679,6 @@ export async function processAllEntityEvents(
     const entityId = entityConfig.entity;
     const events = rawResponse[entityId] || [];
 
-    // Process events for this entity - MODIFIED to store only entity ID
     const processedEvents = processEvents(events, entityConfig);
     allEvents = [...allEvents, ...processedEvents];
   }
@@ -721,18 +697,14 @@ export function processCalendarData(
   response: Record<string, Types.CalendarEventData[]>,
   config: Types.Config,
 ): Types.CalendarEventData[] {
-  // Normalize entities to ensure consistent format
   const normalizedEntities = Config.normalizeEntities(config.entities);
 
   let allEvents: Types.CalendarEventData[] = [];
 
-  // Process events for each entity
   for (const entityConfig of normalizedEntities) {
     const entityEvents = response[entityConfig.entity] || [];
 
-    // Process and add events for this entity
     const processedEntityEvents = entityEvents.map((event) => {
-      // MODIFIED: Store only entity ID instead of full config
       const processedEvent = { ...event };
       processedEvent._entityId = entityConfig.entity;
 
@@ -742,7 +714,6 @@ export function processCalendarData(
     allEvents = [...allEvents, ...processedEntityEvents];
   }
 
-  // Sort events by start time
   return sortEvents(allEvents);
 }
 
@@ -754,7 +725,6 @@ export function processCalendarData(
  */
 export function sortEvents(events: Types.CalendarEventData[]): Types.CalendarEventData[] {
   return [...events].sort((a, b) => {
-    // Get start timestamps for comparison
     const aStart = a.start.dateTime
       ? new Date(a.start.dateTime).getTime()
       : a.start.date

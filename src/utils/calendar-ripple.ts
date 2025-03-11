@@ -1,4 +1,5 @@
 import { css, html, LitElement } from 'lit';
+import * as Logger from './logger-utils';
 
 /**
  * Calendar Ripple - A lightweight wrapper around Home Assistant's ha-ripple
@@ -77,7 +78,7 @@ export class CalendarRipple extends LitElement {
       try {
         (this.haRipple as any).attach(control);
       } catch (e) {
-        console.warn('Failed to attach ha-ripple:', e);
+        Logger.warn('Failed to attach ha-ripple:', e);
       }
     }
   }
@@ -93,7 +94,7 @@ export class CalendarRipple extends LitElement {
       try {
         (this.haRipple as any).detach();
       } catch (e) {
-        console.warn('Failed to detach ha-ripple:', e);
+        Logger.warn('Failed to detach ha-ripple:', e);
       }
     }
 
@@ -146,7 +147,7 @@ try {
     customElements.define('calendar-ripple', CalendarRipple);
   }
 } catch (e) {
-  console.warn('Could not register calendar-ripple:', e);
+  Logger.warn('Could not register calendar-ripple:', e);
 }
 
 declare global {
