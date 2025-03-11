@@ -207,28 +207,18 @@ export interface MemoCache<T> {
 export interface InteractionState {
   // Pointer tracking
   activePointerId: number | null;
-  pointerStartX: number;
-  pointerStartY: number;
-  pointerStartTime: number; // Added to track interaction duration
-  hasMoved: boolean;
 
   // Action state
   holdTriggered: boolean;
-  tapPending: boolean; // Added to track pending tap actions
-  interactionActive: boolean; // Added to track active interactions
   holdTimer: number | null;
+  pendingHoldAction: boolean;
 
   // Visual elements
   holdIndicator: HTMLElement | null;
-  tapRipple: HTMLElement | null;
+  lastPointerEvent: PointerEvent | null;
 
   // Timing
   lastActionTime: number;
-  lastHoldTime: number; // Added to prevent rapid hold triggers
-  tapDisabled: boolean; // Added to explicitly disable taps after holds
-
-  // Device detection
-  isTouch: boolean;
 }
 
 /**
