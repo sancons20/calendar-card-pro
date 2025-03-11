@@ -286,10 +286,6 @@ export function renderErrorState(
       config.language,
       'error',
     )}</p>`,
-    loading: `<p style="color: var(--secondary-text-color);">${Localize.translateString(
-      config.language,
-      'loading',
-    )}</p>`,
   };
 
   const html = `

@@ -103,18 +103,45 @@ export function printVersionBanner(version: string): void {
 }
 
 /**
- * Log an error message
- * @param message Log message
- * @param data Optional data to include
+ * Log any error message with flexible argument handling
+ * @param messageOrError - String message or Error object
+ * @param ...data - Additional data to log
  */
-export function error(message: string, ...data: unknown[]): void {
-  // Fix: Current log level must be GREATER than or equal to ERROR level to show
-  if (CURRENT_LOG_LEVEL >= LogLevel.ERROR) {
-    if (data.length > 0) {
-      console.error(`%c[Calendar-Card-Pro] ${message}`, LOG_STYLES.error, ...data);
-    } else {
-      console.error(`%c[Calendar-Card-Pro] ${message}`, LOG_STYLES.error);
+export function error(messageOrError: string | Error | unknown, ...data: unknown[]): void {
+  if (CURRENT_LOG_LEVEL < LogLevel.ERROR) return;
+
+  // Handle Error objects
+  if (messageOrError instanceof Error) {
+    // Extract error details
+    const errorMessage = messageOrError.message || 'Unknown error';
+    console.error(`%c[Calendar-Card-Pro] Error: ${errorMessage}`, LOG_STYLES.error);
+
+    // Log stack trace if available
+    if (messageOrError.stack) {
+      console.error(messageOrError.stack);
     }
+
+    // Log additional data if provided
+    if (data.length > 0) {
+      console.error('Additional context:', ...data);
+    }
+  }
+  // Handle string messages
+  else if (typeof messageOrError === 'string') {
+    if (data.length > 0) {
+      console.error(`%c[Calendar-Card-Pro] ${messageOrError}`, LOG_STYLES.error, ...data);
+    } else {
+      console.error(`%c[Calendar-Card-Pro] ${messageOrError}`, LOG_STYLES.error);
+    }
+  }
+  // Handle other types
+  else {
+    console.error(
+      `%c[Calendar-Card-Pro] Unknown error type:`,
+      LOG_STYLES.error,
+      messageOrError,
+      ...data,
+    );
   }
 }
 
@@ -233,7 +260,6 @@ if (isDiagnosticsEnabled()) {
 
 /**
  * Custom error class for Calendar Card Pro
- * Imported from error-utils.ts
  */
 export class CalendarCardError extends Error {
   /**
@@ -253,7 +279,6 @@ export class CalendarCardError extends Error {
 
 /**
  * Log an error with standard formatting and optional context
- * Imported from error-utils.ts
  *
  * @param err Error object or message
  * @param context Optional context info about where the error occurred
@@ -272,27 +297,18 @@ export function logError(err: unknown, context?: string): void {
 }
 
 /**
- * Handle API errors in a consistent way
- * Imported from error-utils.ts
- *
- * @param error - Error from API call
- * @param entityId - Optional entity ID for context
- * @returns Formatted error object
+ * Specialized handler for API errors with context
+ * @param err - Error from API call (renamed from 'error')
+ * @param context - Additional context about the API call
  */
-export function handleApiError(error: unknown, entityId?: string): CalendarCardError {
-  let message = 'Unknown API error occurred';
+export function handleApiError(err: unknown, context?: Record<string, unknown>): void {
+  // Create enhanced context
+  const enhancedContext = {
+    ...(context || {}),
+    timestamp: new Date().toISOString(),
+    // Add any API-specific metadata here
+  };
 
-  if (error instanceof Error) {
-    message = error.message;
-  } else if (typeof error === 'string') {
-    message = error;
-  } else if (error && typeof error === 'object' && 'message' in error) {
-    message = String((error as { message: unknown }).message);
-  }
-
-  const context = entityId ? `Entity: ${entityId}` : undefined;
-  const calendarError = new CalendarCardError(message);
-
-  logError(calendarError, context);
-  return calendarError;
+  // Use the main error function with the enhanced context
+  error(err, enhancedContext); // Now using different names
 }
