@@ -7,6 +7,7 @@
  */
 
 import * as Types from '../config/types';
+import * as Logger from '../utils/logger-utils';
 
 // Import language files
 import enTranslations from './languages/en.json';
@@ -90,7 +91,7 @@ export function getDayName(language: string, dayIndex: number, full = false): st
   const key = full ? 'fullDaysOfWeek' : 'daysOfWeek';
 
   if (dayIndex < 0 || dayIndex > 6) {
-    console.warn(`Calendar-Card-Pro: Invalid day index ${dayIndex}. Using default.`);
+    Logger.warn(`Invalid day index ${dayIndex}. Using default.`);
     dayIndex = 0; // Default to Sunday if invalid
   }
 
@@ -108,7 +109,7 @@ export function getMonthName(language: string, monthIndex: number): string {
   const translations = getTranslations(language);
 
   if (monthIndex < 0 || monthIndex > 11) {
-    console.warn(`Calendar-Card-Pro: Invalid month index ${monthIndex}. Using default.`);
+    Logger.warn(`Invalid month index ${monthIndex}. Using default.`);
     monthIndex = 0; // Default to January if invalid
   }
 
@@ -163,7 +164,7 @@ export function isLanguageSupported(language: string): boolean {
  */
 export function addTranslations(language: string, translations: Types.Translations): void {
   if (!language) {
-    console.error('Calendar-Card-Pro: Cannot add translations without a language code');
+    Logger.error('Cannot add translations without a language code');
     return;
   }
 
