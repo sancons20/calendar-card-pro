@@ -446,42 +446,17 @@ class CalendarCardPro extends HTMLElement {
         this.interactionManager.cleanup = null;
       }
 
-      // Clear the shadow DOM before adding new content
-      DomUtils.clearShadowRoot(this.shadowRoot!);
+      // Use DOM utilities to create card structure
+      const { container, ripple } = DomUtils.createCardStructure(contentContainer);
 
-      // Get primary entity ID for interactions
-      const entityId = Interaction.getPrimaryEntityId(this.config.entities);
-
-      // Create container with proper structure
-      const container = document.createElement('div');
-      container.className = 'card-container';
-      container.setAttribute('role', 'button');
-      container.setAttribute('tabindex', '0');
-
-      // Create our ripple element
-      const ripple = document.createElement('calendar-ripple');
-
-      // Create content container
-      const content = document.createElement('div');
-      content.className = 'card-content';
-
-      // Move content from the render container to our content element
-      if (contentContainer instanceof HTMLElement) {
-        while (contentContainer.firstChild) {
-          content.appendChild(contentContainer.firstChild);
-        }
-      }
-
-      // Add the ripple first, then content to create proper layering
-      container.appendChild(ripple);
-      container.appendChild(content);
-
-      // Add styles and container to shadow DOM
-      this.shadowRoot?.appendChild(style);
-      this.shadowRoot?.appendChild(container);
+      // Update shadow DOM with the new structure
+      DomUtils.updateCardInShadowDOM(this.shadowRoot!, container, style);
 
       // Store container reference for later
       this.interactionManager.container = container;
+
+      // Get primary entity ID for interactions
+      const entityId = Interaction.getPrimaryEntityId(this.config.entities);
 
       // Set up interactions using our new module
       this.interactionManager.cleanup = Interaction.setupInteractions(
