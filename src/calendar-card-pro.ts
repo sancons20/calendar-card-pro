@@ -83,10 +83,12 @@ class CalendarCardPro extends HTMLElement {
     eventCount: 0,
     lastUpdate: Date.now(),
   };
-  private readonly debouncedUpdate: () => void;
-  private readonly memoizedFormatTime: (date: Date) => string & Types.MemoCache<string>;
-  private readonly memoizedFormatLocation: (location: string) => string & Types.MemoCache<string>;
-  private readonly cleanupInterval: number;
+
+  // These properties will be initialized in the constructor
+  private debouncedUpdate: () => void;
+  private memoizedFormatTime: (date: Date) => string & Types.MemoCache<string>;
+  private memoizedFormatLocation: (location: string) => string & Types.MemoCache<string>;
+  private cleanupInterval: number;
   private renderTimeout?: number;
   private performanceTracker: {
     beginMeasurement: (eventCount: number) => Types.PerfMetrics;
@@ -102,10 +104,6 @@ class CalendarCardPro extends HTMLElement {
     state: Interaction.InteractionState;
     container: HTMLElement | null;
     cleanup: (() => void) | null;
-  } = {
-    state: Interaction.createDefaultState(),
-    container: null,
-    cleanup: null,
   };
 
   /******************************************************************************
@@ -154,103 +152,42 @@ class CalendarCardPro extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     // Generate a temporary instance ID - this will be replaced with a deterministic one in setConfig
     this.instanceId = Helpers.generateInstanceId();
-    this.initializeState();
+    // Initialize basic component state
+    const initialState = StateUtils.initializeState();
+    this.config = initialState.config;
+    this.events = initialState.events;
+    this._hass = initialState.hass;
+    this.isLoading = initialState.isLoading;
+    this.isExpanded = initialState.isExpanded;
 
-    // Use VERSION constant instead of hardcoded string
-    Logger.initializeLogger(VERSION);
+    // Set up lifecycle and controllers
+    const lifecycle = StateUtils.setupComponentLifecycle(this);
 
-    // Initialize the performance tracker
-    this.performanceTracker = Helpers.createPerformanceTracker();
-
-    // Use the new visibility handling function
-    this.visibilityCleanup = StateUtils.setupVisibilityHandling(
-      () => this.updateEvents(),
-      () => this.performanceMetrics.lastUpdate,
-    );
-
-    // Create refresh timer controller
-    this.refreshTimer = StateUtils.setupRefreshTimer(
-      (force = false) => this.updateEvents(force),
-      () => this.config?.refresh_interval || Constants.CACHE.DEFAULT_DATA_REFRESH_MINUTES,
-    );
-
-    // Use the helper functions
-    this.debouncedUpdate = Helpers.debounce(
-      () => this.updateEvents(),
-      Constants.TIMING.DEBOUNCE_TIME,
-    );
-
-    this.memoizedFormatTime = Helpers.memoize(
-      (date: Date) => FormatUtils.formatTime(date, this.config.time_24h),
-      this,
-    ) as unknown as (date: Date) => string & Types.MemoCache<string>;
-
-    this.memoizedFormatLocation = Helpers.memoize(
-      (location: string) =>
-        FormatUtils.formatLocation(location, this.config.remove_location_country),
-      this,
-    ) as unknown as (location: string) => string & Types.MemoCache<string>;
-
-    this.cleanupInterval = window.setInterval(
-      () => EventUtils.cleanupCache(Constants.CACHE.EVENT_CACHE_KEY_PREFIX, this.config),
-      Constants.CACHE.CACHE_CLEANUP_INTERVAL_MS,
-    );
-
-    // Start refresh timer
-    this.refreshTimer.start();
+    // Store lifecycle components
+    this.performanceTracker = lifecycle.performanceTracker;
+    this.visibilityCleanup = lifecycle.visibilityCleanup;
+    this.refreshTimer = lifecycle.refreshTimer;
+    this.cleanupInterval = lifecycle.cleanupInterval;
+    this.debouncedUpdate = lifecycle.debouncedUpdate;
+    this.memoizedFormatTime = lifecycle.memoizedFormatTime;
+    this.memoizedFormatLocation = lifecycle.memoizedFormatLocation;
+    this.interactionManager = lifecycle.interactionManager;
   }
 
   /**
    * Enhanced disconnectedCallback to ensure complete cleanup
-   * Prevents memory leaks and visual artifacts when navigating between views
+   * Using the centralized state-utils cleanup function
    */
   disconnectedCallback() {
-    // Clean up visibility handler
-    if (this.visibilityCleanup) {
-      this.visibilityCleanup();
-      this.visibilityCleanup = undefined;
-    }
+    StateUtils.cleanupComponent(this);
+  }
 
-    // Use the timer controller to stop the refresh timer
-    if (this.refreshTimer) {
-      this.refreshTimer.stop();
-      this.refreshTimer = undefined;
-    }
-
-    clearInterval(this.cleanupInterval);
-    this.cleanup();
-
-    // Clean up interaction manager
-    if (this.interactionManager.cleanup) {
-      this.interactionManager.cleanup();
-      this.interactionManager.cleanup = null;
-    }
-
-    // Reset sensitive state but maintain reference
-    if (this.interactionManager.state.holdTimer) {
-      clearTimeout(this.interactionManager.state.holdTimer);
-      this.interactionManager.state.holdTimer = null;
-    }
-
-    // Make sure any remaining hold indicator is removed
-    if (this.interactionManager.state.holdIndicator) {
-      Logger.debug('Cleaning up orphaned hold indicator in disconnectedCallback');
-      Interaction.removeHoldIndicator(this.interactionManager.state.holdIndicator);
-      this.interactionManager.state.holdIndicator = null;
-    }
-
-    this.interactionManager.state.holdTriggered = false;
-    this.interactionManager.state.pendingHoldAction = false;
-    this.interactionManager.state.activePointerId = null;
-
-    // Ensure all global hold indicators are cleaned up
-    // This is a safety mechanism for any indicators that might have been orphaned
-    Interaction.cleanupAllHoldIndicators();
-
-    // Clear the shadow DOM completely to prevent memory leaks
-    if (this.shadowRoot) {
-      DomUtils.clearShadowRoot(this.shadowRoot);
-    }
+  /**
+   * Add navigation detection to connected callback
+   * Enhanced to properly restore state after navigation
+   */
+  connectedCallback() {
+    StateUtils.handleConnectedCallback(this);
   }
 
   /******************************************************************************
@@ -561,43 +498,6 @@ class CalendarCardPro extends HTMLElement {
     }
 
     this.performanceTracker.endMeasurement(metrics, this.performanceMetrics);
-  }
-
-  /**
-   * Add navigation detection to connected callback
-   * Enhanced to properly restore state after navigation
-   */
-  connectedCallback() {
-    Logger.debug('Connected callback called - checking if rendering needed');
-
-    // Check if we have content in the shadow DOM
-    const hasContent = this.shadowRoot?.childElementCount && this.shadowRoot.childElementCount > 0;
-
-    if (!hasContent && this._hass) {
-      // No content, but we have hass - likely returning from navigation
-      Logger.debug('No content found after navigation - triggering render');
-      this.renderCard();
-      return;
-    }
-
-    // Restore interactions if we have a container but no cleanup function
-    if (this.interactionManager.container && !this.interactionManager.cleanup && this._hass) {
-      // Find our ripple element
-      const ripple = this.interactionManager.container.querySelector('calendar-ripple');
-      const entityId = Interaction.getPrimaryEntityId(this.config.entities);
-
-      // Set up interactions using our module
-      this.interactionManager.cleanup = Interaction.setupInteractions(
-        this.config,
-        this.interactionManager.container,
-        this._hass,
-        entityId,
-        () => this.toggleExpanded(),
-        ripple as HTMLElement,
-      );
-
-      Logger.debug('Restored interaction handlers in connectedCallback');
-    }
   }
 
   /******************************************************************************
