@@ -545,7 +545,6 @@ export function invalidateCache(keys: string[]): void {
  * @param entities - Calendar entities
  * @param daysToShow - Number of days to display
  * @param showPastEvents - Whether to show past events
- * @param _config - Unused parameter
  * @returns Base cache key
  */
 export function getBaseCacheKey(
@@ -652,61 +651,6 @@ export function processEvents(
 
     return event;
   });
-}
-
-/**
- * Process events for all calendar entities
- *
- * @param rawResponse - Raw API response with events
- * @param entities - Calendar entities configuration
- * @returns Processed events for all entities
- */
-export async function processAllEntityEvents(
-  rawResponse: Record<string, Types.CalendarEventData[]>,
-  entities: Types.EntityConfig[],
-): Promise<Types.CalendarEventData[]> {
-  let allEvents: Types.CalendarEventData[] = [];
-
-  for (const entityConfig of entities) {
-    const entityId = entityConfig.entity;
-    const events = rawResponse[entityId] || [];
-
-    const processedEvents = processEvents(events, entityConfig);
-    allEvents = [...allEvents, ...processedEvents];
-  }
-
-  return allEvents;
-}
-
-/**
- * Process calendar data from API response
- *
- * @param response - API response data
- * @param config - Card configuration
- * @returns Processed calendar events
- */
-export function processCalendarData(
-  response: Record<string, Types.CalendarEventData[]>,
-  config: Types.Config,
-): Types.CalendarEventData[] {
-  const normalizedEntities = Config.normalizeEntities(config.entities);
-
-  let allEvents: Types.CalendarEventData[] = [];
-
-  for (const entityConfig of normalizedEntities) {
-    const entityEvents = response[entityConfig.entity] || [];
-
-    const processedEntityEvents = entityEvents.map((event) => {
-      const processedEvent = { ...event };
-      processedEvent._entityId = entityConfig.entity;
-
-      return processedEvent;
-    });
-
-    allEvents = [...allEvents, ...processedEntityEvents];
-  }
-
-  return sortEvents(allEvents);
 }
 
 /**

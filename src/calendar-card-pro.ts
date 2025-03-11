@@ -33,7 +33,6 @@ import * as DomUtils from './utils/dom-utils';
 import * as Logger from './utils/logger-utils';
 import * as Editor from './rendering/editor';
 import './utils/calendar-ripple';
-import type { MDWActionEvent } from './utils/custom-events';
 
 // Ensure this file is treated as a module
 export {};
