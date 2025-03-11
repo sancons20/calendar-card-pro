@@ -309,8 +309,11 @@ class CalendarCardPro extends HTMLElement {
     );
   }
 
+  /**
+   * Cleanup cache method - directly calls EventUtils
+   */
   cleanupCache() {
-    StateUtils.cleanupCache(this.config.entities);
+    EventUtils.cleanupCache(Constants.CACHE.KEY_PREFIX, this.config);
   }
 
   get translations() {

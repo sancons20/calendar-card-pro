@@ -51,16 +51,6 @@ export function cleanup(
 }
 
 /**
- * Clean up cache entries for specified calendar entities
- *
- * @param entities - Calendar entities to clean up
- */
-export function cleanupCache(entities: Array<string | { entity: string; color?: string }>): void {
-  const cachePrefix = `calendar_${entities.join('_')}`;
-  EventUtils.cleanupCache(cachePrefix);
-}
-
-/**
  * Sets up page visibility handling to refresh events when returning to the page
  *
  * @param updateCallback Function to call when page visibility changes
