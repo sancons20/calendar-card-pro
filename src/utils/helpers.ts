@@ -8,6 +8,7 @@
 
 import * as Types from '../config/types';
 import * as Logger from './logger-utils';
+import * as Constants from '../config/constants';
 
 /**
  * Debounce helper to limit function call frequency
@@ -179,22 +180,6 @@ export function hashString(str: string): string {
 }
 
 /**
- * Performance constants for calendar card
- *
- * These constants define thresholds and parameters for performance optimizations
- * throughout the calendar card. Adjusting these values can affect rendering
- * performance and responsiveness.
- */
-export const PERFORMANCE_CONSTANTS = {
-  /** Threshold in milliseconds for warning about slow rendering */
-  RENDER_TIME_THRESHOLD: 300,
-  /** Size of chunks for progressive rendering */
-  CHUNK_SIZE: 10,
-  /** Delay between rendering chunks in milliseconds */
-  RENDER_DELAY: 50,
-} as const;
-
-/**
  * Creates a performance tracker for monitoring render performance
  *
  * @returns Object with performance tracking methods
@@ -220,7 +205,7 @@ export function createPerformanceTracker(): {
       return endPerfMetrics(
         metrics,
         performanceData,
-        renderTimeThreshold || PERFORMANCE_CONSTANTS.RENDER_TIME_THRESHOLD,
+        renderTimeThreshold || Constants.PERFORMANCE.RENDER_TIME_THRESHOLD,
       );
     },
 

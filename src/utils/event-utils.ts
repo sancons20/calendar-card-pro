@@ -11,6 +11,7 @@ import * as FormatUtils from './format-utils';
 import * as Helpers from './helpers';
 import * as Logger from './logger-utils';
 import * as Config from '../config/config'; // Add this import
+import * as Constants from '../config/constants';
 
 // HIGH-LEVEL API FUNCTIONS FIRST
 
@@ -47,7 +48,8 @@ export async function updateCalendarEvents(
     config.days_to_show,
     config.show_past_events,
   );
-  const cacheKey = getCacheKey(baseKey);
+  // Replace getCacheKey with direct usage of baseKey
+  const cacheKey = baseKey;
 
   // Try to get from cache if not forced
   const cachedEvents = !force && getCachedEvents(cacheKey, config);
@@ -121,8 +123,12 @@ export async function orchestrateEventUpdate(options: {
   // Early return if state is invalid
   if (!isValidState(hass, config.entities)) return;
 
-  const cacheKey = getCacheKey(
-    getBaseCacheKey(instanceId, config.entities, config.days_to_show, config.show_past_events),
+  // Replace getCacheKey with direct usage of baseKey
+  const cacheKey = getBaseCacheKey(
+    instanceId,
+    config.entities,
+    config.days_to_show,
+    config.show_past_events,
   );
 
   // Check cache first unless forced refresh
@@ -410,19 +416,6 @@ export function getTimeWindow(daysToShow: number): { start: Date; end: Date } {
   return { start, end };
 }
 
-/**
- * Update date objects used for time comparisons
- *
- * @param dateObjs - Object containing date references to update
- */
-export function updateDateObjects(dateObjs: { now: Date; todayStart: Date; todayEnd: Date }): void {
-  dateObjs.now = new Date();
-  dateObjs.todayStart.setTime(dateObjs.now.getTime());
-  dateObjs.todayStart.setHours(0, 0, 0, 0);
-  dateObjs.todayEnd.setTime(dateObjs.todayStart.getTime());
-  dateObjs.todayEnd.setHours(23, 59, 59, 999);
-}
-
 // CACHE MANAGEMENT FUNCTIONS
 
 // Replace the hardcoded CACHE_DURATION constant with a function that uses the config
@@ -558,45 +551,30 @@ export function getBaseCacheKey(
     .sort()
     .join('_');
 
-  return `calendar_data_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}`;
-}
-
-/**
- * Get current cache key based on base key and current date
- *
- * @param baseKey - Base cache key
- * @returns Complete cache key including date
- */
-export function getCacheKey(baseKey: string): string {
-  return baseKey;
-}
-
-/**
- * Get all cache keys for the current configuration
- *
- * @param baseKey - Base cache key
- * @returns Array of cache keys
- */
-export function getAllCacheKeys(baseKey: string): string[] {
-  return [baseKey];
+  return `${Constants.CACHE.KEY_PREFIX}${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}`;
 }
 
 /**
  * Clean up old cache entries
  *
  * @param _prefix - Cache key prefix (unused but kept for API compatibility)
+ * @param config - Card configuration for cleanup time calculation
  */
-export function cleanupCache(_prefix: string): void {
+export function cleanupCache(_prefix: string, config?: Types.Config): void {
   try {
     const keysToRemove: string[] = [];
     const now = Date.now();
 
+    // Calculate cleanup threshold using user's cache_duration and the multiplier
+    const cacheDurationMinutes = config?.cache_duration || Constants.CACHE.DEFAULT_DURATION_MINUTES;
+    const cleanupThreshold = cacheDurationMinutes * 60 * 1000 * Constants.CACHE.CLEANUP_MULTIPLIER;
+
     Object.keys(localStorage)
-      .filter((key) => key.startsWith('calendar_data_'))
+      .filter((key) => key.startsWith(Constants.CACHE.KEY_PREFIX))
       .forEach((key) => {
         try {
           const cacheEntry = JSON.parse(localStorage.getItem(key) || '') as Types.CacheEntry;
-          if (now - cacheEntry.timestamp > 86400000) {
+          if (now - cacheEntry.timestamp > cleanupThreshold) {
             keysToRemove.push(key);
           }
         } catch {

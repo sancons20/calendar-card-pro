@@ -11,6 +11,7 @@ import * as Localize from '../translations/localize';
 import * as DomUtils from '../utils/dom-utils';
 import * as EventUtils from '../utils/event-utils';
 import * as Styles from './styles';
+import * as Constants from '../config/constants';
 
 /**
  * Render a calendar card with proper container setup for MDC ripple
@@ -100,8 +101,8 @@ export async function renderProgressively(
   config: Types.Config,
   formatEventTime: (event: Types.CalendarEventData) => string,
   formatLocation: (location: string) => string,
-  chunkSize = 10,
-  renderDelay = 50,
+  chunkSize = Constants.PERFORMANCE.CHUNK_SIZE,
+  renderDelay = Constants.PERFORMANCE.RENDER_DELAY,
 ): Promise<DocumentFragment> {
   if (!days.length) {
     const fragment = document.createDocumentFragment();

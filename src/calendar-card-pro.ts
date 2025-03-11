@@ -21,6 +21,7 @@ export const VERSION = '0.1.0';
 // Import all types via namespace for cleaner imports
 import * as Config from './config/config';
 import * as Types from './config/types';
+import * as Constants from './config/constants';
 import * as Localize from './translations/localize';
 import * as FormatUtils from './utils/format-utils';
 import * as EventUtils from './utils/event-utils';
@@ -392,18 +393,16 @@ class CalendarCardPro extends HTMLElement {
       this.config.days_to_show,
       this.config.show_past_events,
     );
-    const keys = EventUtils.getAllCacheKeys(baseKey);
-    EventUtils.invalidateCache(keys);
+    EventUtils.invalidateCache([baseKey]);
   }
 
   getAllCacheKeys() {
     const baseKey = this.getBaseCacheKey();
-    return EventUtils.getAllCacheKeys(baseKey);
+    return [baseKey];
   }
 
   getCacheKey(): string {
-    const baseKey = this.getBaseCacheKey();
-    return EventUtils.getCacheKey(baseKey);
+    return this.getBaseCacheKey();
   }
 
   getBaseCacheKey() {
@@ -482,7 +481,7 @@ class CalendarCardPro extends HTMLElement {
       this.isExpanded = !this.isExpanded;
 
       // Add delay to allow ripple animation to complete before re-rendering
-      setTimeout(() => this.renderCard(), 500); // Match ripple animation duration
+      setTimeout(() => this.renderCard(), Constants.TIMING.RIPPLE_ANIMATION); // Match ripple animation duration
     }
   }
 
@@ -544,8 +543,8 @@ class CalendarCardPro extends HTMLElement {
         eventsByDay,
         (event) => this.formatEventTime(event),
         (location) => this.formatLocation(location),
-        Helpers.PERFORMANCE_CONSTANTS.CHUNK_SIZE,
-        Helpers.PERFORMANCE_CONSTANTS.RENDER_DELAY,
+        Constants.PERFORMANCE.CHUNK_SIZE,
+        Constants.PERFORMANCE.RENDER_DELAY,
       );
 
       // Clean up any previous interaction handlers
@@ -643,7 +642,7 @@ class CalendarCardPro extends HTMLElement {
                 // Create hold indicator
                 this.interactionManager.state.holdIndicator = Interaction.createHoldIndicator(ev);
               }
-            }, 500);
+            }, Constants.TIMING.HOLD_THRESHOLD);
           }
         };
 
@@ -830,7 +829,7 @@ class CalendarCardPro extends HTMLElement {
                 // Create hold indicator
                 this.interactionManager.state.holdIndicator = Interaction.createHoldIndicator(ev);
               }
-            }, 500);
+            }, Constants.TIMING.HOLD_THRESHOLD);
           }
         };
 
