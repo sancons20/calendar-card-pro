@@ -125,16 +125,6 @@ export function getAverageRenderTime(performanceData: Types.PerformanceData): nu
 }
 
 /**
- * Create a hash from configuration object for cache keys
- *
- * @param config - Configuration object to hash
- * @returns Short hash string representation
- */
-export function hashConfig(config: unknown): string {
-  return btoa(JSON.stringify(config)).substring(0, 8);
-}
-
-/**
  * Generate a random instance ID
  *
  * @returns {string} Random alphanumeric identifier
@@ -197,7 +187,7 @@ export function hashString(str: string): string {
  */
 export const PERFORMANCE_CONSTANTS = {
   /** Threshold in milliseconds for warning about slow rendering */
-  RENDER_TIME_THRESHOLD: 100,
+  RENDER_TIME_THRESHOLD: 300,
   /** Size of chunks for progressive rendering */
   CHUNK_SIZE: 10,
   /** Delay between rendering chunks in milliseconds */
