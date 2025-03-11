@@ -201,8 +201,10 @@ export function isDiagnosticsEnabled(): boolean {
   return localStorage.getItem('calendar-card-diagnostics') === 'true';
 }
 
+// Create diagnostic styles if diagnostics are enabled
 if (isDiagnosticsEnabled()) {
-  interactionStyles.textContent += `
+  const diagnosticStyles = document.createElement('style');
+  diagnosticStyles.textContent = `
     /* Diagnostic outlines for layer visualization */
     .card-container::before {
       outline: 2px solid blue !important;
@@ -214,6 +216,12 @@ if (isDiagnosticsEnabled()) {
       outline: 2px solid green !important;
     }
   `;
+
+  // Append to document head only once
+  if (!document.head.querySelector('#calendar-card-diagnostics')) {
+    diagnosticStyles.id = 'calendar-card-diagnostics';
+    document.head.appendChild(diagnosticStyles);
+  }
 }
 
 /**
