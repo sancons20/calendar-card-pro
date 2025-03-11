@@ -236,45 +236,49 @@ export function error(
 }
 
 /**
+ * Internal helper for basic log levels (warn, info, debug)
+ * @param level - Log level for filtering
+ * @param message - Message to log
+ * @param style - Style to apply to the message
+ * @param consoleMethod - Console method to use
+ * @param data - Additional data to log
+ */
+function simpleLog(
+  level: LogLevel,
+  message: string,
+  style: string,
+  consoleMethod: (...args: any[]) => void,
+  ...data: unknown[]
+): void {
+  if (currentLogLevel < level) return;
+
+  const [formattedMsg, styleArg] = formatLogMessage(message, style);
+  if (data.length > 0) {
+    consoleMethod(formattedMsg, styleArg, ...data);
+  } else {
+    consoleMethod(formattedMsg, styleArg);
+  }
+}
+
+/**
  * Log a warning message
  */
 export function warn(message: string, ...data: unknown[]): void {
-  if (currentLogLevel < LogLevel.WARN) return;
-
-  const [formattedMsg, style] = formatLogMessage(message, LOG_STYLES.warn);
-  if (data.length > 0) {
-    console.warn(formattedMsg, style, ...data);
-  } else {
-    console.warn(formattedMsg, style);
-  }
+  simpleLog(LogLevel.WARN, message, LOG_STYLES.warn, console.warn, ...data);
 }
 
 /**
  * Log an info message
  */
 export function info(message: string, ...data: unknown[]): void {
-  if (currentLogLevel < LogLevel.INFO) return;
-
-  const [formattedMsg, style] = formatLogMessage(message, LOG_STYLES.prefix);
-  if (data.length > 0) {
-    console.log(formattedMsg, style, ...data);
-  } else {
-    console.log(formattedMsg, style);
-  }
+  simpleLog(LogLevel.INFO, message, LOG_STYLES.prefix, console.log, ...data);
 }
 
 /**
  * Log a debug message
  */
 export function debug(message: string, ...data: unknown[]): void {
-  if (currentLogLevel < LogLevel.DEBUG) return;
-
-  const [formattedMsg, style] = formatLogMessage(message, LOG_STYLES.prefix);
-  if (data.length > 0) {
-    console.log(formattedMsg, style, ...data);
-  } else {
-    console.log(formattedMsg, style);
-  }
+  simpleLog(LogLevel.DEBUG, message, LOG_STYLES.prefix, console.log, ...data);
 }
 
 /**
