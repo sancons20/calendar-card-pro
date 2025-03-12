@@ -11,7 +11,75 @@ import * as FormatUtils from './format';
 import * as Logger from './logger';
 import * as Constants from '../config/constants';
 
-// HIGH-LEVEL API FUNCTIONS FIRST
+//-----------------------------------------------------------------------------
+// HIGH-LEVEL API FUNCTIONS
+//-----------------------------------------------------------------------------
+
+/**
+ * Orchestrates the complete event update process with state management
+ * This function manages loading states, cache access, API calls, and error handling
+ *
+ * @param options Configuration object containing all necessary parameters
+ * @returns Promise that resolves when the update is complete
+ */
+export async function orchestrateEventUpdate(options: {
+  hass: Types.Hass | null;
+  config: Types.Config;
+  instanceId: string;
+  force: boolean;
+  currentEvents: Types.CalendarEventData[];
+  callbacks: {
+    setLoading: (loading: boolean) => void;
+    setEvents: (events: Types.CalendarEventData[]) => void;
+    updateLastUpdate: () => void;
+    renderCallback: () => void;
+  };
+}): Promise<void> {
+  const { hass, config, instanceId, force, currentEvents, callbacks } = options;
+
+  // Early return if state is invalid
+  if (!isValidState(hass, config.entities)) return;
+
+  // Replace getCacheKey with direct usage of baseKey
+  const cacheKey = getBaseCacheKey(config.entities, config.days_to_show, config.show_past_events);
+
+  // Check cache first unless forced refresh
+  const cacheExists = !force && doesCacheExist(cacheKey);
+
+  if (cacheExists) {
+    const cachedEvents = getCachedEvents(cacheKey, config);
+    if (cachedEvents) {
+      Logger.info(`Using ${cachedEvents.length} events from cache`);
+      callbacks.setEvents(cachedEvents);
+      callbacks.setLoading(false);
+      callbacks.renderCallback();
+      return;
+    }
+  }
+
+  // Show loading state and fetch fresh data
+  Logger.info(`Fetching events from API${force ? ' (forced refresh)' : ''}`);
+  callbacks.setLoading(true);
+  callbacks.renderCallback();
+
+  try {
+    const result = await updateCalendarEvents(hass, config, force, currentEvents);
+
+    if (result.events) {
+      callbacks.setEvents(result.events);
+      callbacks.updateLastUpdate();
+    }
+
+    if (result.error) {
+      Logger.error('Error during event update:', result.error);
+    }
+  } catch (error) {
+    Logger.error('Failed to update events:', error);
+  } finally {
+    callbacks.setLoading(false);
+    callbacks.renderCallback();
+  }
+}
 
 /**
  * Updates calendar events with caching and error handling
@@ -87,72 +155,6 @@ export async function updateCalendarEvents(
     }
 
     return { events: currentEvents, fromCache: false, error };
-  }
-}
-
-/**
- * Orchestrates the complete event update process with state management
- * This function manages loading states, cache access, API calls, and error handling
- *
- * @param options Configuration object containing all necessary parameters
- * @returns Promise that resolves when the update is complete
- */
-export async function orchestrateEventUpdate(options: {
-  hass: Types.Hass | null;
-  config: Types.Config;
-  instanceId: string;
-  force: boolean;
-  currentEvents: Types.CalendarEventData[];
-  callbacks: {
-    setLoading: (loading: boolean) => void;
-    setEvents: (events: Types.CalendarEventData[]) => void;
-    updateLastUpdate: () => void;
-    renderCallback: () => void;
-  };
-}): Promise<void> {
-  const { hass, config, instanceId, force, currentEvents, callbacks } = options;
-
-  // Early return if state is invalid
-  if (!isValidState(hass, config.entities)) return;
-
-  // Replace getCacheKey with direct usage of baseKey
-  const cacheKey = getBaseCacheKey(config.entities, config.days_to_show, config.show_past_events);
-
-  // Check cache first unless forced refresh
-  const cacheExists = !force && doesCacheExist(cacheKey);
-
-  if (cacheExists) {
-    const cachedEvents = getCachedEvents(cacheKey, config);
-    if (cachedEvents) {
-      Logger.info(`Using ${cachedEvents.length} events from cache`);
-      callbacks.setEvents(cachedEvents);
-      callbacks.setLoading(false);
-      callbacks.renderCallback();
-      return;
-    }
-  }
-
-  // Show loading state and fetch fresh data
-  Logger.info(`Fetching events from API${force ? ' (forced refresh)' : ''}`);
-  callbacks.setLoading(true);
-  callbacks.renderCallback();
-
-  try {
-    const result = await updateCalendarEvents(hass, config, force, currentEvents);
-
-    if (result.events) {
-      callbacks.setEvents(result.events);
-      callbacks.updateLastUpdate();
-    }
-
-    if (result.error) {
-      Logger.error('Error during event update:', result.error);
-    }
-  } catch (error) {
-    Logger.error('Failed to update events:', error);
-  } finally {
-    callbacks.setLoading(false);
-    callbacks.renderCallback();
   }
 }
 
@@ -304,7 +306,48 @@ export function groupEventsByDay(
   return days;
 }
 
-// FETCH FUNCTIONS
+/**
+ * Get entity color from configuration based on entity ID
+ *
+ * @param entityId - The entity ID to find color for
+ * @param config - Current card configuration
+ * @returns Color string from entity config or default
+ */
+export function getEntityColor(entityId: string | undefined, config: Types.Config): string {
+  if (!entityId) return Constants.COLORS.PRIMARY_TEXT;
+
+  const entityConfig = config.entities.find(
+    (e) =>
+      (typeof e === 'string' && e === entityId) || (typeof e === 'object' && e.entity === entityId),
+  );
+
+  if (!entityConfig) return Constants.COLORS.PRIMARY_TEXT;
+
+  return typeof entityConfig === 'string'
+    ? Constants.COLORS.PRIMARY_TEXT
+    : entityConfig.color || Constants.COLORS.PRIMARY_TEXT;
+}
+
+//-----------------------------------------------------------------------------
+// DATA FETCHING FUNCTIONS
+//-----------------------------------------------------------------------------
+
+/**
+ * Calculate time window for event fetching
+ *
+ * @param daysToShow - Number of days to show in the calendar
+ * @returns Object containing start and end dates for the calendar window
+ */
+export function getTimeWindow(daysToShow: number): { start: Date; end: Date } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Start of today
+  const end = new Date(start);
+  const days = parseInt(daysToShow.toString()) || Constants.DEFAULTS.DAYS_TO_SHOW;
+  end.setDate(start.getDate() + days);
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+}
 
 /**
  * Fetch calendar events from Home Assistant API
@@ -386,29 +429,47 @@ export async function fetchTodayEvents(
   }
 }
 
-/**
- * Calculate time window for event fetching
- *
- * @param daysToShow - Number of days to show in the calendar
- * @returns Object containing start and end dates for the calendar window
- */
-export function getTimeWindow(daysToShow: number): { start: Date; end: Date } {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Start of today
-  const end = new Date(start);
-  const days = parseInt(daysToShow.toString()) || Constants.DEFAULTS.DAYS_TO_SHOW;
-  end.setDate(start.getDate() + days);
-  end.setHours(23, 59, 59, 999);
+//-----------------------------------------------------------------------------
+// CACHE MANAGEMENT FUNCTIONS
+//-----------------------------------------------------------------------------
 
-  return { start, end };
+/**
+ * Generate a base cache key from configuration
+ * This function creates a stable cache key that depends only on data-affecting parameters
+ *
+ * @param entities - Calendar entities
+ * @param daysToShow - Number of days to display
+ * @param showPastEvents - Whether to show past events
+ * @returns Base cache key
+ */
+export function getBaseCacheKey(
+  entities: Array<string | { entity: string; color?: string }>,
+  daysToShow: number,
+  showPastEvents: boolean,
+): string {
+  const entityIds = entities
+    .map((e) => (typeof e === 'string' ? e : e.entity))
+    .sort()
+    .join('_');
+
+  return `${Constants.CACHE.EVENT_CACHE_KEY_PREFIX}${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}`;
 }
 
-// CACHE MANAGEMENT FUNCTIONS
 /**
  * Get cache duration from config or use default
  */
 export function getCacheDuration(config?: Types.Config): number {
   return (config?.cache_duration || Constants.CACHE.DEFAULT_CACHE_LIFETIME_MINUTES) * 60 * 1000;
+}
+
+/**
+ * Check if valid cache exists for a key
+ *
+ * @param key - Cache key
+ * @returns Boolean indicating if valid cache exists
+ */
+export function doesCacheExist(key: string): boolean {
+  return getValidCacheEntry(key) !== null;
 }
 
 /**
@@ -462,16 +523,6 @@ export function getCachedEvents(
 }
 
 /**
- * Check if valid cache exists for a key
- *
- * @param key - Cache key
- * @returns Boolean indicating if valid cache exists
- */
-export function doesCacheExist(key: string): boolean {
-  return getValidCacheEntry(key) !== null;
-}
-
-/**
  * Cache event data in localStorage
  *
  * @param key - Cache key
@@ -519,28 +570,6 @@ export function invalidateCache(keys: string[]): void {
 }
 
 /**
- * Generate a base cache key from configuration
- * This function creates a stable cache key that depends only on data-affecting parameters
- *
- * @param entities - Calendar entities
- * @param daysToShow - Number of days to display
- * @param showPastEvents - Whether to show past events
- * @returns Base cache key
- */
-export function getBaseCacheKey(
-  entities: Array<string | { entity: string; color?: string }>,
-  daysToShow: number,
-  showPastEvents: boolean,
-): string {
-  const entityIds = entities
-    .map((e) => (typeof e === 'string' ? e : e.entity))
-    .sort()
-    .join('_');
-
-  return `${Constants.CACHE.EVENT_CACHE_KEY_PREFIX}${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}`;
-}
-
-/**
  * Clean up old cache entries
  *
  * @param _prefix - Cache key prefix (unused but kept for API compatibility)
@@ -577,26 +606,4 @@ export function cleanupCache(_prefix: string, config?: Types.Config): void {
   } catch (e) {
     Logger.warn('Cache cleanup failed:', e);
   }
-}
-
-/**
- * Get entity color from configuration based on entity ID
- *
- * @param entityId - The entity ID to find color for
- * @param config - Current card configuration
- * @returns Color string from entity config or default
- */
-export function getEntityColor(entityId: string | undefined, config: Types.Config): string {
-  if (!entityId) return Constants.COLORS.PRIMARY_TEXT;
-
-  const entityConfig = config.entities.find(
-    (e) =>
-      (typeof e === 'string' && e === entityId) || (typeof e === 'object' && e.entity === entityId),
-  );
-
-  if (!entityConfig) return Constants.COLORS.PRIMARY_TEXT;
-
-  return typeof entityConfig === 'string'
-    ? Constants.COLORS.PRIMARY_TEXT
-    : entityConfig.color || Constants.COLORS.PRIMARY_TEXT;
 }
