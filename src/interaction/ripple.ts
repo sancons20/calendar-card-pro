@@ -10,13 +10,26 @@ import { LitElement, css, html } from 'lit';
 import * as Constants from '../config/constants';
 import * as Logger from '../utils/logger';
 
-export class CalendarRipple extends LitElement {
-  private _disabled = false;
+//-----------------------------------------------------------------------------
+// CALENDAR RIPPLE COMPONENT
+//-----------------------------------------------------------------------------
 
+export class CalendarRipple extends LitElement {
+  // Properties
+  private _disabled = false;
+  private control: HTMLElement | null = null;
+  private haRipple: HTMLElement | null = null;
+
+  /**
+   * Get disabled state
+   */
   get disabled() {
     return this._disabled;
   }
 
+  /**
+   * Set disabled state and update attributes
+   */
   set disabled(value: boolean) {
     const oldValue = this._disabled;
     this._disabled = value;
@@ -27,9 +40,6 @@ export class CalendarRipple extends LitElement {
       this.removeAttribute('disabled');
     }
   }
-
-  private control: HTMLElement | null = null;
-  private haRipple: HTMLElement | null = null;
 
   /**
    * Called when the element is added to the DOM
@@ -61,6 +71,28 @@ export class CalendarRipple extends LitElement {
   }
 
   /**
+   * Detach this ripple from its control element
+   * Removes event listeners and detaches the ha-ripple
+   */
+  detach() {
+    if (!this.control) return;
+
+    // Remove our click handler
+    this.control.removeEventListener('click', this._handleClick);
+
+    // Detach the ha-ripple
+    if (this.haRipple && 'detach' in this.haRipple) {
+      try {
+        (this.haRipple as { detach: () => void }).detach();
+      } catch (e) {
+        Logger.warn('Failed to detach ha-ripple:', e);
+      }
+    }
+
+    this.control = null;
+  }
+
+  /**
    * Handle click events and dispatch as mdw:action events
    * Bridges the gap between ha-ripple and our action system
    * @private
@@ -82,6 +114,7 @@ export class CalendarRipple extends LitElement {
 
   /**
    * Attach the ripple to the given control element
+   * @private
    */
   private attachRipple(control: HTMLElement) {
     if (this.haRipple && 'attach' in this.haRipple) {
@@ -93,24 +126,6 @@ export class CalendarRipple extends LitElement {
     }
   }
 
-  detach() {
-    if (!this.control) return;
-
-    // Remove our click handler
-    this.control.removeEventListener('click', this._handleClick);
-
-    // Detach the ha-ripple
-    if (this.haRipple && 'detach' in this.haRipple) {
-      try {
-        (this.haRipple as { detach: () => void }).detach();
-      } catch (e) {
-        Logger.warn('Failed to detach ha-ripple:', e);
-      }
-    }
-
-    this.control = null;
-  }
-
   /**
    * Renders the component's template
    * @returns Lit HTML template result
@@ -119,6 +134,9 @@ export class CalendarRipple extends LitElement {
     return html`<slot></slot>`;
   }
 
+  /**
+   * Component styles
+   */
   static styles = css`
     :host {
       display: block;
@@ -141,6 +159,10 @@ export class CalendarRipple extends LitElement {
     }
   `;
 }
+
+//-----------------------------------------------------------------------------
+// ELEMENT REGISTRATION
+//-----------------------------------------------------------------------------
 
 // Register the custom element with error handling
 try {
