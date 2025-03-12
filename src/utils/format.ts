@@ -8,6 +8,10 @@
 import * as Types from '../config/types';
 import * as Localize from '../translations/localize';
 
+//-----------------------------------------------------------------------------
+// HIGH-LEVEL PUBLIC APIs
+//-----------------------------------------------------------------------------
+
 /**
  * Format an event's time string based on its start and end times
  *
@@ -104,26 +108,52 @@ export function formatLocation(location: string, removeCountry = true): string {
   return locationText;
 }
 
+//-----------------------------------------------------------------------------
+// CORE FORMATTING UTILITY
+//-----------------------------------------------------------------------------
+
 /**
- * Format multi-day all-day event time
+ * Format time according to 12/24 hour setting
  *
- * @param endDate End date of the event
- * @param language Language code for translations
- * @param translations Translations object
+ * @param date Date object to format
+ * @param use24h Whether to use 24-hour format
  * @returns Formatted time string
  */
-function formatMultiDayAllDayTime(
+export function formatTime(date: Date, use24h = true): string {
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+
+  if (!use24h) {
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    return `${hours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+  }
+
+  return `${hours}:${minutes.toString().padStart(2, '0')}`;
+}
+
+//-----------------------------------------------------------------------------
+// SPECIALIZED EVENT FORMATTING HELPERS
+//-----------------------------------------------------------------------------
+
+/**
+ * Format single day event time with start/end times
+ *
+ * @param startDate Start date of the event
+ * @param endDate End date of the event
+ * @param showEndTime Whether to show end time
+ * @param time24h Whether to use 24-hour format
+ * @returns Formatted time string
+ */
+function formatSingleDayTime(
+  startDate: Date,
   endDate: Date,
-  language: string,
-  translations: Types.Translations,
+  showEndTime: boolean,
+  time24h: boolean,
 ): string {
-  const endDay = endDate.getDate();
-  const endMonthName = translations.months[endDate.getMonth()];
-
-  // Format day differently based on language
-  const dayFormat = language === 'de' ? `${endDay}.` : endDay;
-
-  return `${translations.allDay}, ${translations.multiDay} ${dayFormat} ${endMonthName}`;
+  return showEndTime
+    ? `${formatTime(startDate, time24h)} - ${formatTime(endDate, time24h)}`
+    : formatTime(startDate, time24h);
 }
 
 /**
@@ -163,41 +193,23 @@ function formatMultiDayTime(
 }
 
 /**
- * Format single day event time with start/end times
+ * Format multi-day all-day event time
  *
- * @param startDate Start date of the event
  * @param endDate End date of the event
- * @param showEndTime Whether to show end time
- * @param time24h Whether to use 24-hour format
+ * @param language Language code for translations
+ * @param translations Translations object
  * @returns Formatted time string
  */
-function formatSingleDayTime(
-  startDate: Date,
+function formatMultiDayAllDayTime(
   endDate: Date,
-  showEndTime: boolean,
-  time24h: boolean,
+  language: string,
+  translations: Types.Translations,
 ): string {
-  return showEndTime
-    ? `${formatTime(startDate, time24h)} - ${formatTime(endDate, time24h)}`
-    : formatTime(startDate, time24h);
-}
+  const endDay = endDate.getDate();
+  const endMonthName = translations.months[endDate.getMonth()];
 
-/**
- * Format time according to 12/24 hour setting
- *
- * @param date Date object to format
- * @param use24h Whether to use 24-hour format
- * @returns Formatted time string
- */
-export function formatTime(date: Date, use24h = true): string {
-  let hours = date.getHours();
-  const minutes = date.getMinutes();
+  // Format day differently based on language
+  const dayFormat = language === 'de' ? `${endDay}.` : endDay;
 
-  if (!use24h) {
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12;
-    return `${hours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
-  }
-
-  return `${hours}:${minutes.toString().padStart(2, '0')}`;
+  return `${translations.allDay}, ${translations.multiDay} ${dayFormat} ${endMonthName}`;
 }
