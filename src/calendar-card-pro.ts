@@ -2,8 +2,15 @@
 /**
  * Calendar Card Pro for Home Assistant
  *
- * This is the main entry point for the Calendar Card Pro custom card.
- * It orchestrates the different modules and handles the core web component lifecycle.
+ * A custom Lovelace card that displays events from multiple calendars with individual styling.
+ * Features progressive rendering, smart caching, and extensive customization options.
+ *
+ * @author Alex Pfau
+ * @license MIT
+ * @version vPLACEHOLDER
+ *
+ * Project Home: https://github.com/alexpfau/calendar-card-pro
+ * Documentation: https://github.com/alexpfau/calendar-card-pro/blob/main/README.md
  *
  * Design inspired by Home Assistant community member @GHA_Steph's button-card calendar design
  * https://community.home-assistant.io/t/calendar-add-on-some-calendar-designs/385790
@@ -12,9 +19,7 @@
  * and Material Design, both licensed under the Apache License 2.0.
  * https://github.com/home-assistant/frontend/blob/dev/LICENSE.md
  *
- * @author Alex Pfau
- * @license MIT
- * @version vPLACEHOLDER
+ * This package includes lit/LitElement (BSD-3-Clause License)
  */
 
 // Import all types via namespace for cleaner imports
