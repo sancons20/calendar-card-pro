@@ -5,6 +5,10 @@
  * Centralizing constants makes them easier to adjust and ensures consistency.
  */
 
+//-----------------------------------------------------------------------------
+// CORE APPLICATION INFORMATION
+//-----------------------------------------------------------------------------
+
 /**
  * Version information
  */
@@ -12,6 +16,10 @@ export const VERSION = {
   /** Current version of Calendar Card Pro */
   CURRENT: '0.1.0',
 };
+
+//-----------------------------------------------------------------------------
+// CORE CONFIGURATION
+//-----------------------------------------------------------------------------
 
 /**
  * Default values for configuration
@@ -26,6 +34,123 @@ export const DEFAULTS = {
   /** Default max events to show when compact */
   MAX_EVENTS_TO_SHOW: undefined,
 };
+
+/**
+ * Cache-related constants
+ */
+export const CACHE = {
+  /** Default interval (minutes) for refreshing event data from API */
+  DEFAULT_DATA_REFRESH_MINUTES: 30,
+
+  /** Default lifetime (minutes) for cache entries before they're considered stale */
+  DEFAULT_CACHE_LIFETIME_MINUTES: 30,
+
+  /** Multiplier used with cache lifetime to calculate when entries should be purged */
+  CACHE_EXPIRY_MULTIPLIER: 4,
+
+  /** Interval (milliseconds) between cache cleanup operations */
+  CACHE_CLEANUP_INTERVAL_MS: 3600000, // 1 hour
+
+  /** Prefix for calendar event cache keys in localStorage */
+  EVENT_CACHE_KEY_PREFIX: 'calendar_data_',
+};
+
+/**
+ * Logging-related constants
+ */
+export const LOGGING = {
+  /**
+   * Current log level
+   * 0 = ERROR, 1 = WARN, 2 = INFO, 3 = DEBUG
+   */
+  CURRENT_LOG_LEVEL: 1,
+
+  /** Standard prefix for log messages */
+  PREFIX: '📅 Calendar Card Pro',
+};
+
+/**
+ * Performance-related constants
+ */
+export const PERFORMANCE = {
+  /** Threshold in milliseconds for warning about slow rendering */
+  RENDER_TIME_THRESHOLD: 300,
+
+  /** Size of chunks for progressive rendering */
+  CHUNK_SIZE: 10,
+
+  /** Delay between rendering chunks in milliseconds */
+  RENDER_DELAY: 50,
+
+  /** Maximum number of measurements to keep in performance history */
+  MAX_MEASUREMENTS: 10,
+};
+
+//-----------------------------------------------------------------------------
+// UI BEHAVIOR & INTERACTIONS
+//-----------------------------------------------------------------------------
+
+/**
+ * Action defaults
+ */
+export const ACTIONS = {
+  /** Default tap action */
+  DEFAULT_TAP_ACTION: { action: 'none' },
+  /** Default hold action */
+  DEFAULT_HOLD_ACTION: { action: 'none' },
+};
+
+/**
+ * Timing-related constants
+ */
+export const TIMING = {
+  /** Default ripple animation duration in milliseconds - used for delaying expand action */
+  RIPPLE_ANIMATION: 500,
+
+  /** Hold indicator threshold in milliseconds */
+  HOLD_THRESHOLD: 500,
+
+  /** Hold indicator transition duration in milliseconds */
+  HOLD_INDICATOR_TRANSITION: 200,
+
+  /** Hold indicator fadeout duration in milliseconds */
+  HOLD_INDICATOR_FADEOUT: 300,
+
+  /** Debounce time for event updates in milliseconds */
+  DEBOUNCE_TIME: 300,
+
+  /** Threshold in milliseconds for refreshing data when returning to a tab */
+  VISIBILITY_REFRESH_THRESHOLD: 300000, // 5 minutes
+};
+
+/**
+ * DOM and UI constants
+ */
+export const UI = {
+  /** Ripple effect opacity values */
+  RIPPLE_OPACITY: {
+    HOVER: 0.04,
+    PRESSED: 0.12,
+  },
+
+  /** Opacity for hold indicators */
+  HOLD_INDICATOR_OPACITY: 0.2,
+
+  /** Hold indicator sizes */
+  HOLD_INDICATOR: {
+    /** Size for touch devices */
+    TOUCH_SIZE: 100,
+    /** Size for mouse/pointer devices */
+    POINTER_SIZE: 50,
+  },
+
+  /** Movement threshold in pixels for detecting significant pointer movement */
+  MOVEMENT_THRESHOLD: 10,
+};
+
+//-----------------------------------------------------------------------------
+// VISUAL PRESENTATION
+//-----------------------------------------------------------------------------
 
 /**
  * Display options defaults
@@ -109,113 +234,4 @@ export const COLORS = {
   TIME_COLOR: 'var(--secondary-text-color)',
   /** Default location color */
   LOCATION_COLOR: 'var(--secondary-text-color)',
-};
-
-/**
- * Action defaults
- */
-export const ACTIONS = {
-  /** Default tap action */
-  DEFAULT_TAP_ACTION: { action: 'none' },
-  /** Default hold action */
-  DEFAULT_HOLD_ACTION: { action: 'none' },
-};
-
-/**
- * Cache-related constants
- */
-export const CACHE = {
-  /** Default interval (minutes) for refreshing event data from API */
-  DEFAULT_DATA_REFRESH_MINUTES: 30,
-
-  /** Default lifetime (minutes) for cache entries before they're considered stale */
-  DEFAULT_CACHE_LIFETIME_MINUTES: 30,
-
-  /** Multiplier used with cache lifetime to calculate when entries should be purged */
-  CACHE_EXPIRY_MULTIPLIER: 4,
-
-  /** Interval (milliseconds) between cache cleanup operations */
-  CACHE_CLEANUP_INTERVAL_MS: 3600000, // 1 hour
-
-  /** Prefix for calendar event cache keys in localStorage */
-  EVENT_CACHE_KEY_PREFIX: 'calendar_data_',
-};
-
-/**
- * DOM and UI constants
- */
-export const UI = {
-  /** Ripple effect opacity values */
-  RIPPLE_OPACITY: {
-    HOVER: 0.04,
-    PRESSED: 0.12,
-  },
-
-  /** Opacity for hold indicators */
-  HOLD_INDICATOR_OPACITY: 0.2,
-
-  /** Hold indicator sizes */
-  HOLD_INDICATOR: {
-    /** Size for touch devices */
-    TOUCH_SIZE: 100,
-    /** Size for mouse/pointer devices */
-    POINTER_SIZE: 50,
-  },
-
-  /** Movement threshold in pixels for detecting significant pointer movement */
-  MOVEMENT_THRESHOLD: 10,
-};
-
-/**
- * Timing-related constants
- */
-export const TIMING = {
-  /** Default ripple animation duration in milliseconds - used for delaying expand action */
-  RIPPLE_ANIMATION: 500,
-
-  /** Hold indicator threshold in milliseconds */
-  HOLD_THRESHOLD: 500,
-
-  /** Hold indicator transition duration in milliseconds */
-  HOLD_INDICATOR_TRANSITION: 200,
-
-  /** Hold indicator fadeout duration in milliseconds */
-  HOLD_INDICATOR_FADEOUT: 300,
-
-  /** Debounce time for event updates in milliseconds */
-  DEBOUNCE_TIME: 300,
-
-  /** Threshold in milliseconds for refreshing data when returning to a tab */
-  VISIBILITY_REFRESH_THRESHOLD: 300000, // 5 minutes
-};
-
-/**
- * Performance-related constants
- */
-export const PERFORMANCE = {
-  /** Threshold in milliseconds for warning about slow rendering */
-  RENDER_TIME_THRESHOLD: 300,
-
-  /** Size of chunks for progressive rendering */
-  CHUNK_SIZE: 10,
-
-  /** Delay between rendering chunks in milliseconds */
-  RENDER_DELAY: 50,
-
-  /** Maximum number of measurements to keep in performance history */
-  MAX_MEASUREMENTS: 10,
-};
-
-/**
- * Logging-related constants
- */
-export const LOGGING = {
-  /**
-   * Current log level
-   * 0 = ERROR, 1 = WARN, 2 = INFO, 3 = DEBUG
-   */
-  CURRENT_LOG_LEVEL: 1,
-
-  /** Standard prefix for log messages */
-  PREFIX: '📅 Calendar Card Pro',
 };
