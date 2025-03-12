@@ -59,15 +59,9 @@ const LOG_STYLES = {
   warn: ['color: #ff9800', 'font-weight: bold'].join(';'),
 };
 
-/**
- * Format a log message with consistent prefix and styling
- * @param message The message to format
- * @param style The style to apply
- * @returns Tuple of [formattedMessage, style] for console methods
- */
-function formatLogMessage(message: string, style: string): [string, string] {
-  return [`%c[${Constants.LOGGING.PREFIX}] ${message}`, style];
-}
+//-----------------------------------------------------------------------------
+// INITIALIZATION FUNCTIONS
+//-----------------------------------------------------------------------------
 
 /**
  * Initialize the logger with the component version
@@ -107,37 +101,9 @@ export function printVersionBanner(version: string): void {
   BANNER_SHOWN = true;
 }
 
-/**
- * Process unknown context into a usable format for logging
- * @param context - Any context value that might be provided
- * @returns A string, object, or undefined that can be safely used in logs
- */
-function formatUnknownContext(context: unknown): string | Record<string, unknown> | undefined {
-  if (context === undefined || context === null) {
-    return undefined;
-  }
-
-  if (typeof context === 'string') {
-    return context;
-  }
-
-  if (typeof context === 'object') {
-    try {
-      // Try to safely convert to Record<string, unknown>
-      return { ...(context as Record<string, unknown>) };
-    } catch (e) {
-      // If conversion fails, stringify it
-      try {
-        return { value: JSON.stringify(context) };
-      } catch {
-        return { value: String(context) };
-      }
-    }
-  }
-
-  // For primitive values, just convert to string
-  return String(context);
-}
+//-----------------------------------------------------------------------------
+// PRIMARY PUBLIC API FUNCTIONS
+//-----------------------------------------------------------------------------
 
 /**
  * Enhanced error logging that handles different error types and contexts
@@ -236,6 +202,31 @@ export function error(
 }
 
 /**
+ * Log a warning message
+ */
+export function warn(message: string, ...data: unknown[]): void {
+  simpleLog(LogLevel.WARN, message, LOG_STYLES.warn, console.warn, ...data);
+}
+
+/**
+ * Log an info message
+ */
+export function info(message: string, ...data: unknown[]): void {
+  simpleLog(LogLevel.INFO, message, LOG_STYLES.prefix, console.log, ...data);
+}
+
+/**
+ * Log a debug message
+ */
+export function debug(message: string, ...data: unknown[]): void {
+  simpleLog(LogLevel.DEBUG, message, LOG_STYLES.prefix, console.log, ...data);
+}
+
+//-----------------------------------------------------------------------------
+// INTERNAL HELPER FUNCTIONS
+//-----------------------------------------------------------------------------
+
+/**
  * Internal helper for basic log levels (warn, info, debug)
  * @param level - Log level for filtering
  * @param message - Message to log
@@ -261,22 +252,43 @@ function simpleLog(
 }
 
 /**
- * Log a warning message
+ * Format a log message with consistent prefix and styling
+ * @param message The message to format
+ * @param style The style to apply
+ * @returns Tuple of [formattedMessage, style] for console methods
  */
-export function warn(message: string, ...data: unknown[]): void {
-  simpleLog(LogLevel.WARN, message, LOG_STYLES.warn, console.warn, ...data);
+function formatLogMessage(message: string, style: string): [string, string] {
+  return [`%c[${Constants.LOGGING.PREFIX}] ${message}`, style];
 }
 
 /**
- * Log an info message
+ * Process unknown context into a usable format for logging
+ * @param context - Any context value that might be provided
+ * @returns A string, object, or undefined that can be safely used in logs
  */
-export function info(message: string, ...data: unknown[]): void {
-  simpleLog(LogLevel.INFO, message, LOG_STYLES.prefix, console.log, ...data);
-}
+function formatUnknownContext(context: unknown): string | Record<string, unknown> | undefined {
+  if (context === undefined || context === null) {
+    return undefined;
+  }
 
-/**
- * Log a debug message
- */
-export function debug(message: string, ...data: unknown[]): void {
-  simpleLog(LogLevel.DEBUG, message, LOG_STYLES.prefix, console.log, ...data);
+  if (typeof context === 'string') {
+    return context;
+  }
+
+  if (typeof context === 'object') {
+    try {
+      // Try to safely convert to Record<string, unknown>
+      return { ...(context as Record<string, unknown>) };
+    } catch (e) {
+      // If conversion fails, stringify it
+      try {
+        return { value: JSON.stringify(context) };
+      } catch {
+        return { value: String(context) };
+      }
+    }
+  }
+
+  // For primitive values, just convert to string
+  return String(context);
 }
