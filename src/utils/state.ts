@@ -54,7 +54,7 @@ export function setupComponentLifecycle(component: any): {
   memoizedFormatTime: (date: Date) => string & Types.MemoCache<string>;
   memoizedFormatLocation: (location: string) => string & Types.MemoCache<string>;
   interactionManager: {
-    state: Interaction.InteractionState;
+    state: Types.InteractionState;
     container: HTMLElement | null;
     cleanup: (() => void) | null;
   };
@@ -360,7 +360,7 @@ export function cleanup(
   renderTimeout?: number,
   memoizedFormatTime?: Types.MemoCache<string>,
   memoizedFormatLocation?: Types.MemoCache<string>,
-  interactionState?: Interaction.InteractionState,
+  interactionState?: Types.InteractionState,
 ): void {
   // Clear render timeout if any
   if (renderTimeout) {
