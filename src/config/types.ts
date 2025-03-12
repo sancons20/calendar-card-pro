@@ -5,59 +5,8 @@
  */
 
 // -----------------------------------------------------------------------------
-// Window & Global Declarations
+// CORE CONFIGURATION
 // -----------------------------------------------------------------------------
-
-/**
- * Custom card registration interface for Home Assistant
- */
-export interface CustomCard {
-  type: string;
-  name: string;
-  preview: boolean;
-  description: string;
-  documentationURL?: string;
-}
-
-/**
- * Home Assistant more-info event interface
- */
-export interface HassMoreInfoEvent extends CustomEvent {
-  detail: {
-    entityId: string;
-  };
-}
-
-// -----------------------------------------------------------------------------
-// Translations
-// -----------------------------------------------------------------------------
-
-/**
- * Interface for language translations
- */
-export interface Translations {
-  daysOfWeek: string[];
-  fullDaysOfWeek: string[];
-  months: string[];
-  allDay: string;
-  multiDay: string;
-  at: string;
-  noEvents: string;
-  loading: string;
-  error: string;
-}
-
-// -----------------------------------------------------------------------------
-// Configuration
-// -----------------------------------------------------------------------------
-
-/**
- * Calendar entity configuration
- */
-export interface EntityConfig {
-  entity: string;
-  color?: string;
-}
 
 /**
  * Main configuration interface for the card
@@ -102,8 +51,16 @@ export interface Config {
   hold_action: ActionConfig;
 }
 
+/**
+ * Calendar entity configuration
+ */
+export interface EntityConfig {
+  entity: string;
+  color?: string;
+}
+
 // -----------------------------------------------------------------------------
-// Calendar Events
+// CALENDAR DATA STRUCTURES
 // -----------------------------------------------------------------------------
 
 /**
@@ -129,8 +86,16 @@ export interface EventsByDay {
   events: CalendarEventData[];
 }
 
+/**
+ * Cache entry structure
+ */
+export interface CacheEntry {
+  events: CalendarEventData[];
+  timestamp: number;
+}
+
 // -----------------------------------------------------------------------------
-// Actions
+// USER INTERACTION
 // -----------------------------------------------------------------------------
 
 /**
@@ -143,61 +108,6 @@ export interface ActionConfig {
   service_data?: object;
   url_path?: string;
   open_tab?: string;
-}
-
-// -----------------------------------------------------------------------------
-// Home Assistant
-// -----------------------------------------------------------------------------
-
-/**
- * Home Assistant interface
- */
-export interface Hass {
-  states: Record<string, { state: string }>;
-  // Fix API call method signature to match what Home Assistant actually provides
-  callApi: (method: string, path: string, parameters?: object) => Promise<unknown>;
-  callService: (domain: string, service: string, serviceData?: object) => void;
-  // Add connection property that may be needed
-  connection?: {
-    subscribeEvents: (callback: (event: any) => void, eventType: string) => Promise<() => void>;
-  };
-}
-
-// -----------------------------------------------------------------------------
-// Utility Types
-// -----------------------------------------------------------------------------
-
-/**
- * Cache entry structure
- */
-export interface CacheEntry {
-  events: CalendarEventData[];
-  timestamp: number;
-}
-
-/**
- * Performance monitoring data
- */
-export interface PerformanceData {
-  readonly renderTime: number[];
-  eventCount: number;
-  lastUpdate: number;
-}
-
-/**
- * Performance metrics structure
- */
-export interface PerfMetrics {
-  startTime: number;
-  eventCount: number;
-}
-
-/**
- * Memoization cache interface
- */
-export interface MemoCache<T> {
-  readonly cache: Map<string, T>;
-  clear(): void;
 }
 
 /**
@@ -238,4 +148,90 @@ export interface InteractionConfig {
   tapAction?: ActionConfig;
   holdAction?: ActionConfig;
   context: ActionContext;
+}
+
+// -----------------------------------------------------------------------------
+// HOME ASSISTANT INTEGRATION
+// -----------------------------------------------------------------------------
+
+/**
+ * Home Assistant interface
+ */
+export interface Hass {
+  states: Record<string, { state: string }>;
+  // Fix API call method signature to match what Home Assistant actually provides
+  callApi: (method: string, path: string, parameters?: object) => Promise<unknown>;
+  callService: (domain: string, service: string, serviceData?: object) => void;
+  // Add connection property that may be needed
+  connection?: {
+    subscribeEvents: (callback: (event: any) => void, eventType: string) => Promise<() => void>;
+  };
+}
+
+/**
+ * Custom card registration interface for Home Assistant
+ */
+export interface CustomCard {
+  type: string;
+  name: string;
+  preview: boolean;
+  description: string;
+  documentationURL?: string;
+}
+
+/**
+ * Home Assistant more-info event interface
+ */
+export interface HassMoreInfoEvent extends CustomEvent {
+  detail: {
+    entityId: string;
+  };
+}
+
+// -----------------------------------------------------------------------------
+// UI SUPPORT
+// -----------------------------------------------------------------------------
+
+/**
+ * Interface for language translations
+ */
+export interface Translations {
+  daysOfWeek: string[];
+  fullDaysOfWeek: string[];
+  months: string[];
+  allDay: string;
+  multiDay: string;
+  at: string;
+  noEvents: string;
+  loading: string;
+  error: string;
+}
+
+// -----------------------------------------------------------------------------
+// PERFORMANCE & UTILITIES
+// -----------------------------------------------------------------------------
+
+/**
+ * Performance monitoring data
+ */
+export interface PerformanceData {
+  readonly renderTime: number[];
+  eventCount: number;
+  lastUpdate: number;
+}
+
+/**
+ * Performance metrics structure
+ */
+export interface PerfMetrics {
+  startTime: number;
+  eventCount: number;
+}
+
+/**
+ * Memoization cache interface
+ */
+export interface MemoCache<T> {
+  readonly cache: Map<string, T>;
+  clear(): void;
 }
