@@ -280,39 +280,3 @@ export function info(message: string, ...data: unknown[]): void {
 export function debug(message: string, ...data: unknown[]): void {
   simpleLog(LogLevel.DEBUG, message, LOG_STYLES.prefix, console.log, ...data);
 }
-
-/**
- * Set the current logging level
- * @param level LogLevel to set
- */
-export function setLogLevel(level: LogLevel): void {
-  currentLogLevel = level;
-  debug(`Log level set to ${LogLevel[level]}`);
-}
-
-/**
- * Check if debug logging is enabled
- * @returns {boolean} True if debug logging is enabled
- */
-export function isDebugLoggingEnabled(): boolean {
-  return currentLogLevel >= LogLevel.DEBUG;
-}
-
-/**
- * Custom error class for Calendar Card Pro
- */
-export class CalendarCardError extends Error {
-  /**
-   * Create a new CalendarCardError
-   *
-   * @param message - Error message
-   * @param severity - Error severity level
-   */
-  constructor(
-    public message: string,
-    public severity: 'warning' | 'error' = 'error',
-  ) {
-    super(message);
-    this.name = 'CalendarCardError';
-  }
-}

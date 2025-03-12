@@ -102,23 +102,6 @@ export class CalendarRipple extends LitElement {
     this.control = null;
   }
 
-  /**
-   * Manually dispatch an action event (useful for testing)
-   */
-  dispatchAction(source: 'click' | 'holdEnd' = 'click') {
-    const actionEvent = new CustomEvent('mdw:action', {
-      bubbles: true,
-      composed: true,
-      detail: { source },
-    });
-
-    if (this.control) {
-      this.control.dispatchEvent(actionEvent);
-    } else {
-      this.dispatchEvent(actionEvent);
-    }
-  }
-
   render() {
     return html`<slot></slot>`;
   }

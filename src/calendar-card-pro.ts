@@ -12,8 +12,9 @@
  * and Material Design, both licensed under the Apache License 2.0.
  * https://github.com/home-assistant/frontend/blob/dev/LICENSE.md
  *
+ * @author Alex Pfau
  * @license MIT
- * @version 0.1.0
+ * @version 1.0.0
  */
 
 // Import all types via namespace for cleaner imports
@@ -387,7 +388,7 @@ class CalendarCardPro extends HTMLElement {
       this.isExpanded = !this.isExpanded;
 
       // Add delay to allow ripple animation to complete before re-rendering
-      setTimeout(() => this.renderCard(), Constants.TIMING.RIPPLE_ANIMATION); // Match ripple animation duration
+      setTimeout(() => this.renderCard(), Constants.TIMING.RIPPLE_ANIMATION);
     }
   }
 

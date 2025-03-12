@@ -44,16 +44,6 @@ export function createElement(
 }
 
 /**
- * Create a text node with the given content
- *
- * @param content - Text content
- * @returns Text node with the given content
- */
-export function createTextNode(content: string): Text {
-  return document.createTextNode(content);
-}
-
-/**
  * Create a style element with the provided CSS content
  */
 export function createStyleElement(cssContent: string): HTMLStyleElement {
