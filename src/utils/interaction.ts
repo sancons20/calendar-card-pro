@@ -18,26 +18,6 @@ import * as Constants from '../config/constants';
 //-----------------------------------------------------------------------------
 
 /**
- * Interaction state for tracking pointer events and visual feedback
- */
-export interface InteractionState {
-  // Pointer tracking
-  activePointerId: number | null;
-
-  // Action state
-  holdTriggered: boolean;
-  holdTimer: number | null;
-  pendingHoldAction: boolean;
-
-  // Visual elements
-  holdIndicator: HTMLElement | null;
-  lastPointerEvent: PointerEvent | null;
-
-  // Timing
-  lastActionTime: number;
-}
-
-/**
  * Set up interaction handlers for a card element
  *
  * @param config - Card configuration
@@ -57,7 +37,7 @@ export function setupInteractions(
   ripple?: HTMLElement,
 ): () => void {
   // Create interaction state
-  const state: InteractionState = createDefaultState();
+  const state: Types.InteractionState = createDefaultState();
 
   // Set up action handler for mdw:action events (clicks from ripple)
   const handleActionEvent = (_ev: CustomEvent) => {
@@ -299,7 +279,7 @@ export function handleAction(
 /**
  * Create a default interaction state object
  */
-export function createDefaultState(): InteractionState {
+export function createDefaultState(): Types.InteractionState {
   return {
     activePointerId: null,
     holdTriggered: false,

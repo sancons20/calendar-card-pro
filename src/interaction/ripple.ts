@@ -1,6 +1,6 @@
 import { css, html, LitElement } from 'lit';
 import * as Constants from '../config/constants';
-import * as Logger from './logger';
+import * as Logger from '../utils/logger';
 
 /**
  * Calendar Ripple - A lightweight wrapper around Home Assistant's ha-ripple

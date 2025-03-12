@@ -31,7 +31,7 @@ import * as Render from './rendering/render';
 import * as DomUtils from './utils/dom';
 import * as Logger from './utils/logger';
 import * as Editor from './rendering/editor';
-import './utils/ripple';
+import './interaction/ripple';
 
 //-----------------------------------------------------------------------------
 // GLOBAL TYPE DECLARATIONS
@@ -107,7 +107,7 @@ class CalendarCardPro extends HTMLElement {
     stop: () => void;
   };
   private interactionManager: {
-    state: Interaction.InteractionState;
+    state: Types.InteractionState;
     container: HTMLElement | null;
     cleanup: (() => void) | null;
   };
