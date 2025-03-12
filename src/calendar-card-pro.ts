@@ -204,37 +204,12 @@ class CalendarCardPro extends HTMLElement {
     this.isExpanded = initialState.isExpanded;
   }
 
-  /**
-   * Improved cleanup method with explicit cache clearing and hold indicator cleanup
-   */
   cleanup() {
-    // Clear render timeout if any
-    if (this.renderTimeout) {
-      clearTimeout(this.renderTimeout);
-      this.renderTimeout = undefined;
-    }
-
-    // Clear memoization caches - fix the TypeScript error by using type assertion
-    if (this.memoizedFormatTime && 'cache' in this.memoizedFormatTime) {
-      (this.memoizedFormatTime as unknown as { cache: Map<string, any> }).cache?.clear();
-    }
-
-    if (this.memoizedFormatLocation && 'cache' in this.memoizedFormatLocation) {
-      (this.memoizedFormatLocation as unknown as { cache: Map<string, any> }).cache?.clear();
-    }
-
-    // Ensure any hold indicators are cleaned up
-    if (this.interactionManager.state.holdIndicator) {
-      Logger.debug('Cleaning up hold indicator in cleanup method');
-      Interaction.removeHoldIndicator(this.interactionManager.state.holdIndicator);
-      this.interactionManager.state.holdIndicator = null;
-    }
-
-    // Call StateUtils cleanup as a fallback
     StateUtils.cleanup(
       this.renderTimeout,
       this.memoizedFormatTime as unknown as Types.MemoCache<string>,
       this.memoizedFormatLocation as unknown as Types.MemoCache<string>,
+      this.interactionManager.state,
     );
   }
 

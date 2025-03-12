@@ -217,12 +217,6 @@ export function cleanupComponent(component: any): void {
     clearInterval(component.cleanupInterval);
   }
 
-  // Clear any pending render timeout
-  if (component.renderTimeout) {
-    clearTimeout(component.renderTimeout);
-    component.renderTimeout = undefined;
-  }
-
   // Clean up interaction manager
   if (component.interactionManager.cleanup) {
     component.interactionManager.cleanup();
@@ -249,8 +243,13 @@ export function cleanupComponent(component: any): void {
   // Ensure all global hold indicators are cleaned up
   Interaction.cleanupAllHoldIndicators();
 
-  // Clear memoization caches
-  cleanup(component.renderTimeout, component.memoizedFormatTime, component.memoizedFormatLocation);
+  // Use enhanced unified cleanup for render timeout and memoization caches
+  cleanup(
+    component.renderTimeout,
+    component.memoizedFormatTime,
+    component.memoizedFormatLocation,
+    component.interactionManager?.state,
+  );
 }
 
 /**
@@ -332,15 +331,18 @@ export function setupRefreshTimer(
 
 /**
  * Clean up memoization caches and other resources
+ * Enhanced to handle interaction state and hold indicators
  *
  * @param renderTimeout - Render timeout to clear
  * @param memoizedFormatTime - Memoized time formatter to clear
  * @param memoizedFormatLocation - Memoized location formatter to clear
+ * @param interactionState - Optional interaction state for hold indicator cleanup
  */
 export function cleanup(
   renderTimeout?: number,
   memoizedFormatTime?: Types.MemoCache<string>,
   memoizedFormatLocation?: Types.MemoCache<string>,
+  interactionState?: Interaction.InteractionState,
 ): void {
   // Clear render timeout if any
   if (renderTimeout) {
@@ -354,5 +356,26 @@ export function cleanup(
 
   if (memoizedFormatLocation?.cache) {
     memoizedFormatLocation.cache.clear();
+  }
+
+  // Handle interaction state cleanup if provided
+  if (interactionState) {
+    // Clean up hold timer
+    if (interactionState.holdTimer) {
+      clearTimeout(interactionState.holdTimer);
+      interactionState.holdTimer = null;
+    }
+
+    // Clean up hold indicator
+    if (interactionState.holdIndicator) {
+      Logger.debug('Cleaning up hold indicator in unified cleanup method');
+      Interaction.removeHoldIndicator(interactionState.holdIndicator);
+      interactionState.holdIndicator = null;
+    }
+
+    // Reset state flags
+    interactionState.holdTriggered = false;
+    interactionState.pendingHoldAction = false;
+    interactionState.activePointerId = null;
   }
 }
