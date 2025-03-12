@@ -2,6 +2,38 @@
 
 Thank you for your interest in contributing to Calendar Card Pro! This document outlines the process for contributing to the project, including code changes, translations, and bug reports.
 
+## Understanding the Codebase
+
+Before contributing code, we strongly recommend reviewing our [architecture documentation](./docs/architecture.md), which explains:
+
+- Module organization and responsibilities
+- Data flow and event handling
+- Performance optimization techniques
+- Design principles and patterns
+
+## Development Environment Setup
+
+1. Fork the repository
+2. Clone your fork: `git clone https://github.com/[your-username]/calendar-card-pro.git`
+3. Install dependencies: `npm install`
+4. Start development mode: `npm run dev`
+5. The compiled card will be available in `dist/calendar-card-pro.js`
+6. For testing in Home Assistant, follow the [testing instructions](#testing-in-home-assistant)
+
+## Testing in Home Assistant
+
+To test your changes in a real Home Assistant environment:
+
+1. Copy `dist/calendar-card-pro.js` to your Home Assistant's `www/community/calendar-card-pro-dev/` folder
+2. Add the resource to Home Assistant:
+   ```yaml
+   url: /local/community/calendar-card-pro-dev/calendar-card-pro.js
+   type: module
+   ```
+3. Add the card to your dashboard using type: `custom:calendar-card-pro-dev`
+4. Test with various calendar types and configurations
+5. Verify performance with both small and large event sets
+
 ## Adding New Translations
 
 Calendar Card Pro supports multiple languages through JSON translation files. Here's how to add a new language:
@@ -85,24 +117,25 @@ window.addEventListener('load', () => {
 
 > Note: This method is primarily intended for development and testing. For permanent language additions, please contribute directly to the repository via pull request.
 
-## General Contribution Guidelines
+## Code Style and Quality Standards
 
-### Code Style and Quality
+- Follow TypeScript best practices and maintain strict typing
+- Use the established module structure - place new code in the appropriate module
+- Follow the existing patterns for similar functionality
+- Document all public functions with JSDoc comments
+- Run linting before submitting: `npm run lint --fix`
+- Keep bundle size in mind - avoid large dependencies
 
-- Follow the TypeScript style guide
-- Run `npm run lint` to check for errors
-- Run `npm run format` to format code with Prettier
-- Ensure all tests pass before submitting a PR
+## Pull Request Process
 
-### Pull Request Process
+1. Create a feature branch from your fork (`feature/my-new-feature`)
+2. Make your changes following our code style guidelines
+3. Ensure all linting passes (`npm run lint`)
+4. Build and test your changes (`npm run build`)
+5. Submit a PR against the `main` branch
+6. Respond to any feedback during code review
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to your branch (`git push origin feature/my-new-feature`)
-5. Create a new Pull Request
-
-### Bug Reports
+## Bug Reports
 
 When filing a bug report, please include:
 

@@ -18,16 +18,43 @@ calendar-card-pro-dev/
 │── logs/                             # Stores ESLint logs
 │   ├── eslint.log
 │── src/                              # Source code (TypeScript)
-│   ├── calendar-card-pro.ts
-│── docs/                             # Documentation (ignored in git)
-│   ├── workflow.md
+│   ├── calendar-card-pro.ts          # Main entry point component
+│   ├── config/                       # Configuration-related code
+│   │   ├── config.ts                 # DEFAULT_CONFIG and config helpers
+│   │   ├── constants.ts              # Constants and default values
+│   │   └── types.ts                  # TypeScript type definitions
+│   ├── interaction/                  # User interaction handling
+│   │   ├── actions.ts                # Action handlers (tap, hold, etc.)
+│   │   ├── core.ts                   # Core interaction setup
+│   │   ├── feedback.ts               # Visual feedback elements
+│   │   └── ripple.ts                 # Ripple effect component
+│   ├── rendering/                    # UI rendering code
+│   │   ├── editor.ts                 # Card editor component
+│   │   ├── render.ts                 # HTML generation functions
+│   │   └── styles.ts                 # CSS generation
+│   ├── translations/                 # Localization
+│   │   ├── localize.ts               # Translation management
+│   │   └── languages/                # Language files
+│   │       ├── en.json               # English translations
+│   │       └── de.json               # German translations
+│   └── utils/                        # Utility functions
+│       ├── dom.ts                    # DOM manipulation helpers
+│       ├── events.ts                 # Event fetching and processing
+│       ├── format.ts                 # Date and text formatting
+│       ├── helpers.ts                # Generic utilities
+│       ├── logger.ts                 # Logging system
+│       └── state.ts                  # Component state management in the correct subfolder
+│── docs/                             # Documentation
+│   ├── architecture.md               # Architecture documentation
+│   ├── workflow.md                   # Development workflow (this file)
+│   └── images/                       # Documentation images
 │── .gitignore                        # Ignored files and folders
 │── .prettierignore                   # Files ignored by Prettier
 │── .prettierrc                       # Prettier formatting rules
 │── CONTRIBUTING.md                   # Contribution guidelines
 │── eslint.config.mjs                 # ESLint configuration
 │── hacs.json                         # HACS metadata
-│── LICENSE                           # License file
+│── LICENSE                           # MIT License with attributions
 │── package.json                      # Project dependencies & scripts
 │── package-lock.json                 # Dependency lock file
 │── README.md                         # Main project documentation
@@ -43,7 +70,7 @@ This section covers the process of **developing and testing** changes before the
 
 - Modify files in the `src/` directory (TypeScript).
 - Follow modular architecture:
-  - Add new utilities to appropriate module files
+  - Add new utilities to appropriate module files in the correct subfolder
   - Create new utility files in the appropriate folders when necessary
   - Keep main component file focused on orchestration
 - Run:
@@ -105,10 +132,12 @@ Before preparing a release:
    }
    ```
 
-   > **Note:** This is the single source of truth for version information. When you build the package:
+   > **Note:** package.json is the single source of truth for version information. When you build the package:
    >
-   > - The rollup config automatically reads this version for the banner comment
-   > - The version constant in `src/config/constants.ts` is automatically replaced during build
+   > - The rollup config automatically replaces the placeholder version string in:
+   >   - src/calendar-card-pro.ts (JSDoc comment)
+   >   - src/config/constants.ts (VERSION.CURRENT)
+   > - This ensures consistent versioning throughout the codebase
 
 ### 2️⃣ Prepare the Release Locally
 
@@ -118,8 +147,7 @@ Before pushing a new release, ensure that:
 - You have **run linting and formatting** locally:
 
   ```sh
-  npm run lint
-  npm run format
+  npm run lint --fix
   ```
 
   **Note:** The GitHub workflow will fail if there are any linting or formatting issues.
@@ -157,7 +185,7 @@ Once you're satisfied with your changes, follow these steps:
 
 - Deciding the version number:
 
-  - If you **add new features** but don’t break anything, use **vX.Y+1.0** (minor).
+  - If you **add new features** but don't break anything, use **vX.Y+1.0** (minor).
   - If you **introduce breaking changes**, use **vX+1.0.0** (major).
 
 - **This step triggers the automated release workflow.**
@@ -270,7 +298,7 @@ If you are actively developing features in **private/dev** and a **PR is merged 
    git merge public-repo/main
    ```
 
-4. If there are no conflicts, you’re good to go! **If conflicts appear**:
+4. If there are no conflicts, you're good to go! **If conflicts appear**:
 
    - **Manually resolve them** in your code editor.
    - **Commit the resolved changes**:
@@ -373,7 +401,7 @@ After releasing a new version:
 
 ### 2. What happens if I forget to sync a PR back to private?
 
-- The private repo **won’t have the latest fixes**.
+- The private repo **won't have the latest fixes**.
 
 - **Run:**
   ```sh
