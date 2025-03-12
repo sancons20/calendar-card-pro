@@ -420,7 +420,7 @@ hold_action:
 
 ### 🚀 How to Contribute
 
-Want to improve **Calendar Card Pro**? We welcome contributions of all kinds—whether it’s **fixing bugs, improving performance, or adding new features**!
+Want to improve **Calendar Card Pro**? I welcome contributions of all kinds—whether it’s **fixing bugs, improving performance, or adding new features**!
 
 #### Getting Started
 
@@ -439,7 +439,7 @@ Want to improve **Calendar Card Pro**? We welcome contributions of all kinds—w
 
 ### 📅 Roadmap & Planned Features
 
-We are continuously working on improving **Calendar Card Pro**. Here’s what’s planned for upcoming releases:
+I am continuously working on improving **Calendar Card Pro**. Here’s what’s planned for upcoming releases:
 
 - **Enhanced Event Details** – Support for event descriptions, recurring event indicators, and more.
 - **Visual Configuration Editor** – Configure all options through an intuitive UI without writing YAML.
@@ -449,7 +449,7 @@ We are continuously working on improving **Calendar Card Pro**. Here’s what’
 
 ### 📖 Developer Documentation
 
-For those interested in contributing code, we maintain detailed **architecture documentation** that explains:
+For those interested in contributing code, I maintain detailed **architecture documentation** that explains:
 
 - **Code Organization** – Structure and module responsibilities.
 - **Data Flow & Processing** – How events are fetched, stored, and displayed.

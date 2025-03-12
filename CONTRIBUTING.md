@@ -4,7 +4,7 @@ Thank you for your interest in contributing to Calendar Card Pro! This document 
 
 ## Understanding the Codebase
 
-Before contributing code, we strongly recommend reviewing our [architecture documentation](./docs/architecture.md), which explains:
+Before contributing code, I strongly recommend reviewing my [architecture documentation](./docs/architecture.md), which explains:
 
 - Module organization and responsibilities
 - Data flow and event handling
