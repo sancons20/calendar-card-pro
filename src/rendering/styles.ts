@@ -8,6 +8,48 @@
 import * as Constants from '../config/constants';
 import type * as Types from '../config/types';
 
+//-----------------------------------------------------------------------------
+// HIGH-LEVEL API FUNCTIONS
+//-----------------------------------------------------------------------------
+
+/**
+ * Generate complete styles for the calendar card
+ *
+ * @param config - Card configuration
+ * @returns Complete CSS string with all styles
+ */
+export function getStyles(config: Types.Config): string {
+  // Combine custom properties with base styles
+  return `
+    ${generateCustomProperties(config)}
+    ${generateBaseStyles()}
+  `;
+}
+
+/**
+ * Generate a simple error message style
+ *
+ * Creates minimal CSS for error message display
+ *
+ * @returns CSS string for error message styling
+ */
+export function getErrorStyles(): string {
+  return `
+    .card-content {
+      background: var(--card-background-color, #FFF);
+      border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, var(--divider-color));
+      border-radius: var(--ha-card-border-radius, 10px);
+      padding: 16px;
+      color: var(--primary-text-color);
+      text-align: center;
+    }
+  `;
+}
+
+//-----------------------------------------------------------------------------
+// STYLE GENERATION HELPERS
+//-----------------------------------------------------------------------------
+
 /**
  * Generate CSS custom properties based on card configuration
  *
@@ -184,40 +226,6 @@ export function generateBaseStyles(): string {
       padding: 16px;
     }
       }
-    }
-  `;
-}
-
-/**
- * Generate complete styles for the calendar card
- *
- * @param config - Card configuration
- * @returns Complete CSS string with all styles
- */
-export function getStyles(config: Types.Config): string {
-  // Combine custom properties with base styles
-  return `
-    ${generateCustomProperties(config)}
-    ${generateBaseStyles()}
-  `;
-}
-
-/**
- * Generate a simple error message style
- *
- * Creates minimal CSS for error message display
- *
- * @returns CSS string for error message styling
- */
-export function getErrorStyles(): string {
-  return `
-    .card-content {
-      background: var(--card-background-color, #FFF);
-      border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, var(--divider-color));
-      border-radius: var(--ha-card-border-radius, 10px);
-      padding: 16px;
-      color: var(--primary-text-color);
-      text-align: center;
     }
   `;
 }
