@@ -12,7 +12,8 @@ import * as Config from '../config/config';
 import * as EventUtils from './events';
 import * as Constants from '../config/constants';
 import * as Helpers from './helpers';
-import * as Interaction from './interaction';
+import * as Core from '../interaction/core';
+import * as Feedback from '../interaction/feedback';
 
 //-----------------------------------------------------------------------------
 // HIGH-LEVEL API FUNCTIONS
@@ -114,7 +115,7 @@ export function setupComponentLifecycle(component: any): {
 
   // Create interaction manager
   const interactionManager = {
-    state: Interaction.createDefaultState(),
+    state: Core.createDefaultState(),
     container: null,
     cleanup: null,
   };
@@ -190,10 +191,10 @@ export function handleConnectedCallback(component: any): void {
       component.interactionManager.container.appendChild(newRipple);
     }
 
-    const entityId = Interaction.getPrimaryEntityId(component.config.entities);
+    const entityId = Core.getPrimaryEntityId(component.config.entities);
 
     // Set up interactions using our module with the fresh ripple
-    component.interactionManager.cleanup = Interaction.setupInteractions(
+    component.interactionManager.cleanup = Core.setupInteractions(
       component.config,
       component.interactionManager.container,
       component._hass,
@@ -242,7 +243,7 @@ export function cleanupComponent(component: any): void {
   // Make sure any remaining hold indicator is removed
   if (component.interactionManager.state.holdIndicator) {
     Logger.debug('Cleaning up orphaned hold indicator in disconnectedCallback');
-    Interaction.removeHoldIndicator(component.interactionManager.state.holdIndicator);
+    Feedback.removeHoldIndicator(component.interactionManager.state.holdIndicator);
     component.interactionManager.state.holdIndicator = null;
   }
 
@@ -251,7 +252,7 @@ export function cleanupComponent(component: any): void {
   component.interactionManager.state.activePointerId = null;
 
   // Ensure all global hold indicators are cleaned up
-  Interaction.cleanupAllHoldIndicators();
+  Feedback.cleanupAllHoldIndicators();
 
   // Use enhanced unified cleanup for render timeout and memoization caches
   cleanup(
@@ -387,7 +388,7 @@ export function cleanup(
     // Clean up hold indicator
     if (interactionState.holdIndicator) {
       Logger.debug('Cleaning up hold indicator in unified cleanup method');
-      Interaction.removeHoldIndicator(interactionState.holdIndicator);
+      Feedback.removeHoldIndicator(interactionState.holdIndicator);
       interactionState.holdIndicator = null;
     }
 

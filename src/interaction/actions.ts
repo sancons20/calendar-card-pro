@@ -8,7 +8,6 @@
 
 import * as Types from '../config/types';
 import * as Logger from '../utils/logger';
-import * as Constants from '../config/constants';
 
 //-----------------------------------------------------------------------------
 // PUBLIC API

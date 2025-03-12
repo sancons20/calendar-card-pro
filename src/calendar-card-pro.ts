@@ -24,7 +24,8 @@ import * as Types from './config/types';
 import * as Localize from './translations/localize';
 import * as FormatUtils from './utils/format';
 import * as EventUtils from './utils/events';
-import * as Interaction from './utils/interaction';
+import * as Core from './interaction/core';
+import * as Actions from './interaction/actions';
 import * as Helpers from './utils/helpers';
 import * as StateUtils from './utils/state';
 import * as Render from './rendering/render';
@@ -249,7 +250,6 @@ class CalendarCardPro extends HTMLElement {
     await EventUtils.orchestrateEventUpdate({
       hass: this._hass,
       config: this.config,
-      instanceId: this.instanceId,
       force,
       currentEvents: this.events,
       callbacks: {
@@ -331,10 +331,10 @@ class CalendarCardPro extends HTMLElement {
       this.interactionManager.container = container;
 
       // Get primary entity ID for interactions
-      const entityId = Interaction.getPrimaryEntityId(this.config.entities);
+      const entityId = Core.getPrimaryEntityId(this.config.entities);
 
       // Set up interactions using our new module
-      this.interactionManager.cleanup = Interaction.setupInteractions(
+      this.interactionManager.cleanup = Core.setupInteractions(
         this.config,
         container,
         this._hass,
@@ -356,10 +356,10 @@ class CalendarCardPro extends HTMLElement {
 
   handleAction(actionConfig: Types.ActionConfig) {
     // Get the primary entity ID
-    const entityId = Interaction.getPrimaryEntityId(this.config.entities);
+    const entityId = Core.getPrimaryEntityId(this.config.entities);
 
     // Call the action handler from the interaction module
-    Interaction.handleAction(
+    Actions.handleAction(
       actionConfig,
       this._hass,
       this,

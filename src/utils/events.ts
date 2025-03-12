@@ -25,7 +25,6 @@ import * as Constants from '../config/constants';
 export async function orchestrateEventUpdate(options: {
   hass: Types.Hass | null;
   config: Types.Config;
-  instanceId: string;
   force: boolean;
   currentEvents: Types.CalendarEventData[];
   callbacks: {
@@ -35,7 +34,7 @@ export async function orchestrateEventUpdate(options: {
     renderCallback: () => void;
   };
 }): Promise<void> {
-  const { hass, config, instanceId, force, currentEvents, callbacks } = options;
+  const { hass, config, force, currentEvents, callbacks } = options;
 
   // Early return if state is invalid
   if (!isValidState(hass, config.entities)) return;

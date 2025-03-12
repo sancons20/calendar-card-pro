@@ -1,4 +1,5 @@
-import { css, html, LitElement } from 'lit';
+import { LitElement, css, html } from 'lit';
+
 import * as Constants from '../config/constants';
 import * as Logger from '../utils/logger';
 
