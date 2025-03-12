@@ -57,7 +57,8 @@ export function setupInteractions(
 
   // Attach ripple to container if provided
   if (ripple instanceof HTMLElement && 'attach' in ripple) {
-    (ripple as any).attach(container);
+    // Fix: Use a more specific type instead of any
+    (ripple as { attach: (element: HTMLElement) => void }).attach(container);
   }
 
   // Handle pointer down - start hold timer
@@ -193,7 +194,8 @@ export function setupInteractions(
 
     // Detach ripple if provided
     if (ripple instanceof HTMLElement && 'detach' in ripple) {
-      (ripple as any).detach();
+      // Fix: Use a more specific type instead of any
+      (ripple as { detach: () => void }).detach();
     }
   };
 }

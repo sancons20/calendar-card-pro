@@ -74,40 +74,42 @@ declare global {
  * This class orchestrates the different modules to create a complete
  * calendar card for Home Assistant
  */
-class CalendarCardPro extends HTMLElement {
+class CalendarCardPro extends HTMLElement implements Types.CalendarComponent {
   //-----------------------------------------------------------------------------
   // PROPERTIES AND STATE
   //-----------------------------------------------------------------------------
 
-  private instanceId: string;
-  private config!: Types.Config;
-  private events: Types.CalendarEventData[] = [];
-  private _hass: Types.Hass | null = null;
-  private isLoading = true;
-  private isExpanded = false;
-  private performanceMetrics: Types.PerformanceData = {
+  // Change from private to public to match interface
+  public config!: Types.Config;
+  public events: Types.CalendarEventData[] = [];
+  public _hass: Types.Hass | null = null;
+  public isLoading = true;
+  public isExpanded = false;
+  public performanceMetrics: Types.PerformanceData = {
     renderTime: [],
     eventCount: 0,
     lastUpdate: Date.now(),
   };
 
+  private instanceId: string;
+
   // These properties will be initialized in the constructor
-  private debouncedUpdate: () => void;
-  private memoizedFormatTime: (date: Date) => string & Types.MemoCache<string>;
-  private memoizedFormatLocation: (location: string) => string & Types.MemoCache<string>;
-  private cleanupInterval: number;
-  private renderTimeout?: number;
-  private performanceTracker: {
+  public debouncedUpdate: () => void;
+  public memoizedFormatTime: (date: Date) => string & Types.MemoCache<string>;
+  public memoizedFormatLocation: (location: string) => string & Types.MemoCache<string>;
+  public cleanupInterval: number;
+  public renderTimeout?: number;
+  public performanceTracker: {
     beginMeasurement: (eventCount: number) => Types.PerfMetrics;
     endMeasurement: (metrics: Types.PerfMetrics, performanceData: Types.PerformanceData) => number;
     getAverageRenderTime: (performanceData: Types.PerformanceData) => number;
   };
-  private visibilityCleanup?: () => void;
-  private refreshTimer?: {
+  public visibilityCleanup?: () => void;
+  public refreshTimer?: {
     start: () => void;
     stop: () => void;
   };
-  private interactionManager: {
+  public interactionManager: {
     state: Types.InteractionState;
     container: HTMLElement | null;
     cleanup: (() => void) | null;

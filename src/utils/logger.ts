@@ -1,3 +1,4 @@
+/* eslint-disable import/order */
 /**
  * Logging utilities for Calendar Card Pro
  * Provides consistent log formatting, level-based filtering, and error handling
@@ -238,7 +239,7 @@ function simpleLog(
   level: LogLevel,
   message: string,
   style: string,
-  consoleMethod: (...args: any[]) => void,
+  consoleMethod: (...args: unknown[]) => void,
   ...data: unknown[]
 ): void {
   if (currentLogLevel < level) return;
@@ -279,7 +280,7 @@ function formatUnknownContext(context: unknown): string | Record<string, unknown
     try {
       // Try to safely convert to Record<string, unknown>
       return { ...(context as Record<string, unknown>) };
-    } catch (e) {
+    } catch {
       // If conversion fails, stringify it
       try {
         return { value: JSON.stringify(context) };

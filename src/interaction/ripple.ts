@@ -1,12 +1,15 @@
-import { LitElement, css, html } from 'lit';
+/* eslint-disable import/order */
+/**
+ * Calendar Ripple
+ *
+ * A lightweight wrapper around Home Assistant's ha-ripple
+ * Provides compatibility with our action system while using native HA ripple
+ */
 
+import { LitElement, css, html } from 'lit';
 import * as Constants from '../config/constants';
 import * as Logger from '../utils/logger';
 
-/**
- * Calendar Ripple - A lightweight wrapper around Home Assistant's ha-ripple
- * Provides compatibility with our action system while using native HA ripple
- */
 export class CalendarRipple extends LitElement {
   private _disabled = false;
 
@@ -83,7 +86,7 @@ export class CalendarRipple extends LitElement {
   private attachRipple(control: HTMLElement) {
     if (this.haRipple && 'attach' in this.haRipple) {
       try {
-        (this.haRipple as any).attach(control);
+        (this.haRipple as { attach: (element: HTMLElement) => void }).attach(control);
       } catch (e) {
         Logger.warn('Failed to attach ha-ripple:', e);
       }
@@ -99,7 +102,7 @@ export class CalendarRipple extends LitElement {
     // Detach the ha-ripple
     if (this.haRipple && 'detach' in this.haRipple) {
       try {
-        (this.haRipple as any).detach();
+        (this.haRipple as { detach: () => void }).detach();
       } catch (e) {
         Logger.warn('Failed to detach ha-ripple:', e);
       }

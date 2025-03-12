@@ -391,7 +391,7 @@ export async function fetchEvents(
           'Available hass API methods:',
           Object.keys(hass).filter((k) => typeof hass[k as keyof Types.Hass] === 'function'),
         );
-      } catch (e) {
+      } catch {
         // Silent
       }
     }

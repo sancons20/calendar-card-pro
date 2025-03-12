@@ -46,8 +46,8 @@ export function initializeState(): {
  * @param component - The component instance to set up
  * @returns Object containing cleanup functions and initialized controllers
  */
-export function setupComponentLifecycle(component: any): {
-  performanceTracker: any;
+export function setupComponentLifecycle(component: Types.CalendarComponent): {
+  performanceTracker: Types.PerformanceTracker;
   visibilityCleanup: () => void;
   refreshTimer: { start: () => void; stop: () => void };
   cleanupInterval: number;
@@ -142,7 +142,7 @@ export function setupComponentLifecycle(component: any): {
  *
  * @param component - The component instance that was connected
  */
-export function handleConnectedCallback(component: any): void {
+export function handleConnectedCallback(component: Types.CalendarComponent): void {
   Logger.debug('Connected callback called - checking if rendering needed');
 
   // Check if we have content in the shadow DOM
@@ -170,7 +170,7 @@ export function handleConnectedCallback(component: any): void {
       try {
         // Make sure it's properly detached before removal
         if ('detach' in oldRipple) {
-          (oldRipple as any).detach();
+          (oldRipple as { detach: () => void }).detach();
         }
         oldRipple.remove();
       } catch (e) {
@@ -212,7 +212,7 @@ export function handleConnectedCallback(component: any): void {
  *
  * @param component - The component instance to clean up
  */
-export function cleanupComponent(component: any): void {
+export function cleanupComponent(component: Types.CalendarComponent): void {
   // Clean up visibility handler
   if (component.visibilityCleanup) {
     component.visibilityCleanup();
@@ -359,8 +359,12 @@ export function setupRefreshTimer(
  */
 export function cleanup(
   renderTimeout?: number,
-  memoizedFormatTime?: Types.MemoCache<string>,
-  memoizedFormatLocation?: Types.MemoCache<string>,
+  memoizedFormatTime?:
+    | ((date: Date) => string & Types.MemoCache<string>)
+    | { cache?: Map<string, string>; clear?: () => void },
+  memoizedFormatLocation?:
+    | ((location: string) => string & Types.MemoCache<string>)
+    | { cache?: Map<string, string>; clear?: () => void },
   interactionState?: Types.InteractionState,
 ): void {
   // Clear render timeout if any
@@ -368,13 +372,41 @@ export function cleanup(
     clearTimeout(renderTimeout);
   }
 
-  // Clear memoization caches
-  if (memoizedFormatTime?.cache) {
-    memoizedFormatTime.cache.clear();
+  // Clear memoization caches - handle both function type and direct MemoCache
+  if (memoizedFormatTime) {
+    if (typeof memoizedFormatTime === 'function') {
+      // For function with cache property
+      if ('cache' in memoizedFormatTime && memoizedFormatTime.cache) {
+        // Use type assertion to tell TypeScript this is a Map with a clear method
+        (memoizedFormatTime.cache as Map<string, string>).clear();
+      }
+    } else if (typeof memoizedFormatTime === 'object') {
+      // For object with cache property
+      if (memoizedFormatTime.clear) {
+        memoizedFormatTime.clear();
+      } else if (memoizedFormatTime.cache && 'clear' in memoizedFormatTime.cache) {
+        // Type assertion needed for clear method
+        (memoizedFormatTime.cache as Map<string, string>).clear();
+      }
+    }
   }
 
-  if (memoizedFormatLocation?.cache) {
-    memoizedFormatLocation.cache.clear();
+  if (memoizedFormatLocation) {
+    if (typeof memoizedFormatLocation === 'function') {
+      // For function with cache property
+      if ('cache' in memoizedFormatLocation && memoizedFormatLocation.cache) {
+        // Use type assertion to tell TypeScript this is a Map with a clear method
+        (memoizedFormatLocation.cache as Map<string, string>).clear();
+      }
+    } else if (typeof memoizedFormatLocation === 'object') {
+      // For object with cache property
+      if (memoizedFormatLocation.clear) {
+        memoizedFormatLocation.clear();
+      } else if (memoizedFormatLocation.cache && 'clear' in memoizedFormatLocation.cache) {
+        // Type assertion needed for clear method
+        (memoizedFormatLocation.cache as Map<string, string>).clear();
+      }
+    }
   }
 
   // Handle interaction state cleanup if provided

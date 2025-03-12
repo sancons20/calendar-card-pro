@@ -164,7 +164,7 @@ export interface Hass {
   callService: (domain: string, service: string, serviceData?: object) => void;
   // Add connection property that may be needed
   connection?: {
-    subscribeEvents: (callback: (event: any) => void, eventType: string) => Promise<() => void>;
+    subscribeEvents: (callback: (event: unknown) => void, eventType: string) => Promise<() => void>;
   };
 }
 
@@ -234,4 +234,43 @@ export interface PerfMetrics {
 export interface MemoCache<T> {
   readonly cache: Map<string, T>;
   clear(): void;
+}
+
+/**
+ * Calendar component interface for component instances
+ */
+export interface CalendarComponent {
+  config: Config;
+  events: CalendarEventData[];
+  _hass: Hass | null;
+  isLoading: boolean;
+  isExpanded: boolean;
+  renderTimeout?: number;
+  updateEvents: (force?: boolean) => Promise<void>;
+  toggleExpanded: () => void;
+  renderCard: () => void;
+  performanceMetrics: PerformanceData;
+  memoizedFormatTime: (date: Date) => string & MemoCache<string>;
+  memoizedFormatLocation: (location: string) => string & MemoCache<string>;
+  interactionManager: {
+    state: InteractionState;
+    container: HTMLElement | null;
+    cleanup: (() => void) | null;
+  };
+  shadowRoot: ShadowRoot | null;
+  visibilityCleanup?: () => void;
+  refreshTimer?: {
+    start: () => void;
+    stop: () => void;
+  };
+  cleanupInterval: number;
+}
+
+/**
+ * Performance tracker interface
+ */
+export interface PerformanceTracker {
+  beginMeasurement: (eventCount: number) => PerfMetrics;
+  endMeasurement: (metrics: PerfMetrics, performanceData: PerformanceData) => number;
+  getAverageRenderTime: (performanceData: PerformanceData) => number;
 }
