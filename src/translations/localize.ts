@@ -26,6 +26,10 @@ export const TRANSLATIONS: Record<string, Types.Translations> = {
  */
 export const DEFAULT_LANGUAGE = 'en';
 
+//-----------------------------------------------------------------------------
+// HIGH-LEVEL API FUNCTIONS
+//-----------------------------------------------------------------------------
+
 /**
  * Get translations for the specified language
  * Falls back to English if the language is not available
@@ -77,6 +81,10 @@ export function translateString(
 ): string {
   return translate(language, key, fallback) as string;
 }
+
+//-----------------------------------------------------------------------------
+// TEXT FORMATTING FUNCTIONS
+//-----------------------------------------------------------------------------
 
 /**
  * Get day name from translations based on day index
@@ -135,6 +143,10 @@ export function formatDateShort(language: string, date: Date): string {
 
   return `${month} ${day}`;
 }
+
+//-----------------------------------------------------------------------------
+// LANGUAGE MANAGEMENT UTILITIES
+//-----------------------------------------------------------------------------
 
 /**
  * Get all supported languages
