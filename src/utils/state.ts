@@ -14,6 +14,10 @@ import * as Constants from '../config/constants';
 import * as Helpers from './helpers';
 import * as Interaction from './interaction';
 
+//-----------------------------------------------------------------------------
+// HIGH-LEVEL API FUNCTIONS
+//-----------------------------------------------------------------------------
+
 /**
  * Initialize component state with default values
  *
@@ -126,6 +130,10 @@ export function setupComponentLifecycle(component: any): {
     interactionManager,
   };
 }
+
+//-----------------------------------------------------------------------------
+// COMPONENT LIFECYCLE MANAGEMENT
+//-----------------------------------------------------------------------------
 
 /**
  * Handle component connection and state restoration
@@ -254,6 +262,10 @@ export function cleanupComponent(component: any): void {
   );
 }
 
+//-----------------------------------------------------------------------------
+// UTILITY FUNCTIONS
+//-----------------------------------------------------------------------------
+
 /**
  * Utility function to set up visibility change handling
  *
@@ -330,6 +342,10 @@ export function setupRefreshTimer(
     },
   };
 }
+
+//-----------------------------------------------------------------------------
+// RESOURCE MANAGEMENT
+//-----------------------------------------------------------------------------
 
 /**
  * Clean up memoization caches and other resources
