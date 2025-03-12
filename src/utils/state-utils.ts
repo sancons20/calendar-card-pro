@@ -129,7 +129,9 @@ export function setupComponentLifecycle(component: any): {
 
 /**
  * Handle component connection and state restoration
- * Improved to properly reset ripple elements
+ * Restores interactions and refreshes ripple elements when needed
+ *
+ * @param component - The component instance that was connected
  */
 export function handleConnectedCallback(component: any): void {
   Logger.debug('Connected callback called - checking if rendering needed');

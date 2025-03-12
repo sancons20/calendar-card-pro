@@ -45,6 +45,9 @@ export function createElement(
 
 /**
  * Create a style element with the provided CSS content
+ *
+ * @param cssContent - CSS text content to include in the style element
+ * @returns New style element containing the provided CSS
  */
 export function createStyleElement(cssContent: string): HTMLStyleElement {
   const style = document.createElement('style');
@@ -54,6 +57,10 @@ export function createStyleElement(cssContent: string): HTMLStyleElement {
 
 /**
  * Set inner HTML safely with basic sanitization
+ * Removes potentially harmful content like scripts and event handlers
+ *
+ * @param element - Element to set innerHTML on
+ * @param htmlContent - HTML content to sanitize and set
  */
 export function setInnerHTML(element: HTMLElement, htmlContent: string): void {
   // Basic sanitization to prevent XSS
@@ -70,6 +77,9 @@ export function setInnerHTML(element: HTMLElement, htmlContent: string): void {
 
 /**
  * Clear all child nodes from a shadow root
+ * Removes all children from the provided shadow root
+ *
+ * @param shadowRoot - Shadow DOM root to clear
  */
 export function clearShadowRoot(shadowRoot: ShadowRoot): void {
   while (shadowRoot.firstChild) {

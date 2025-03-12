@@ -9,12 +9,14 @@ import * as Types from '../config/types';
 import * as Localize from '../translations/localize';
 
 /**
- * Format event time based on event type and configuration
- * Handles all-day events, multi-day events, and time formats
+ * Format an event's time string based on its start and end times
  *
- * @param event Calendar event object
- * @param config Configuration object
- * @param language Language code for translations
+ * Generates a human-readable time string for calendar events
+ * handling all-day events, multi-day events, and regular events
+ *
+ * @param event - The calendar event to format
+ * @param config - Card configuration options
+ * @param language - Language code for translations
  * @returns Formatted time string
  */
 export function formatEventTime(
@@ -48,6 +50,58 @@ export function formatEventTime(
 
   // Single day event with start/end times
   return formatSingleDayTime(startDate, endDate, config.show_end_time, config.time_24h);
+}
+
+/**
+ * Format location string, optionally removing country code
+ *
+ * @param location - Location string to format
+ * @param removeCountry - Whether to remove country code from location
+ * @returns Formatted location string
+ */
+export function formatLocation(location: string, removeCountry = true): string {
+  if (!location || !removeCountry) return location || '';
+
+  const locationText = location.trim();
+
+  // Get country names (this would be better from a proper static source)
+  // For now using a simplified approach
+  const countryNames = new Set([
+    'Germany',
+    'Deutschland',
+    'United States',
+    'USA',
+    'United States of America',
+    'United Kingdom',
+    'Great Britain',
+    'France',
+    'Italy',
+    'Italia',
+    'Spain',
+    'España',
+    'Netherlands',
+    'Nederland',
+    'Austria',
+    'Österreich',
+    'Switzerland',
+    'Schweiz',
+  ]);
+
+  // Handle comma-separated format (e.g., "City, Country")
+  const parts = locationText.split(',').map((part) => part.trim());
+  if (parts.length > 0 && countryNames.has(parts[parts.length - 1])) {
+    parts.pop();
+    return parts.join(', ');
+  }
+
+  // Handle space-separated format (e.g., "City Country")
+  const words = locationText.split(/\s+/);
+  if (words.length > 0 && countryNames.has(words[words.length - 1])) {
+    words.pop();
+    return words.join(' ');
+  }
+
+  return locationText;
 }
 
 /**
@@ -147,57 +201,3 @@ export function formatTime(date: Date, use24h = true): string {
 
   return `${hours}:${minutes.toString().padStart(2, '0')}`;
 }
-
-/**
- * Format location string by removing country names if configured
- *
- * @param location Raw location string from calendar event
- * @param removeCountry Whether to remove country from location
- * @returns Formatted location string
- */
-export function formatLocation(location: string, removeCountry = true): string {
-  if (!location || !removeCountry) return location || '';
-
-  const locationText = location.trim();
-
-  // Get country names (this would be better from a proper static source)
-  // For now using a simplified approach
-  const countryNames = new Set([
-    'Germany',
-    'Deutschland',
-    'United States',
-    'USA',
-    'United States of America',
-    'United Kingdom',
-    'Great Britain',
-    'France',
-    'Italy',
-    'Italia',
-    'Spain',
-    'España',
-    'Netherlands',
-    'Nederland',
-    'Austria',
-    'Österreich',
-    'Switzerland',
-    'Schweiz',
-  ]);
-
-  // Handle comma-separated format (e.g., "City, Country")
-  const parts = locationText.split(',').map((part) => part.trim());
-  if (parts.length > 0 && countryNames.has(parts[parts.length - 1])) {
-    parts.pop();
-    return parts.join(', ');
-  }
-
-  // Handle space-separated format (e.g., "City Country")
-  const words = locationText.split(/\s+/);
-  if (words.length > 0 && countryNames.has(words[words.length - 1])) {
-    words.pop();
-    return words.join(' ');
-  }
-
-  return locationText;
-}
-
-// Additional location formatting helpers can be added here

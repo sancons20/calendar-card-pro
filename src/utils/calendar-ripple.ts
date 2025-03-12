@@ -27,6 +27,10 @@ export class CalendarRipple extends LitElement {
   private control: HTMLElement | null = null;
   private haRipple: HTMLElement | null = null;
 
+  /**
+   * Called when the element is added to the DOM
+   * Creates the ha-ripple element and attaches it if a control is available
+   */
   connectedCallback() {
     super.connectedCallback();
 
@@ -53,8 +57,9 @@ export class CalendarRipple extends LitElement {
   }
 
   /**
-   * Forward click events as mdw:action events
-   * This bridges the gap between ha-ripple and our action system
+   * Handle click events and dispatch as mdw:action events
+   * Bridges the gap between ha-ripple and our action system
+   * @private
    */
   private _handleClick = () => {
     // Forward the click as an mdw:action event
@@ -102,6 +107,10 @@ export class CalendarRipple extends LitElement {
     this.control = null;
   }
 
+  /**
+   * Renders the component's template
+   * @returns Lit HTML template result
+   */
   render() {
     return html`<slot></slot>`;
   }

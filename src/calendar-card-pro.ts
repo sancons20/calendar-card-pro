@@ -195,6 +195,10 @@ class CalendarCardPro extends HTMLElement {
    * STATE MANAGEMENT
    ******************************************************************************/
 
+  /**
+   * Initialize the component state with default values
+   * Resets all component properties to their initial state
+   */
   initializeState() {
     const initialState = StateUtils.initializeState();
     this.config = initialState.config;
@@ -204,6 +208,10 @@ class CalendarCardPro extends HTMLElement {
     this.isExpanded = initialState.isExpanded;
   }
 
+  /**
+   * Clean up component resources and state
+   * Delegates to StateUtils.cleanup with the component's resources
+   */
   cleanup() {
     StateUtils.cleanup(
       this.renderTimeout,
@@ -213,6 +221,10 @@ class CalendarCardPro extends HTMLElement {
     );
   }
 
+  /**
+   * Get current translations for the configured language
+   * @returns Translations object for the current language
+   */
   get translations() {
     const lang = this.config.language || 'en';
     return Localize.getTranslations(lang);

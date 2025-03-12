@@ -164,8 +164,9 @@ export function generateDeterministicId(
 
 /**
  * Simple string hash function for creating deterministic IDs
+ * Converts a string into a stable hash value for use as an identifier
  *
- * @param str Input string to hash
+ * @param str - Input string to hash
  * @returns Alphanumeric hash string
  */
 export function hashString(str: string): string {

@@ -11,6 +11,9 @@ import type * as Types from '../config/types';
 /**
  * Generate CSS custom properties based on card configuration
  *
+ * Creates a set of CSS custom properties that control the appearance
+ * of the calendar card based on user configuration
+ *
  * @param config - Card configuration
  * @returns CSS string with custom property definitions
  */
@@ -50,6 +53,9 @@ export function generateCustomProperties(config: Types.Config): string {
 
 /**
  * Generate base styles for the calendar card
+ *
+ * Creates the foundational CSS styles that define the structure and
+ * basic appearance of the calendar card
  *
  * @returns CSS string with base styles
  */
@@ -198,6 +204,8 @@ export function getStyles(config: Types.Config): string {
 
 /**
  * Generate a simple error message style
+ *
+ * Creates minimal CSS for error message display
  *
  * @returns CSS string for error message styling
  */

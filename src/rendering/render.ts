@@ -137,6 +137,9 @@ export async function renderProgressively(
 /**
  * Generate HTML content for a single day's events
  *
+ * Creates the HTML structure for displaying a day's events
+ * with proper formatting and styling
+ *
  * @param day - Day object containing events
  * @param config - Card configuration
  * @param formatEventTime - Function to format event time
