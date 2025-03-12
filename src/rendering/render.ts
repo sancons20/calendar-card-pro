@@ -13,6 +13,10 @@ import * as EventUtils from '../utils/events';
 import * as Styles from './styles';
 import * as Constants from '../config/constants';
 
+//-----------------------------------------------------------------------------
+// HIGH-LEVEL API FUNCTIONS
+//-----------------------------------------------------------------------------
+
 /**
  * Render a calendar card with proper container setup for MDC ripple
  */
@@ -85,6 +89,10 @@ export function renderErrorToDOM(
   }
 }
 
+//-----------------------------------------------------------------------------
+// CONTENT GENERATION FUNCTIONS
+//-----------------------------------------------------------------------------
+
 /**
  * Render calendar card content progressively to optimize performance
  *
@@ -134,6 +142,7 @@ export async function renderProgressively(
   await renderChunk(0);
   return fragment;
 }
+
 /**
  * Generate HTML content for a single day's events
  *
@@ -198,6 +207,10 @@ export function generateDayContent(
     })
     .join('');
 }
+
+//-----------------------------------------------------------------------------
+// STATE RENDERING HELPERS
+//-----------------------------------------------------------------------------
 
 /**
  * Generate an error or loading state view
