@@ -7,6 +7,10 @@ import * as Constants from './constants';
 import * as Types from './types';
 import * as Logger from '../utils/logger';
 
+//-----------------------------------------------------------------------------
+// CORE CONFIGURATION
+//-----------------------------------------------------------------------------
+
 /**
  * Default configuration for Calendar Card Pro
  */
@@ -62,6 +66,10 @@ export const DEFAULT_CONFIG: Types.Config = {
   refresh_interval: Constants.CACHE.DEFAULT_DATA_REFRESH_MINUTES,
   cache_duration: Constants.CACHE.DEFAULT_CACHE_LIFETIME_MINUTES,
 };
+
+//-----------------------------------------------------------------------------
+// CONFIGURATION UTILITIES
+//-----------------------------------------------------------------------------
 
 /**
  * Normalizes entity configuration to ensure consistent format
@@ -185,6 +193,10 @@ export function haveEntityColorsChanged(
 
   return false;
 }
+
+//-----------------------------------------------------------------------------
+// INITIALIZATION HELPERS
+//-----------------------------------------------------------------------------
 
 /**
  * Find a calendar entity in Home Assistant states
