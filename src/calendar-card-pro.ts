@@ -33,8 +33,9 @@ import * as Logger from './utils/logger';
 import * as Editor from './rendering/editor';
 import './utils/ripple';
 
-// Export VERSION from constants for backward compatibility
-export const VERSION = Constants.VERSION.CURRENT;
+//-----------------------------------------------------------------------------
+// GLOBAL TYPE DECLARATIONS
+//-----------------------------------------------------------------------------
 
 // Ensure this file is treated as a module
 export {};
@@ -63,9 +64,9 @@ declare global {
   }
 }
 
-/******************************************************************************
- * MAIN CARD CLASS
- ******************************************************************************/
+//-----------------------------------------------------------------------------
+// MAIN COMPONENT CLASS
+//-----------------------------------------------------------------------------
 
 /**
  * The main Calendar Card Pro component that extends HTMLElement
@@ -73,6 +74,10 @@ declare global {
  * calendar card for Home Assistant
  */
 class CalendarCardPro extends HTMLElement {
+  //-----------------------------------------------------------------------------
+  // PROPERTIES AND STATE
+  //-----------------------------------------------------------------------------
+
   private instanceId: string;
   private config!: Types.Config;
   private events: Types.CalendarEventData[] = [];
@@ -107,33 +112,21 @@ class CalendarCardPro extends HTMLElement {
     cleanup: (() => void) | null;
   };
 
-  /******************************************************************************
-   * STATIC CONFIGURATION
-   ******************************************************************************/
+  //-----------------------------------------------------------------------------
+  // STATIC PROPERTIES AND METHODS
+  //-----------------------------------------------------------------------------
 
   static get DEFAULT_CONFIG(): Types.Config {
     return Config.DEFAULT_CONFIG;
   }
 
-  /******************************************************************************
-   * TRANSLATIONS
-   ******************************************************************************/
-
   static get TRANSLATIONS(): Readonly<Record<string, Types.Translations>> {
     return Localize.TRANSLATIONS;
   }
 
-  /******************************************************************************
-   * CALENDAR ENTITY UTILITIES
-   ******************************************************************************/
-
   static findCalendarEntity(hass: Types.Hass): string | null {
     return Config.findCalendarEntity(hass.states);
   }
-
-  /******************************************************************************
-   * CONFIG UTILITIES
-   ******************************************************************************/
 
   static getStubConfig(hass: Types.Hass) {
     return Config.getStubConfig(hass.states);
@@ -143,11 +136,10 @@ class CalendarCardPro extends HTMLElement {
     return 'Calendar Card Pro';
   }
 
-  /******************************************************************************
-   * LIFECYCLE METHODS
-   ******************************************************************************/
+  //-----------------------------------------------------------------------------
+  // COMPONENT LIFECYCLE
+  //-----------------------------------------------------------------------------
 
-  // In constructor, use a temporary ID that will be replaced in setConfig
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -175,64 +167,17 @@ class CalendarCardPro extends HTMLElement {
     this.interactionManager = lifecycle.interactionManager;
   }
 
-  /**
-   * Enhanced disconnectedCallback to ensure complete cleanup
-   * Using the centralized state-utils cleanup function
-   */
-  disconnectedCallback() {
-    StateUtils.cleanupComponent(this);
-  }
-
-  /**
-   * Add navigation detection to connected callback
-   * Enhanced to properly restore state after navigation
-   */
   connectedCallback() {
     StateUtils.handleConnectedCallback(this);
   }
 
-  /******************************************************************************
-   * STATE MANAGEMENT
-   ******************************************************************************/
-
-  /**
-   * Initialize the component state with default values
-   * Resets all component properties to their initial state
-   */
-  initializeState() {
-    const initialState = StateUtils.initializeState();
-    this.config = initialState.config;
-    this.events = initialState.events;
-    this._hass = initialState.hass;
-    this.isLoading = initialState.isLoading;
-    this.isExpanded = initialState.isExpanded;
+  disconnectedCallback() {
+    StateUtils.cleanupComponent(this);
   }
 
-  /**
-   * Clean up component resources and state
-   * Delegates to StateUtils.cleanup with the component's resources
-   */
-  cleanup() {
-    StateUtils.cleanup(
-      this.renderTimeout,
-      this.memoizedFormatTime as unknown as Types.MemoCache<string>,
-      this.memoizedFormatLocation as unknown as Types.MemoCache<string>,
-      this.interactionManager.state,
-    );
-  }
-
-  /**
-   * Get current translations for the configured language
-   * @returns Translations object for the current language
-   */
-  get translations() {
-    const lang = this.config.language || 'en';
-    return Localize.getTranslations(lang);
-  }
-
-  /******************************************************************************
-   * HOME ASSISTANT INTEGRATION
-   ******************************************************************************/
+  //-----------------------------------------------------------------------------
+  // HOME ASSISTANT INTEGRATION
+  //-----------------------------------------------------------------------------
 
   set hass(hass: Types.Hass) {
     const previousHass = this._hass;
@@ -250,14 +195,6 @@ class CalendarCardPro extends HTMLElement {
     }
   }
 
-  /******************************************************************************
-   * CONFIGURATION
-   ******************************************************************************/
-
-  /**
-   * Update component configuration and render
-   * Handles configuration changes and cache invalidation
-   */
   setConfig(config: Partial<Types.Config>) {
     const previousConfig = this.config;
     this.config = { ...CalendarCardPro.DEFAULT_CONFIG, ...config };
@@ -294,9 +231,9 @@ class CalendarCardPro extends HTMLElement {
     }
   }
 
-  /******************************************************************************
-   * CACHE MANAGEMENT
-   ******************************************************************************/
+  //-----------------------------------------------------------------------------
+  // DATA HANDLING
+  //-----------------------------------------------------------------------------
 
   invalidateCache() {
     const baseKey = EventUtils.getBaseCacheKey(
@@ -307,15 +244,6 @@ class CalendarCardPro extends HTMLElement {
     EventUtils.invalidateCache([baseKey]);
   }
 
-  /******************************************************************************
-   * EVENT FETCHING & PROCESSING
-   ******************************************************************************/
-
-  /**
-   * Fetches and updates calendar events from Home Assistant or cache
-   *
-   * @param force - Force refresh ignoring cache
-   */
   async updateEvents(force = false): Promise<void> {
     // Use the new orchestration function
     await EventUtils.orchestrateEventUpdate({
@@ -341,50 +269,10 @@ class CalendarCardPro extends HTMLElement {
     });
   }
 
-  /******************************************************************************
-   * ACTION HANDLING
-   ******************************************************************************/
+  //-----------------------------------------------------------------------------
+  // RENDERING
+  //-----------------------------------------------------------------------------
 
-  /**
-   * Handle user action (tap or hold) by delegating to the interaction module
-   * @param actionConfig - Configuration for the action
-   */
-  handleAction(actionConfig: Types.ActionConfig) {
-    // Get the primary entity ID
-    const entityId = Interaction.getPrimaryEntityId(this.config.entities);
-
-    // Call the action handler from the interaction module
-    Interaction.handleAction(
-      actionConfig,
-      this._hass,
-      this,
-      entityId,
-      // Pass a callback to handle expand action
-      () => this.toggleExpanded(),
-    );
-  }
-
-  /**
-   * Toggles between compact and expanded view states
-   * Only active when max_events_to_show is configured
-   * @private
-   */
-  toggleExpanded() {
-    if (this.config.max_events_to_show) {
-      this.isExpanded = !this.isExpanded;
-
-      // Add delay to allow ripple animation to complete before re-rendering
-      setTimeout(() => this.renderCard(), Constants.TIMING.RIPPLE_ANIMATION);
-    }
-  }
-
-  /******************************************************************************
-   * RENDERING & DISPLAY
-   ******************************************************************************/
-
-  /**
-   * Main rendering method that orchestrates the display of the calendar card
-   */
   async renderCard() {
     // Use the performance tracker
     const metrics = this.performanceTracker.beginMeasurement(this.events.length);
@@ -462,16 +350,65 @@ class CalendarCardPro extends HTMLElement {
     this.performanceTracker.endMeasurement(metrics, this.performanceMetrics);
   }
 
-  /******************************************************************************
-   * UTILITY FUNCTIONS
-   ******************************************************************************/
+  //-----------------------------------------------------------------------------
+  // USER INTERACTIONS
+  //-----------------------------------------------------------------------------
 
-  /**
-   * Debounce helper to limit function call frequency
-   * @param {Function} func Function to debounce
-   * @param {number} wait Wait time in milliseconds
-   * @returns {Function} Debounced function
-   */
+  handleAction(actionConfig: Types.ActionConfig) {
+    // Get the primary entity ID
+    const entityId = Interaction.getPrimaryEntityId(this.config.entities);
+
+    // Call the action handler from the interaction module
+    Interaction.handleAction(
+      actionConfig,
+      this._hass,
+      this,
+      entityId,
+      // Pass a callback to handle expand action
+      () => this.toggleExpanded(),
+    );
+  }
+
+  toggleExpanded() {
+    if (this.config.max_events_to_show) {
+      this.isExpanded = !this.isExpanded;
+
+      // Add delay to allow ripple animation to complete before re-rendering
+      setTimeout(() => this.renderCard(), Constants.TIMING.RIPPLE_ANIMATION);
+    }
+  }
+
+  //-----------------------------------------------------------------------------
+  // STATE MANAGEMENT
+  //-----------------------------------------------------------------------------
+
+  initializeState() {
+    const initialState = StateUtils.initializeState();
+    this.config = initialState.config;
+    this.events = initialState.events;
+    this._hass = initialState.hass;
+    this.isLoading = initialState.isLoading;
+    this.isExpanded = initialState.isExpanded;
+  }
+
+  cleanup() {
+    StateUtils.cleanup(
+      this.renderTimeout,
+      this.memoizedFormatTime as unknown as Types.MemoCache<string>,
+      this.memoizedFormatLocation as unknown as Types.MemoCache<string>,
+      this.interactionManager.state,
+    );
+  }
+
+  get translations() {
+    const lang = this.config.language || 'en';
+    return Localize.getTranslations(lang);
+  }
+
+  //-----------------------------------------------------------------------------
+  // UTILITY METHODS
+  //-----------------------------------------------------------------------------
+
   debounce<T extends (...args: unknown[]) => void>(
     func: T,
     wait: number,
@@ -479,29 +416,24 @@ class CalendarCardPro extends HTMLElement {
     return Helpers.debounce(func, wait);
   }
 
-  /**
-   * Memoize helper for caching function results
-   * @param {Function} func Function to memoize
-   * @returns {Function} Memoized function
-   */
   memoize<T extends readonly unknown[], R>(
     func: (...args: T) => R,
   ): ((...args: T) => R) & Types.MemoCache<R> {
     return Helpers.memoize(func, this);
   }
 
-  /******************************************************************************
-   * PERFORMANCE MONITORING
-   ******************************************************************************/
+  //-----------------------------------------------------------------------------
+  // PERFORMANCE MONITORING
+  //-----------------------------------------------------------------------------
 
   getAverageRenderTime() {
     return this.performanceTracker.getAverageRenderTime(this.performanceMetrics);
   }
 }
 
-/******************************************************************************
- * ELEMENT REGISTRATION
- ******************************************************************************/
+//-----------------------------------------------------------------------------
+// ELEMENT REGISTRATION
+//-----------------------------------------------------------------------------
 
 // Register the custom element
 customElements.define('calendar-card-pro-dev', CalendarCardPro);
