@@ -288,7 +288,6 @@ class CalendarCardPro extends HTMLElement {
 
   invalidateCache() {
     const baseKey = EventUtils.getBaseCacheKey(
-      this.instanceId,
       this.config.entities,
       this.config.days_to_show,
       this.config.show_past_events,

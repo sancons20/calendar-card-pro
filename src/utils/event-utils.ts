@@ -26,7 +26,6 @@ import * as Constants from '../config/constants';
 export async function updateCalendarEvents(
   hass: Types.Hass | null,
   config: Types.Config,
-  instanceId: string,
   force = false,
   currentEvents: Types.CalendarEventData[] = [],
 ): Promise<{
@@ -40,12 +39,7 @@ export async function updateCalendarEvents(
   }
 
   // Generate cache key
-  const baseKey = getBaseCacheKey(
-    instanceId,
-    config.entities,
-    config.days_to_show,
-    config.show_past_events,
-  );
+  const baseKey = getBaseCacheKey(config.entities, config.days_to_show, config.show_past_events);
   // Replace getCacheKey with direct usage of baseKey
   const cacheKey = baseKey;
 
@@ -122,12 +116,7 @@ export async function orchestrateEventUpdate(options: {
   if (!isValidState(hass, config.entities)) return;
 
   // Replace getCacheKey with direct usage of baseKey
-  const cacheKey = getBaseCacheKey(
-    instanceId,
-    config.entities,
-    config.days_to_show,
-    config.show_past_events,
-  );
+  const cacheKey = getBaseCacheKey(config.entities, config.days_to_show, config.show_past_events);
 
   // Check cache first unless forced refresh
   const cacheExists = !force && doesCacheExist(cacheKey);
@@ -149,7 +138,7 @@ export async function orchestrateEventUpdate(options: {
   callbacks.renderCallback();
 
   try {
-    const result = await updateCalendarEvents(hass, config, instanceId, force, currentEvents);
+    const result = await updateCalendarEvents(hass, config, force, currentEvents);
 
     if (result.events) {
       callbacks.setEvents(result.events);
@@ -533,14 +522,12 @@ export function invalidateCache(keys: string[]): void {
  * Generate a base cache key from configuration
  * This function creates a stable cache key that depends only on data-affecting parameters
  *
- * @param _instanceId - Component instance ID (unused, maintained for backward compatibility)
  * @param entities - Calendar entities
  * @param daysToShow - Number of days to display
  * @param showPastEvents - Whether to show past events
  * @returns Base cache key
  */
 export function getBaseCacheKey(
-  _instanceId: string,
   entities: Array<string | { entity: string; color?: string }>,
   daysToShow: number,
   showPastEvents: boolean,
