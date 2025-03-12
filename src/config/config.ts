@@ -5,7 +5,7 @@
 
 import * as Constants from './constants';
 import * as Types from './types';
-import * as Logger from '../utils/logger-utils';
+import * as Logger from '../utils/logger';
 
 /**
  * Default configuration for Calendar Card Pro

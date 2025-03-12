@@ -8,8 +8,8 @@
 
 import * as Types from '../config/types';
 import * as Localize from '../translations/localize';
-import * as DomUtils from '../utils/dom-utils';
-import * as EventUtils from '../utils/event-utils';
+import * as DomUtils from '../utils/dom';
+import * as EventUtils from '../utils/events';
 import * as Styles from './styles';
 import * as Constants from '../config/constants';
 

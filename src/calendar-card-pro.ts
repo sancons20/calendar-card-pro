@@ -22,16 +22,16 @@ import * as Config from './config/config';
 import * as Constants from './config/constants';
 import * as Types from './config/types';
 import * as Localize from './translations/localize';
-import * as FormatUtils from './utils/format-utils';
-import * as EventUtils from './utils/event-utils';
+import * as FormatUtils from './utils/format';
+import * as EventUtils from './utils/events';
 import * as Interaction from './utils/interaction';
 import * as Helpers from './utils/helpers';
-import * as StateUtils from './utils/state-utils';
+import * as StateUtils from './utils/state';
 import * as Render from './rendering/render';
-import * as DomUtils from './utils/dom-utils';
-import * as Logger from './utils/logger-utils';
+import * as DomUtils from './utils/dom';
+import * as Logger from './utils/logger';
 import * as Editor from './rendering/editor';
-import './utils/calendar-ripple';
+import './utils/ripple';
 
 // Export VERSION from constants for backward compatibility
 export const VERSION = Constants.VERSION.CURRENT;

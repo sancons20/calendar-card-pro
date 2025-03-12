@@ -7,7 +7,7 @@
  */
 
 import * as Types from '../config/types';
-import * as Logger from '../utils/logger-utils';
+import * as Logger from '../utils/logger';
 
 // Import language files
 import enTranslations from './languages/en.json';

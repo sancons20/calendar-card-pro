@@ -8,7 +8,7 @@
 
 import * as Constants from '../config/constants';
 import * as Types from '../config/types';
-import * as Logger from './logger-utils';
+import * as Logger from './logger';
 
 /**
  * Debounce helper to limit function call frequency

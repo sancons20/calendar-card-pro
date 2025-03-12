@@ -10,7 +10,7 @@
  */
 
 import * as Types from '../config/types';
-import * as Logger from './logger-utils';
+import * as Logger from './logger';
 import * as Constants from '../config/constants';
 
 //-----------------------------------------------------------------------------

@@ -7,9 +7,9 @@
  */
 
 import * as Types from '../config/types';
-import * as Logger from './logger-utils';
+import * as Logger from './logger';
 import * as Config from '../config/config';
-import * as EventUtils from './event-utils';
+import * as EventUtils from './events';
 import * as Constants from '../config/constants';
 import * as Helpers from './helpers';
 import * as Interaction from './interaction';

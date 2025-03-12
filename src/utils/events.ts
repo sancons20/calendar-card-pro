@@ -7,8 +7,8 @@
 
 import * as Types from '../config/types';
 import * as Localize from '../translations/localize';
-import * as FormatUtils from './format-utils';
-import * as Logger from './logger-utils';
+import * as FormatUtils from './format';
+import * as Logger from './logger';
 import * as Constants from '../config/constants';
 
 // HIGH-LEVEL API FUNCTIONS FIRST

@@ -5,7 +5,7 @@
  * This module contains functions for DOM element creation and manipulation.
  */
 
-import * as Logger from './logger-utils';
+import * as Logger from './logger';
 
 //-----------------------------------------------------------------------------
 // BASIC DOM CREATION FUNCTIONS
