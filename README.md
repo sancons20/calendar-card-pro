@@ -147,9 +147,9 @@ show_location: true
 
 ### 🚀 Next Steps
 
-- Explore the [📚 Configuration Guide](#configuration-guide) for a **detailed list of options**.
-- Check out the [💡 Examples](#examples) section for **pre-configured setups**.
-- Get involved! Check out the [Contributing & Roadmap](#contributing--roadmap) section to learn **how to contribute** and see **upcoming features**.
+- Explore the [📚 Configuration Guide](#4️⃣-configuration-guide) for a **detailed list of options**.
+- Check out the [💡 Examples](#5️⃣-examples) section for **pre-configured setups**.
+- Get involved! Check out the [Contributing & Roadmap](#6️⃣-contributing--roadmap) section to learn **how to contribute** and see **upcoming features**.
 
 <p>&nbsp;</p>
 
