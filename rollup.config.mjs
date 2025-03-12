@@ -3,8 +3,13 @@ import resolve from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import json from '@rollup/plugin-json';
+import { readFileSync } from 'fs';
 
 const isProd = process.env.NODE_ENV === 'prod';
+
+// Get version from package.json reliably
+const packageJson = JSON.parse(readFileSync('./package.json', 'utf-8'));
+const version = packageJson.version;
 
 export default {
   input: 'src/calendar-card-pro.ts',
@@ -18,6 +23,11 @@ export default {
   plugins: [
     replace({
       preventAssignment: true,
+      delimiters: ['', ''],
+      // Replace version placeholders in main header and constants.ts
+      '@version vPLACEHOLDER': `@version ${version}`,
+      "CURRENT: 'vPLACEHOLDER'": `CURRENT: '${version}'`,
+      // Remove -dev suffix from component name in production
       'calendar-card-pro-dev': isProd ? 'calendar-card-pro' : 'calendar-card-pro-dev',
     }),
     json(),

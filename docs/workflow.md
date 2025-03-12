@@ -91,9 +91,26 @@ This section covers the process of **developing and testing** changes before the
 
 ## 🚀 Releasing a New Version
 
-This section describes the **step-by-step process** for releasing a new version of `calendar-card-pro`, ensuring that all **linting, formatting, and building** steps are completed successfully before a release is drafted.
+This section describes the **step-by-step process** for releasing a new version of `calendar-card-pro`.
 
-### 1️⃣ Prepare the Release Locally
+### 1️⃣ Update the Version
+
+Before preparing a release:
+
+1. Update the version in **package.json**:
+
+   ```json
+   {
+     "version": "1.2.3" // Use semantic versioning
+   }
+   ```
+
+   > **Note:** This is the single source of truth for version information. When you build the package:
+   >
+   > - The rollup config automatically reads this version for the banner comment
+   > - The version constant in `src/config/constants.ts` is automatically replaced during build
+
+### 2️⃣ Prepare the Release Locally
 
 Before pushing a new release, ensure that:
 
@@ -115,7 +132,7 @@ Before pushing a new release, ensure that:
 
 - Your changes are **committed and pushed** to the **private dev branch**.
 
-### 2️⃣ Create a Release in the Public Repo
+### 3️⃣ Create a Release in the Public Repo
 
 Once you're satisfied with your changes, follow these steps:
 
@@ -145,7 +162,7 @@ Once you're satisfied with your changes, follow these steps:
 
 - **This step triggers the automated release workflow.**
 
-### 3️⃣ GitHub Actions: Automated Release Workflow
+### 4️⃣ GitHub Actions: Automated Release Workflow
 
 Once you push the version tag, GitHub Actions automatically runs the **Build & Release Workflow** (`.github/workflows/release.yml`), performing the following steps:
 
@@ -179,7 +196,7 @@ Once you push the version tag, GitHub Actions automatically runs the **Build & R
 
 Note: You must **manually confirm the release** before it becomes public.
 
-### 4️⃣ Confirm & Publish the Release
+### 5️⃣ Confirm & Publish the Release
 
 1.  **Navigate to the draft release** on GitHub under **Releases**.
 2.  **Review the auto-generated release notes**:

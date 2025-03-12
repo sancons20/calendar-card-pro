@@ -14,7 +14,7 @@
  *
  * @author Alex Pfau
  * @license MIT
- * @version 1.0.0
+ * @version vPLACEHOLDER
  */
 
 // Import all types via namespace for cleaner imports

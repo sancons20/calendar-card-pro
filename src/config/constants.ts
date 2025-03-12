@@ -13,8 +13,8 @@
  * Version information
  */
 export const VERSION = {
-  /** Current version of Calendar Card Pro */
-  CURRENT: '0.1.0',
+  /** Current version of Calendar Card Pro - will be replaced during build with version defined in package.json */
+  CURRENT: 'vPLACEHOLDER',
 };
 
 //-----------------------------------------------------------------------------
