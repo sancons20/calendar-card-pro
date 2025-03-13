@@ -42,11 +42,13 @@ Before you can start developing for Calendar Card Pro, you'll need to set up you
 3. **Set up development tools**
 
    For VS Code users, install recommended extensions:
+
    - ESLint
    - Prettier
    - TypeScript IDE Support
 
    Configure VS Code for auto-formatting on save:
+
    ```json
    // .vscode/settings.json
    {
@@ -270,13 +272,48 @@ Once you're satisfied with your changes, follow these steps:
 
 #### Step 1: Push Changes to Public Main
 
+**Standard Method (Preserves Commit History)**:
+
 - From your **private `dev` branch**, push changes directly to `main` in the public repo:
 
   ```sh
-  git push origin dev:main
+  git push public dev:main
   ```
 
-- ⚠️ Always push from `private/dev` to `public/main` to maintain a clear separation between development and production..
+- ⚠️ Always push from `private/dev` to `public/main` to maintain a clear separation between development and production.
+
+**Alternative Method (Hides Commit History)**:
+
+If you prefer to hide your development commit history in the public repository (e.g., to present a cleaner history or remove internal comments), you can use the orphan branch technique:
+
+```sh
+# 1. Make sure you're in your private repo directory
+cd /mnt/homelab/github/calendar-card-pro-dev
+
+# 2. Create a new orphan branch (has no history)
+git checkout --orphan temp_branch
+
+# 3. Add all the files
+git add .
+
+# 4. Remove private documentation files you don't want to push publicly
+git reset -- docs/workflow.md docs/backlog.md
+# Add any other private files you want to exclude here
+
+# 5. Commit with a clean initial commit message
+git commit -m "Release version X.Y.Z"
+
+# 6. Force push this orphan branch to public's main branch
+git push public temp_branch:main --force
+
+# 7. Return to your dev branch
+git checkout dev
+
+# 8. Delete the temporary branch
+git branch -D temp_branch
+```
+
+> **Note:** Using the orphan branch technique is **optional**. It's useful when you want to present a clean public history without exposing all your development commits. The technique above includes steps to exclude private documentation that should remain only in your development repository.
 
 #### Step 2: Manually Create a Version Tag
 
