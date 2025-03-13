@@ -388,9 +388,9 @@ additional_card_spacing: 0px
 
 # Visual Separators
 vertical_line_width: 0px
-vertical_line_color: '#c1e0e9'
+vertical_line_color: '#dddddd'
 horizontal_line_width: 2px
-horizontal_line_color: '#dddddd'
+horizontal_line_color: '#dddddd50'
 
 # Typography: Sizes
 title_font_size: 26px
