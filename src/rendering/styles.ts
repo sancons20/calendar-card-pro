@@ -147,6 +147,7 @@ export function generateBaseStyles(): string {
       line-height: var(--card-font-size-title);
       font-weight: 500;
       color: var(--card-color-title);
+      margin-top: 0px;
       margin-bottom: 16px;
     }
     ha-icon {
