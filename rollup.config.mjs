@@ -27,6 +27,10 @@ export default {
       // Replace version placeholders in main header and constants.ts
       '@version vPLACEHOLDER': `@version ${version}`,
       "CURRENT: 'vPLACEHOLDER'": `CURRENT: '${version}'`,
+      // Change log level in constants.ts to 0 in production
+      'CURRENT_LOG_LEVEL: 1': `CURRENT_LOG_LEVEL: ${isProd ? 0 : 1}`,
+      'CURRENT_LOG_LEVEL: 2': `CURRENT_LOG_LEVEL: ${isProd ? 0 : 2}`,
+      'CURRENT_LOG_LEVEL: 3': `CURRENT_LOG_LEVEL: ${isProd ? 0 : 3}`,
       // Remove -dev suffix from component name in production
       'calendar-card-pro-dev': isProd ? 'calendar-card-pro' : 'calendar-card-pro-dev',
     }),
