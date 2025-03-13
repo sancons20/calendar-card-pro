@@ -4,6 +4,110 @@ This document outlines the **complete** workflow for developing, testing, handli
 
 ---
 
+## 🚀 Setting Up the Development Environment
+
+Before you can start developing for Calendar Card Pro, you'll need to set up your local environment.
+
+### Prerequisites
+
+- **Node.js** (v16.x or newer) and **npm** (v7.x or newer)
+- **Git** (v2.x or newer)
+- A **code editor** (VS Code recommended for built-in TypeScript support)
+- A local **Home Assistant** instance for testing (optional but recommended)
+
+### Initial Setup
+
+1. **Clone the repository**
+
+   ```sh
+   # For maintainers with access to private repo
+   git clone https://github.com/yourusername/calendar-card-pro-dev.git
+   cd calendar-card-pro-dev
+
+   # For contributors using public repo
+   git clone https://github.com/alexpfau/calendar-card-pro.git
+   cd calendar-card-pro
+   ```
+
+2. **Install dependencies**
+
+   ```sh
+   # Install project dependencies
+   npm install
+
+   # Optionally install global tools (if you don't have them)
+   npm install -g typescript eslint prettier rollup
+   ```
+
+3. **Set up development tools**
+
+   For VS Code users, install recommended extensions:
+   - ESLint
+   - Prettier
+   - TypeScript IDE Support
+
+   Configure VS Code for auto-formatting on save:
+   ```json
+   // .vscode/settings.json
+   {
+     "editor.formatOnSave": true,
+     "editor.defaultFormatter": "esbenp.prettier-vscode",
+     "eslint.validate": ["typescript"],
+     "editor.codeActionsOnSave": {
+       "source.fixAll.eslint": true
+     }
+   }
+   ```
+
+4. **Verify setup**
+
+   Ensure everything is working by building the project:
+
+   ```sh
+   # Build the project
+   npm run build
+
+   # Start development mode with auto-rebuilding
+   npm run dev
+   ```
+
+   You should see output indicating a successful build with the compiled file in the `dist/` directory.
+
+### Project Dependencies
+
+Calendar Card Pro uses these primary dependencies:
+
+- **TypeScript** - Strongly typed JavaScript
+- **Rollup** - Module bundler
+- **ESLint** - Code quality and style checking
+- **Prettier** - Code formatting
+- **Home Assistant Frontend Types** - TypeScript definitions for Home Assistant
+
+All required dependencies are specified in `package.json` and will be installed with `npm install`. The main development dependencies include:
+
+```
+"devDependencies": {
+  "@eslint/eslintrc": "^x.x.x",
+  "@rollup/plugin-json": "^x.x.x",
+  "@rollup/plugin-node-resolve": "^x.x.x",
+  "@rollup/plugin-replace": "^x.x.x",
+  "@rollup/plugin-terser": "^x.x.x",
+  "@rollup/plugin-typescript": "^x.x.x",
+  "@typescript-eslint/eslint-plugin": "^x.x.x",
+  "@typescript-eslint/parser": "^x.x.x",
+  "eslint": "^x.x.x",
+  "eslint-config-prettier": "^x.x.x",
+  "eslint-plugin-import": "^x.x.x",
+  "eslint-plugin-prettier": "^x.x.x",
+  "prettier": "^x.x.x",
+  "rollup": "^x.x.x",
+  "tslib": "^x.x.x",
+  "typescript": "^x.x.x"
+}
+```
+
+---
+
 ## 📂 Repository Structure
 
 ```plaintext
