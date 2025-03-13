@@ -209,7 +209,7 @@ export const FONTS = {
   /** Default location font size */
   LOCATION_FONT_SIZE: '12px',
   /** Default time/location icon size */
-  TIME_LOCATION_ICON_SIZE: '16px',
+  TIME_LOCATION_ICON_SIZE: '14px',
 };
 
 /**

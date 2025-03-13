@@ -166,6 +166,10 @@ export function generateDayContent(
       // Get color from config based on entity ID
       const entityColor = EventUtils.getEntityColor(event._entityId, config);
 
+      // Apply additional spacing to any event that's not the first one
+      const isNotFirstEvent = index > 0;
+      const eventClass = isNotFirstEvent ? 'event event-not-first' : 'event';
+
       return `
     <tr>
       ${
@@ -181,7 +185,7 @@ export function generateDayContent(
       `
           : ''
       }
-      <td class="event">
+      <td class="${eventClass}">
         <div class="event-content">
           <div class="event-title" style="color: ${entityColor}">${event.summary}</div>
           <div class="time-location">

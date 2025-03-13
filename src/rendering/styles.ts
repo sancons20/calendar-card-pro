@@ -190,6 +190,11 @@ export function generateBaseStyles(): string {
     .event {
       padding-left: 12px;
     }
+    
+    .event-not-first {
+      padding-top: 4px;
+    }
+    
     .event-title {
       font-size: var(--card-font-size-event);
       font-weight: 500;
@@ -204,7 +209,28 @@ export function generateBaseStyles(): string {
       display: flex;
       align-items: center;
       line-height: 1.2;
+      margin-top: 2px;
     }
+    
+    .time ha-icon, .location ha-icon {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: var(--card-icon-size);
+      width: var(--card-icon-size);
+      vertical-align: top;
+      position: relative;
+      top: 0px;
+    }
+    
+    .time span, .location span {
+      /* Ensure text is aligned properly */
+      display: inline-block;
+      vertical-align: middle;
+      line-height: var(--card-icon-size);
+    }
+    
     .time {
       font-size: var(--card-font-size-time);
       color: var(--card-color-time);
@@ -212,7 +238,6 @@ export function generateBaseStyles(): string {
     .location {
       font-size: var(--card-font-size-location);
       color: var(--card-color-location);
-      margin-top: 2px;
     }
     table:last-of-type {
       margin-bottom: 0;
@@ -224,8 +249,6 @@ export function generateBaseStyles(): string {
       color: var(--secondary-text-color);
       font-style: italic;
       padding: 16px;
-    }
-      }
     }
   `;
 }
