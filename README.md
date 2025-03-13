@@ -323,7 +323,6 @@ type: custom:calendar-card-pro
 entities:
   - calendar.family
 days_to_show: 3
-show_end_time: true
 show_location: false
 show_month: false
 ```
@@ -332,18 +331,22 @@ show_month: false
 
 This setup includes **multiple calendars**, each with a **custom color**. The **compact mode** ensures that only a limited number of events are shown at once.
 
-<img src=".github/img/advanced_basic.png" alt="Advanced Configuration" width="400">
+**Compact view**:
+<img src=".github/img/example_advanced_compact.png" alt="Advanced Configuration" width="400">
+
+**Expanded view (after tap)**:
+<img src=".github/img/example_advanced_expanded.png" alt="Advanced Configuration" width="400">
 
 ```yaml
 type: custom:calendar-card-pro
-title: My Calendars
+title: Upcoming events
 entities:
   - entity: calendar.family
-    color: '#e63946' # Red for family events
+    color: '#ff6c92' # Red for family events
   - entity: calendar.work
-    color: '#457b9d' # Blue for work events
-  - entity: calendar.holidays
-    color: '#2a9d8f' # Green for holidays
+    color: '#86ebda' # Blue for work events
+  - entity: calendar.personal
+    color: '#c2ffb3' # Green for personal events
 days_to_show: 7
 max_events_to_show: 3 # Always only show 3 events
 tap_action:
@@ -358,18 +361,19 @@ A fully **customized** configuration demonstrating **all available options**, in
 
 ```yaml
 type: custom:calendar-card-pro
+
 # Core Settings
 entities:
   - entity: calendar.family
-    color: '#ff0000'
+    color: '#ff6c92'
   - entity: calendar.work
-    color: '#0000ff'
+    color: '#86ebda'
 days_to_show: 7
-max_events_to_show: 5
+max_events_to_show: 10
 show_past_events: false
 
 # Display Mode & Localization
-language: 'en'
+language: en
 time_24h: true
 show_end_time: true
 show_month: true
@@ -377,41 +381,46 @@ show_location: true
 remove_location_country: true
 
 # Card Layout
-title: 'Full Calendar Demo'
-background_color: 'var(--ha-card-background)'
-row_spacing: '5px'
-additional_card_spacing: '0px'
+title: Full Calendar Demo
+background_color: '#aaaaaa40'
+row_spacing: 10px
+additional_card_spacing: 0px
 
 # Visual Separators
-vertical_line_width: '2px'
-vertical_line_color: '#03a9f4'
-horizontal_line_width: '0px'
-horizontal_line_color: 'var(--secondary-text-color)'
+vertical_line_width: 0px
+vertical_line_color: '#c1e0e9'
+horizontal_line_width: 2px
+horizontal_line_color: '#dddddd'
 
 # Typography: Sizes
-title_font_size: '20px'
-weekday_font_size: '14px'
-day_font_size: '26px'
-month_font_size: '12px'
-event_font_size: '14px'
-time_font_size: '12px'
-location_font_size: '12px'
-time_location_icon_size: '16px'
+title_font_size: 26px
+weekday_font_size: 14px
+day_font_size: 32px
+month_font_size: 12px
+event_font_size: 14px
+time_font_size: 12px
+location_font_size: 12px
+time_location_icon_size: 14px
 
 # Typography: Colors
-title_color: 'var(--primary-text-color)'
-weekday_color: 'var(--primary-text-color)'
-day_color: 'var(--primary-text-color)'
-month_color: 'var(--primary-text-color)'
-event_color: 'var(--primary-text-color)'
-time_color: 'var(--secondary-text-color)'
-location_color: 'var(--secondary-text-color)'
+title_color: '#dddddd'
+weekday_color: '#dddddd'
+day_color: '#dddddd'
+month_color: '#dddddd'
+event_color: '#dddddd'
+time_color: '#dddddd'
+location_color: '#dddddd'
+
+# Performance & Caching
+refresh_interval: 15 # Auto-refresh events every 15 minutes
+cache_duration: 60 # Cache events for up to 60 minutes
 
 # Actions
 tap_action:
   action: expand
 hold_action:
-  action: more-info
+  action: navigate
+  navigation_path: calendar
 ```
 
 <p>&nbsp;</p>
