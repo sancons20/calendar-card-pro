@@ -16,6 +16,31 @@ import * as Constants from '../config/constants';
 //-----------------------------------------------------------------------------
 
 /**
+ * Determine if this is likely a manual page reload rather than an automatic refresh
+ * Uses performance API to check navigation type when available
+ *
+ * @returns True if this appears to be a manual page load/reload
+ */
+function isManualPageLoad(): boolean {
+  // Use the Performance Navigation API when available
+  if (window.performance && window.performance.navigation) {
+    // navigation.type: 0=navigate, 1=reload, 2=back/forward
+    return window.performance.navigation.type === 1; // reload
+  }
+
+  // For newer browsers using Navigation API
+  if (window.performance && window.performance.getEntriesByType) {
+    const navEntries = window.performance.getEntriesByType('navigation');
+    if (navEntries.length > 0 && 'type' in navEntries[0]) {
+      return (navEntries[0] as { type: string }).type === 'reload';
+    }
+  }
+
+  // Default to false if we can't determine
+  return false;
+}
+
+/**
  * Orchestrates the complete event update process with state management
  * This function manages loading states, cache access, API calls, and error handling
  *
@@ -41,6 +66,12 @@ export async function orchestrateEventUpdate(options: {
   // Early return if state is invalid
   if (!isValidState(hass, config.entities)) return;
 
+  // Detect if this is a manual page reload
+  const isManualReload = isManualPageLoad();
+  if (isManualReload) {
+    Logger.debug('Manual page reload detected - using shorter cache lifetime');
+  }
+
   // Use instanceId in cache key generation
   const cacheKey = getBaseCacheKey(
     instanceId,
@@ -50,10 +81,10 @@ export async function orchestrateEventUpdate(options: {
   );
 
   // Check cache first unless forced refresh
-  const cacheExists = !force && doesCacheExist(cacheKey);
+  const cacheExists = !force && doesCacheExist(cacheKey, isManualReload);
 
   if (cacheExists) {
-    const cachedEvents = getCachedEvents(cacheKey, config);
+    const cachedEvents = getCachedEvents(cacheKey, config, isManualReload);
     if (cachedEvents) {
       Logger.info(`Using ${cachedEvents.length} events from cache`);
       callbacks.setEvents(cachedEvents);
@@ -64,7 +95,9 @@ export async function orchestrateEventUpdate(options: {
   }
 
   // Show loading state and fetch fresh data
-  Logger.info(`Fetching events from API${force ? ' (forced refresh)' : ''}`);
+  Logger.info(
+    `Fetching events from API${force ? ' (forced refresh)' : ''}${isManualReload ? ' (manual page reload)' : ''}`,
+  );
   callbacks.setLoading(true);
   callbacks.renderCallback();
 
@@ -487,10 +520,11 @@ export function getCacheDuration(config?: Types.Config): number {
  * Check if valid cache exists for a key
  *
  * @param key - Cache key
+ * @param isManualReload - Whether this check is during a manual page reload
  * @returns Boolean indicating if valid cache exists
  */
-export function doesCacheExist(key: string): boolean {
-  return getValidCacheEntry(key) !== null;
+export function doesCacheExist(key: string, isManualReload: boolean = false): boolean {
+  return getValidCacheEntry(key, undefined, isManualReload) !== null;
 }
 
 /**
@@ -498,16 +532,28 @@ export function doesCacheExist(key: string): boolean {
  * Helper function to ensure consistent cache validation
  *
  * @param key - Cache key
+ * @param config - Card configuration for cache duration
+ * @param isManualReload - Whether this check is during a manual page reload
  * @returns Valid cache entry or null if invalid/expired
  */
-export function getValidCacheEntry(key: string, config?: Types.Config): Types.CacheEntry | null {
+export function getValidCacheEntry(
+  key: string,
+  config?: Types.Config,
+  isManualReload: boolean = false,
+): Types.CacheEntry | null {
   try {
     const item = localStorage.getItem(key);
     if (!item) return null;
 
     const cache = JSON.parse(item) as Types.CacheEntry;
     const now = Date.now();
-    const cacheDuration = getCacheDuration(config);
+
+    // For manual reloads, use a much shorter cache validity
+    // This ensures fresh data on manual reloads while preserving normal caching for auto-refreshes
+    const cacheDuration = isManualReload
+      ? Constants.CACHE.MANUAL_RELOAD_CACHE_DURATION_SECONDS * 1000
+      : getCacheDuration(config);
+
     const isValid = now - cache.timestamp < cacheDuration;
 
     if (!isValid) {
@@ -530,13 +576,16 @@ export function getValidCacheEntry(key: string, config?: Types.Config): Types.Ca
  * Get cached event data if available and not expired
  *
  * @param key - Cache key
+ * @param config - Card configuration
+ * @param isManualReload - Whether this check is during a manual page reload
  * @returns Cached events or null if expired/unavailable
  */
 export function getCachedEvents(
   key: string,
   config?: Types.Config,
+  isManualReload: boolean = false,
 ): Types.CalendarEventData[] | null {
-  const cacheEntry = getValidCacheEntry(key, config);
+  const cacheEntry = getValidCacheEntry(key, config, isManualReload);
   if (cacheEntry) {
     return [...cacheEntry.events];
   }

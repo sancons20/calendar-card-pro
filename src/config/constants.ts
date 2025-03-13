@@ -42,6 +42,9 @@ export const CACHE = {
   /** Default interval (minutes) for refreshing event data from API */
   DEFAULT_DATA_REFRESH_MINUTES: 30,
 
+  /** Cache duration (milliseconds) to use when manual page reload is detected */
+  MANUAL_RELOAD_CACHE_DURATION_SECONDS: 5, // 5 seconds
+
   /** Multiplier used with cache lifetime to calculate when entries should be purged */
   CACHE_EXPIRY_MULTIPLIER: 4,
 
