@@ -2,7 +2,7 @@
 
 [![hacs][hacs-img]][hacs-url] [![GitHub Release][github-release-img]][github-release-url] [![Downloads][github-downloads-img]][github-release-url]
 
-<img src="docs/images/preview.png" alt="Calendar Card Pro Preview" width="100%" style="max-width: 600px;">
+<img src=".github/img/header.png" alt="Calendar Card Pro Preview" width="100%">
 
 ## Table of Contents
 
@@ -292,7 +292,7 @@ tap_action:
 - **Minimized API Polling** – Fetches new data **only when necessary**.
 - **Automatic Refresh** – Updates **every `refresh_interval` minutes** (default: `30`).
 - **Smart Caching** – Stores events locally with cache lifetime equal to the refresh interval.
-- **Fresh Data on Manual Refresh** – When you manually refresh the page, the card fetches fresh data regardless of cache.
+- **Rate-Limited Refresh** – When manually refreshing the page, new data is fetched only if at least 5 seconds have passed since the last update, preventing excessive API calls.
 - **Reactive Updates** – Events update when:
   - A **calendar entity changes**.
   - **Home Assistant reconnects** after a disconnection.
@@ -314,9 +314,13 @@ This section provides different **configuration setups** to help you get started
 
 ### 📅 Basic Configuration
 
-A simple setup displaying events from a **single calendar**.
+A simple setup displaying events from a **single calendar**. Automatically **adapts to themes** and **dark/light mode**.
 
-<img src=".github/img/example_basic.png" alt="Basic Configuration" width="400">
+**With Home Assistant default theme** (light mode):  
+<img src=".github/img/example_1_basic_native.png" alt="Basic Configuration" width="600">
+
+**Using my favorite [iOS Theme](https://github.com/basnijholt/lovelace-ios-themes)** (ios-dark-mode-blue-red-alternative):  
+<img src=".github/img/example_1_basic_ios.png" alt="Basic Configuration" width="600">
 
 ```yaml
 type: custom:calendar-card-pro
@@ -329,13 +333,13 @@ show_month: false
 
 ### 🗂️ Multiple Calendars with Compact Mode
 
-This setup includes **multiple calendars**, each with a **custom color**. The **compact mode** ensures that only a limited number of events are shown at once.
+This setup includes **multiple calendars**, each with a **custom color**. The **compact mode** ensures that only a limited number of events are shown at once. Screenshots again showing **my favorite [iOS Theme](https://github.com/basnijholt/lovelace-ios-themes)** (ios-dark-mode-blue-red-alternative).
 
 **Compact view**:  
-<img src=".github/img/example_advanced_compact.png" alt="Advanced Configuration" width="400">
+<img src=".github/img/example_2_advanced_compact.png" alt="Advanced Configuration" width="600">
 
-**Expanded view (after tap)**:  
-<img src=".github/img/example_advanced_expanded.png" alt="Advanced Configuration" width="400">
+**After tap ➡️ expanded view**:  
+<img src=".github/img/example_2_advanced_expanded.png" alt="Advanced Configuration" width="600">
 
 ```yaml
 type: custom:calendar-card-pro
@@ -355,9 +359,9 @@ tap_action:
 
 ### 🎨 Complete Configuration with All Options
 
-A fully **customized** configuration demonstrating **all available options**, including **styling, layout, and interactions**.
+A fully **customized** configuration demonstrating **all available options**, including **styling, layout, and interactions**. Though you could **go all out**—and I didn’t—and create a **completely different look** if you wanted. Screenshot using the beautiful **[Bubble Theme](https://github.com/Clooos/Bubble)**.
 
-<img src=".github/img/example_complete.png" alt="Complete Configuration" width="400">
+<img src=".github/img/example_3_complete.png" alt="Complete Configuration" width="600"><br>
 
 ```yaml
 type: custom:calendar-card-pro
@@ -365,10 +369,10 @@ type: custom:calendar-card-pro
 # Core Settings
 entities:
   - entity: calendar.family
-    color: '#ff6c92'
+    color: '#ffdaea'
   - entity: calendar.work
-    color: '#86ebda'
-days_to_show: 7
+    color: '#b3ffd9'
+days_to_show: 10
 max_events_to_show: 10
 show_past_events: false
 
@@ -381,16 +385,16 @@ show_location: true
 remove_location_country: true
 
 # Card Layout
-title: Full Calendar Demo
-background_color: '#aaaaaa40'
+title: 📅 Full Calendar Demo
+background_color: '#eeeeee50'
 row_spacing: 10px
 additional_card_spacing: 0px
 
 # Visual Separators
 vertical_line_width: 0px
-vertical_line_color: '#dddddd'
+vertical_line_color: '#baf1ff'
 horizontal_line_width: 2px
-horizontal_line_color: '#dddddd50'
+horizontal_line_color: '#baf1ff80'
 
 # Typography: Sizes
 title_font_size: 26px
@@ -403,13 +407,13 @@ location_font_size: 12px
 time_location_icon_size: 14px
 
 # Typography: Colors
-title_color: '#dddddd'
-weekday_color: '#dddddd'
-day_color: '#dddddd'
-month_color: '#dddddd'
-event_color: '#dddddd'
-time_color: '#dddddd'
-location_color: '#dddddd'
+title_color: '#baf1ff'
+weekday_color: '#baf1ff'
+day_color: '#baf1ff'
+month_color: '#baf1ff'
+event_color: '#baf1ff'
+time_color: '#baf1ff'
+location_color: '#baf1ff'
 
 # Performance & Caching
 refresh_interval: 15 # Auto-refresh events every 15 minutes
