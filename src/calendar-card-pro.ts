@@ -113,6 +113,7 @@ class CalendarCardPro extends HTMLElement implements Types.CalendarComponent {
   public refreshTimer?: {
     start: () => void;
     stop: () => void;
+    restart: () => void;
   };
   public interactionManager: {
     state: Types.InteractionState;
@@ -235,7 +236,7 @@ class CalendarCardPro extends HTMLElement implements Types.CalendarComponent {
 
     // Restart the refresh timer with the new configuration
     if (this.refreshTimer) {
-      this.refreshTimer.start();
+      this.refreshTimer.restart();
     }
   }
 
@@ -245,6 +246,7 @@ class CalendarCardPro extends HTMLElement implements Types.CalendarComponent {
 
   invalidateCache() {
     const baseKey = EventUtils.getBaseCacheKey(
+      this.instanceId,
       this.config.entities,
       this.config.days_to_show,
       this.config.show_past_events,
@@ -256,6 +258,7 @@ class CalendarCardPro extends HTMLElement implements Types.CalendarComponent {
     await EventUtils.orchestrateEventUpdate({
       hass: this._hass,
       config: this.config,
+      instanceId: this.instanceId,
       force,
       currentEvents: this.events,
       callbacks: {
@@ -270,6 +273,12 @@ class CalendarCardPro extends HTMLElement implements Types.CalendarComponent {
         },
         renderCallback: () => {
           this.renderCard();
+        },
+        restartTimer: () => {
+          if (this.refreshTimer && this.refreshTimer.restart) {
+            Logger.debug('Restarting refresh timer after data fetch');
+            this.refreshTimer.restart();
+          }
         },
       },
     });

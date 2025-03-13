@@ -166,8 +166,6 @@ The following table provides an overview of all available configuration options.
 | **max_events_to_show**      | number  | `-`                           | Maximum number of events to show in compact mode  |
 | **show_past_events**        | boolean | `false`                       | Show today's events that have already ended       |
 | **language**                | string  | `System`                      | Interface language (`en`, `de`)                   |
-| **refresh_interval**        | number  | `30`                          | Minutes between auto-refresh of events            |
-| **cache_duration**          | number  | `30`                          | Cache validity of fetched events in minutes       |
 | **time_24h**                | boolean | `true`                        | Use 24-hour time format                           |
 | **show_end_time**           | boolean | `true`                        | Show event end times                              |
 | **show_month**              | boolean | `true`                        | Show month names                                  |
@@ -196,6 +194,7 @@ The following table provides an overview of all available configuration options.
 | **event_color**             | string  | `var(--primary-text-color)`   | Default event title color                         |
 | **time_color**              | string  | `var(--secondary-text-color)` | Event time text color                             |
 | **location_color**          | string  | `var(--secondary-text-color)` | Location text color                               |
+| **refresh_interval**        | number  | `30`                          | Minutes between auto-refresh of events            |
 | **tap_action**              | object  | `{ action: "none" }`          | Action on tap/click                               |
 | **hold_action**             | object  | `{ action: "none" }`          | Action on long press                              |
 
@@ -292,7 +291,8 @@ tap_action:
 
 - **Minimized API Polling** – Fetches new data **only when necessary**.
 - **Automatic Refresh** – Updates **every `refresh_interval` minutes** (default: `30`).
-- **Multi-level Caching** – Stores events locally with **configurable expiration**.
+- **Smart Caching** – Stores events locally with cache lifetime equal to the refresh interval.
+- **Fresh Data on Manual Refresh** – When you manually refresh the page, the card fetches fresh data regardless of cache.
 - **Reactive Updates** – Events update when:
   - A **calendar entity changes**.
   - **Home Assistant reconnects** after a disconnection.
@@ -331,10 +331,10 @@ show_month: false
 
 This setup includes **multiple calendars**, each with a **custom color**. The **compact mode** ensures that only a limited number of events are shown at once.
 
-**Compact view**:
+**Compact view**:  
 <img src=".github/img/example_advanced_compact.png" alt="Advanced Configuration" width="400">
 
-**Expanded view (after tap)**:
+**Expanded view (after tap)**:  
 <img src=".github/img/example_advanced_expanded.png" alt="Advanced Configuration" width="400">
 
 ```yaml
@@ -413,7 +413,6 @@ location_color: '#dddddd'
 
 # Performance & Caching
 refresh_interval: 15 # Auto-refresh events every 15 minutes
-cache_duration: 60 # Cache events for up to 60 minutes
 
 # Actions
 tap_action:

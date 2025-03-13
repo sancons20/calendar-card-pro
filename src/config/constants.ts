@@ -42,9 +42,6 @@ export const CACHE = {
   /** Default interval (minutes) for refreshing event data from API */
   DEFAULT_DATA_REFRESH_MINUTES: 30,
 
-  /** Default lifetime (minutes) for cache entries before they're considered stale */
-  DEFAULT_CACHE_LIFETIME_MINUTES: 30,
-
   /** Multiplier used with cache lifetime to calculate when entries should be purged */
   CACHE_EXPIRY_MULTIPLIER: 4,
 
@@ -52,7 +49,7 @@ export const CACHE = {
   CACHE_CLEANUP_INTERVAL_MS: 3600000, // 1 hour
 
   /** Prefix for calendar event cache keys in localStorage */
-  EVENT_CACHE_KEY_PREFIX: 'calendar_data_',
+  EVENT_CACHE_KEY_PREFIX: 'cache_data_',
 };
 
 /**
@@ -63,7 +60,7 @@ export const LOGGING = {
    * Current log level
    * 0 = ERROR, 1 = WARN, 2 = INFO, 3 = DEBUG
    */
-  CURRENT_LOG_LEVEL: 1,
+  CURRENT_LOG_LEVEL: 3,
 
   /** Standard prefix for log messages */
   PREFIX: '📅 Calendar Card Pro',

@@ -49,7 +49,7 @@ export function initializeState(): {
 export function setupComponentLifecycle(component: Types.CalendarComponent): {
   performanceTracker: Types.PerformanceTracker;
   visibilityCleanup: () => void;
-  refreshTimer: { start: () => void; stop: () => void };
+  refreshTimer: { start: () => void; stop: () => void; restart: () => void };
   cleanupInterval: number;
   debouncedUpdate: () => void;
   memoizedFormatTime: (date: Date) => string & Types.MemoCache<string>;
@@ -310,7 +310,7 @@ export function setupVisibilityHandling(
 export function setupRefreshTimer(
   updateCallback: (force?: boolean) => void,
   getInterval: () => number,
-): { start: () => void; stop: () => void } {
+): { start: () => void; stop: () => void; restart: () => void } {
   let timerId: number | undefined;
 
   const scheduleNextUpdate = () => {
@@ -340,6 +340,12 @@ export function setupRefreshTimer(
         clearTimeout(timerId);
         timerId = undefined;
       }
+    },
+    restart: () => {
+      if (timerId) {
+        clearTimeout(timerId);
+      }
+      scheduleNextUpdate();
     },
   };
 }

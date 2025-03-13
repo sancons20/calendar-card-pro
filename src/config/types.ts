@@ -17,7 +17,6 @@ export interface Config {
   max_events_to_show?: number;
   show_past_events: boolean;
   refresh_interval: number;
-  cache_duration: number;
   language: string;
   time_24h: boolean;
   show_end_time: boolean;
@@ -262,6 +261,7 @@ export interface CalendarComponent {
   refreshTimer?: {
     start: () => void;
     stop: () => void;
+    restart: () => void;
   };
   cleanupInterval: number;
 }

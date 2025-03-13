@@ -25,6 +25,7 @@ import * as Constants from '../config/constants';
 export async function orchestrateEventUpdate(options: {
   hass: Types.Hass | null;
   config: Types.Config;
+  instanceId: string;
   force: boolean;
   currentEvents: Types.CalendarEventData[];
   callbacks: {
@@ -32,15 +33,21 @@ export async function orchestrateEventUpdate(options: {
     setEvents: (events: Types.CalendarEventData[]) => void;
     updateLastUpdate: () => void;
     renderCallback: () => void;
+    restartTimer?: () => void;
   };
 }): Promise<void> {
-  const { hass, config, force, currentEvents, callbacks } = options;
+  const { hass, config, instanceId, force, currentEvents, callbacks } = options;
 
   // Early return if state is invalid
   if (!isValidState(hass, config.entities)) return;
 
-  // Replace getCacheKey with direct usage of baseKey
-  const cacheKey = getBaseCacheKey(config.entities, config.days_to_show, config.show_past_events);
+  // Use instanceId in cache key generation
+  const cacheKey = getBaseCacheKey(
+    instanceId,
+    config.entities,
+    config.days_to_show,
+    config.show_past_events,
+  );
 
   // Check cache first unless forced refresh
   const cacheExists = !force && doesCacheExist(cacheKey);
@@ -62,11 +69,17 @@ export async function orchestrateEventUpdate(options: {
   callbacks.renderCallback();
 
   try {
-    const result = await updateCalendarEvents(hass, config, force, currentEvents);
+    const result = await updateCalendarEvents(hass, config, instanceId, force, currentEvents);
 
     if (result.events) {
       callbacks.setEvents(result.events);
       callbacks.updateLastUpdate();
+
+      // Restart the timer after successful data fetch and cache update
+      // This ensures the timer and cache timestamps are properly synchronized
+      if (callbacks.restartTimer) {
+        callbacks.restartTimer();
+      }
     }
 
     if (result.error) {
@@ -93,6 +106,7 @@ export async function orchestrateEventUpdate(options: {
 export async function updateCalendarEvents(
   hass: Types.Hass | null,
   config: Types.Config,
+  instanceId: string,
   force = false,
   currentEvents: Types.CalendarEventData[] = [],
 ): Promise<{
@@ -105,10 +119,13 @@ export async function updateCalendarEvents(
     return { events: currentEvents, fromCache: false, error: null };
   }
 
-  // Generate cache key
-  const baseKey = getBaseCacheKey(config.entities, config.days_to_show, config.show_past_events);
-  // Replace getCacheKey with direct usage of baseKey
-  const cacheKey = baseKey;
+  // Generate cache key with instanceId
+  const cacheKey = getBaseCacheKey(
+    instanceId,
+    config.entities,
+    config.days_to_show,
+    config.show_past_events,
+  );
 
   // Try to get from cache if not forced
   const cachedEvents = !force && getCachedEvents(cacheKey, config);
@@ -436,12 +453,14 @@ export async function fetchTodayEvents(
  * Generate a base cache key from configuration
  * This function creates a stable cache key that depends only on data-affecting parameters
  *
+ * @param instanceId - Component instance ID for uniqueness
  * @param entities - Calendar entities
  * @param daysToShow - Number of days to display
  * @param showPastEvents - Whether to show past events
  * @returns Base cache key
  */
 export function getBaseCacheKey(
+  instanceId: string,
   entities: Array<string | { entity: string; color?: string }>,
   daysToShow: number,
   showPastEvents: boolean,
@@ -451,14 +470,17 @@ export function getBaseCacheKey(
     .sort()
     .join('_');
 
-  return `${Constants.CACHE.EVENT_CACHE_KEY_PREFIX}${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}`;
+  return `${Constants.CACHE.EVENT_CACHE_KEY_PREFIX}${instanceId}_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}`;
 }
 
 /**
- * Get cache duration from config or use default
+ * Get refresh interval from config or use default
+ *
+ * @param config - Card configuration
+ * @returns Cache duration in milliseconds
  */
 export function getCacheDuration(config?: Types.Config): number {
-  return (config?.cache_duration || Constants.CACHE.DEFAULT_CACHE_LIFETIME_MINUTES) * 60 * 1000;
+  return (config?.refresh_interval || Constants.CACHE.DEFAULT_DATA_REFRESH_MINUTES) * 60 * 1000;
 }
 
 /**
@@ -581,7 +603,7 @@ export function cleanupCache(_prefix: string, config?: Types.Config): void {
 
     // Calculate cleanup threshold using user's cache_duration and the multiplier
     const cacheDurationMinutes =
-      config?.cache_duration || Constants.CACHE.DEFAULT_CACHE_LIFETIME_MINUTES;
+      config?.refresh_interval || Constants.CACHE.DEFAULT_DATA_REFRESH_MINUTES;
     const cleanupThreshold =
       cacheDurationMinutes * 60 * 1000 * Constants.CACHE.CACHE_EXPIRY_MULTIPLIER;
 

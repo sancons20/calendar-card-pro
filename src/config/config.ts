@@ -64,7 +64,6 @@ export const DEFAULT_CONFIG: Types.Config = {
 
   // Cache and refresh settings
   refresh_interval: Constants.CACHE.DEFAULT_DATA_REFRESH_MINUTES,
-  cache_duration: Constants.CACHE.DEFAULT_CACHE_LIFETIME_MINUTES,
 };
 
 //-----------------------------------------------------------------------------
@@ -124,15 +123,14 @@ export function hasConfigChanged(
     .sort()
     .join(',');
 
-  // Check refresh interval separately (it affects timers but not data)
+  // Check refresh interval separately (it affects both timers and cache now)
   const refreshIntervalChanged = previous?.refresh_interval !== current?.refresh_interval;
 
   // Check if core data-affecting properties changed
   const dataChanged =
     previousEntityIds !== currentEntityIds ||
     previous.days_to_show !== current.days_to_show ||
-    previous.show_past_events !== current.show_past_events ||
-    previous.cache_duration !== current.cache_duration;
+    previous.show_past_events !== current.show_past_events;
 
   if (dataChanged || refreshIntervalChanged) {
     Logger.debug('Configuration change requires data refresh');
