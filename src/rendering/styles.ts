@@ -103,9 +103,11 @@ export function generateCustomProperties(config: Types.Config): string {
  */
 export function generateBaseStyles(): string {
   return `
+
     :host {
       display: block;
     }
+
     .card-container {
       cursor: pointer;
       width: 100%;
@@ -116,7 +118,6 @@ export function generateBaseStyles(): string {
       transition: transform 180ms ease-in-out;
     }
     
-    /* Background layer for ripple - matching HA pattern */
     .background {
       position: absolute;
       top: 0;
@@ -128,7 +129,6 @@ export function generateBaseStyles(): string {
       overflow: hidden;
     }
     
-    /* Content container for proper layering */
     .content-container {
       position: relative;
       z-index: 1;
@@ -142,6 +142,7 @@ export function generateBaseStyles(): string {
       padding-top: calc(16px + var(--card-spacing-additional));
       padding-bottom: calc(16px + var(--card-spacing-additional));
     }
+
     .title {
       font-size: var(--card-font-size-title);
       line-height: var(--card-font-size-title);
@@ -150,6 +151,7 @@ export function generateBaseStyles(): string {
       margin-top: 0px;
       margin-bottom: 16px;
     }
+
     ha-icon {
       margin-right: 4px;
       --mdc-icon-size: var(--card-icon-size);
@@ -157,6 +159,7 @@ export function generateBaseStyles(): string {
       position: relative;
       transform: translateZ(0);
     }
+
     table {
       width: 100%;
       table-layout: fixed;
@@ -165,23 +168,27 @@ export function generateBaseStyles(): string {
       border-bottom: var(--card-line-width-horizontal) solid var(--card-line-color-horizontal);
       padding-bottom: var(--card-spacing-row);
     }
+
     .date {
       width: var(--card-date-column-width);
       text-align: center;
       padding-right: 12px;
       border-right: var(--card-line-width-vertical) solid var(--card-line-color-vertical);
     }
+
     .weekday {
       font-size: var(--card-font-size-weekday);
       line-height: var(--card-font-size-weekday);
       color: var(--card-color-weekday);
     }
+
     .day {
       font-size: var(--card-font-size-day);
       line-height: var(--card-font-size-day);
       font-weight: 500;
       color: var(--card-color-day);
     }
+
     .month {
       font-size: var(--card-font-size-month);
       line-height: var(--card-font-size-month);
@@ -201,11 +208,13 @@ export function generateBaseStyles(): string {
       font-weight: 500;
       color: var(--card-color-event);
     }
+
     .time-location {
       display: flex;
       flex-direction: column;
       margin-top: 0px;
     }
+
     .time, .location {
       display: flex;
       align-items: center;
@@ -226,25 +235,26 @@ export function generateBaseStyles(): string {
     }
     
     .time span, .location span {
-      /* Ensure text is aligned properly */
       display: inline-block;
       vertical-align: middle;
-      line-height: var(--card-icon-size);
     }
     
     .time {
       font-size: var(--card-font-size-time);
       color: var(--card-color-time);
     }
+
     .location {
       font-size: var(--card-font-size-location);
       color: var(--card-color-location);
     }
+
     table:last-of-type {
       margin-bottom: 0;
       border-bottom: 0;
       padding-bottom: 0;
     }
+
     .no-events {
       text-align: center;
       color: var(--secondary-text-color);
