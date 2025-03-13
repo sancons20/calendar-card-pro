@@ -321,7 +321,7 @@ git branch -D temp_branch
 
   ```sh
   git tag v1.2.3
-  git push origin v1.2.3
+  git push public v1.2.3
   ```
 
 - Deciding the version number:
