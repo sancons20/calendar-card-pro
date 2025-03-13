@@ -1,9 +1,9 @@
 /* eslint-disable import/order */
 /**
- * Calendar Card Pro for Home Assistant
+ * Calendar Card Pro
  *
- * A custom Lovelace card that displays events from multiple calendars with individual styling.
- * Features progressive rendering, smart caching, and extensive customization options.
+ * A sleek and highly customizable calendar card for Home Assistant,
+ * designed for performance and a clean, modern look.
  *
  * @author Alex Pfau
  * @license MIT
