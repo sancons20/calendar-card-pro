@@ -162,7 +162,7 @@ export function handleConnectedCallback(component: Types.CalendarComponent): voi
     !component.interactionManager.cleanup &&
     component._hass
   ) {
-    // Find our ripple element
+    // Find the ripple element
     const oldRipple = component.interactionManager.container.querySelector('calendar-ripple');
 
     // Remove the old ripple element completely to prevent opacity accumulation
@@ -193,7 +193,7 @@ export function handleConnectedCallback(component: Types.CalendarComponent): voi
 
     const entityId = Core.getPrimaryEntityId(component.config.entities);
 
-    // Set up interactions using our module with the fresh ripple
+    // Set up interactions using my module with the fresh ripple
     component.interactionManager.cleanup = Core.setupInteractions(
       component.config,
       component.interactionManager.container,

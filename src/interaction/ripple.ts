@@ -3,7 +3,7 @@
  * Calendar Ripple
  *
  * A lightweight wrapper around Home Assistant's ha-ripple
- * Provides compatibility with our action system while using native HA ripple
+ * Provides compatibility with my action system while using native HA ripple
  */
 
 import { LitElement, css, html } from 'lit';
@@ -60,7 +60,7 @@ export class CalendarRipple extends LitElement {
 
   /**
    * Attach this ripple to a control element
-   * Handles both the ha-ripple attachment and our custom event forwarding
+   * Handles both the ha-ripple attachment and my custom event forwarding
    */
   attach(control: HTMLElement) {
     this.control = control;
@@ -77,7 +77,7 @@ export class CalendarRipple extends LitElement {
   detach() {
     if (!this.control) return;
 
-    // Remove our click handler
+    // Remove the click handler
     this.control.removeEventListener('click', this._handleClick);
 
     // Detach the ha-ripple
@@ -94,7 +94,7 @@ export class CalendarRipple extends LitElement {
 
   /**
    * Handle click events and dispatch as mdw:action events
-   * Bridges the gap between ha-ripple and our action system
+   * Bridges the gap between ha-ripple and my action system
    * @private
    */
   private _handleClick = () => {

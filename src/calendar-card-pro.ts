@@ -253,7 +253,6 @@ class CalendarCardPro extends HTMLElement implements Types.CalendarComponent {
   }
 
   async updateEvents(force = false): Promise<void> {
-    // Use the new orchestration function
     await EventUtils.orchestrateEventUpdate({
       hass: this._hass,
       config: this.config,
@@ -340,7 +339,7 @@ class CalendarCardPro extends HTMLElement implements Types.CalendarComponent {
       // Get primary entity ID for interactions
       const entityId = Core.getPrimaryEntityId(this.config.entities);
 
-      // Set up interactions using our new module
+      // Set up interactions
       this.interactionManager.cleanup = Core.setupInteractions(
         this.config,
         container,

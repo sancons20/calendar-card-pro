@@ -138,7 +138,7 @@ export function createCardStructure(contentContainer: HTMLElement): {
   const content = document.createElement('div');
   content.className = 'card-content';
 
-  // Move content from the render container to our content element
+  // Move content from the render container to the content element
   if (contentContainer instanceof HTMLElement) {
     while (contentContainer.firstChild) {
       content.appendChild(contentContainer.firstChild);
