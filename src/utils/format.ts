@@ -175,21 +175,33 @@ function formatMultiDayTime(
   const endMonthName = translations.months[endDate.getMonth()];
   const endWeekday = translations.fullDaysOfWeek[endDate.getDay()];
 
-  // Format day differently based on language
-  const dayFormat = language === 'de' ? `${endDay}.` : endDay;
-
   const startTimeStr = formatTime(startDate, true);
   const endTimeStr = formatTime(endDate, true);
 
-  return [
-    startTimeStr,
-    translations.multiDay,
-    endWeekday + ',',
-    dayFormat,
-    endMonthName,
-    translations.at,
-    endTimeStr,
-  ].join(' ');
+  // Different date formats based on language
+  if (language === 'de') {
+    // German: "7:00 bis Freitag, 21. Mär um 20:00"
+    return [
+      startTimeStr,
+      translations.multiDay,
+      endWeekday + ',',
+      `${endDay}.`,
+      endMonthName,
+      translations.at,
+      endTimeStr,
+    ].join(' ');
+  } else {
+    // English: "7:00 until Friday, Mar 21 at 20:00"
+    return [
+      startTimeStr,
+      translations.multiDay,
+      endWeekday + ',',
+      endMonthName,
+      endDay,
+      translations.at,
+      endTimeStr,
+    ].join(' ');
+  }
 }
 
 /**
@@ -208,8 +220,12 @@ function formatMultiDayAllDayTime(
   const endDay = endDate.getDate();
   const endMonthName = translations.months[endDate.getMonth()];
 
-  // Format day differently based on language
-  const dayFormat = language === 'de' ? `${endDay}.` : endDay;
-
-  return `${translations.allDay}, ${translations.multiDay} ${dayFormat} ${endMonthName}`;
+  // Different date formats based on language
+  if (language === 'de') {
+    // German: All-Day, until 21. März
+    return `${translations.allDay}, ${translations.multiDay} ${endDay}. ${endMonthName}`;
+  } else {
+    // English: All-Day, until Mar 21
+    return `${translations.allDay}, ${translations.multiDay} ${endMonthName} ${endDay}`;
+  }
 }
