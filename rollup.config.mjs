@@ -5,7 +5,10 @@ import typescript from '@rollup/plugin-typescript';
 import json from '@rollup/plugin-json';
 import { readFileSync } from 'fs';
 
+// Use the existing NODE_ENV variable for both purposes
 const isProd = process.env.NODE_ENV === 'prod';
+// Use NODE_ENV to determine filename as well
+const outputFilename = isProd ? 'calendar-card-pro.js' : 'calendar-card-pro-dev.js';
 
 // Get version from package.json reliably
 const packageJson = JSON.parse(readFileSync('./package.json', 'utf-8'));
@@ -13,13 +16,13 @@ const version = packageJson.version;
 
 export default {
   input: 'src/calendar-card-pro.ts',
-  output: [
-    {
-      file: 'dist/calendar-card-pro.js',
-      format: 'es',
-      sourcemap: true,
-    },
-  ],
+  output: {
+    dir: 'dist',
+    format: 'es',
+    // Use the dynamic filename based on NODE_ENV
+    entryFileNames: outputFilename,
+    sourcemap: true,
+  },
   plugins: [
     replace({
       preventAssignment: true,
