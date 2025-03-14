@@ -5,11 +5,6 @@ on:
     tags:
       - 'v*'
 
-permissions:
-  contents: write
-  packages: write
-  discussions: write
-
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -31,9 +26,6 @@ jobs:
 
       - name: Build
         run: npm run build
-
-      - name: Verify Build Output
-        run: ls -la dist/
 
       - name: Release
         uses: softprops/action-gh-release@v2
