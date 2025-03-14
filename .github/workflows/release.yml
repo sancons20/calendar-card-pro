@@ -18,13 +18,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # Temporarily disable cache for initial build
-          # cache: 'npm'
-          # cache-dependency-path: './package-lock.json'
+          cache: 'npm'
+          cache-dependency-path: './package-lock.json'
 
       - name: Install Dependencies
         run: npm ci
-        continue-on-error: false
 
       - name: Run ESLint (Fail on Errors)
         run: npm run lint
@@ -49,9 +47,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # Temporarily disable cache for initial build
-          # cache: 'npm'
-          # cache-dependency-path: './package-lock.json'
+          cache: 'npm'
+          cache-dependency-path: './package-lock.json'
 
       - name: Install Dependencies
         run: npm ci
@@ -80,8 +77,7 @@ jobs:
 
       - name: Fetch Latest Tag
         id: get_tag
-        run: |
-          echo "tag=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
+        run: echo "tag=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
 
       - name: Download Built File
         uses: actions/download-artifact@v4
@@ -101,8 +97,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/calendar-card-pro.js
-          tag_name: ${{ env.tag }}
-          name: 'Calendar Card Pro ${{ env.tag }}'
+          tag_name: ${{ steps.get_tag.outputs.tag }}
+          name: 'Calendar Card Pro ${{ steps.get_tag.outputs.tag }}'
           body: ${{ steps.generate_notes.outputs.body }}
           draft: true
           prerelease: false
