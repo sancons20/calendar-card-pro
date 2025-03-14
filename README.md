@@ -2,7 +2,7 @@
 
 [![hacs][hacs-img]][hacs-url] [![GitHub Release][github-release-img]][github-release-url] [![Downloads][github-downloads-img]][github-release-url]
 
-<img src=".github/img/header.png" alt="Calendar Card Pro Preview" width="100%">
+<img src="https://raw.githubusercontent.com/alexpfau/calendar-card-pro/main/.github/img/header.png" alt="Calendar Card Pro Preview" width="100%">
 
 ## Table of Contents
 
@@ -317,10 +317,10 @@ This section provides different **configuration setups** to help you get started
 A simple setup displaying events from a **single calendar**. Automatically **adapts to themes** and **dark/light mode**.
 
 **With Home Assistant default theme** (light mode):  
-<img src=".github/img/example_1_basic_native.png" alt="Basic Configuration" width="600">
+<img src="https://raw.githubusercontent.com/alexpfau/calendar-card-pro/main/.github/img/example_1_basic_native.png" alt="Basic Configuration" width="600">
 
 **Using my favorite [iOS Theme](https://github.com/basnijholt/lovelace-ios-themes)** (ios-dark-mode-blue-red-alternative):  
-<img src=".github/img/example_1_basic_ios.png" alt="Basic Configuration" width="600">
+<img src="https://raw.githubusercontent.com/alexpfau/calendar-card-pro/main/.github/img/example_1_basic_ios.png" alt="Basic Configuration" width="600">
 
 ```yaml
 type: custom:calendar-card-pro
@@ -336,10 +336,10 @@ show_month: false
 This setup includes **multiple calendars**, each with a **custom color**. The **compact mode** ensures that only a limited number of events are shown at once. Screenshots again showing **my favorite [iOS Theme](https://github.com/basnijholt/lovelace-ios-themes)** (ios-dark-mode-blue-red-alternative).
 
 **Compact view**:  
-<img src=".github/img/example_2_advanced_compact.png" alt="Advanced Configuration" width="600">
+<img src="https://raw.githubusercontent.com/alexpfau/calendar-card-pro/main/.github/img/example_2_advanced_compact.png" alt="Advanced Configuration" width="600">
 
 **After tap ➡️ expanded view**:  
-<img src=".github/img/example_2_advanced_expanded.png" alt="Advanced Configuration" width="600">
+<img src="https://raw.githubusercontent.com/alexpfau/calendar-card-pro/main/.github/img/example_2_advanced_expanded.png" alt="Advanced Configuration" width="600">
 
 ```yaml
 type: custom:calendar-card-pro
@@ -361,7 +361,7 @@ tap_action:
 
 A fully **customized** configuration demonstrating **all available options**, including **styling, layout, and interactions**. Though you could **go all out**—and I didn’t—and create a **completely different look** if you wanted. Screenshot using the beautiful **[Bubble Theme](https://github.com/Clooos/Bubble)**.
 
-<img src=".github/img/example_3_complete.png" alt="Complete Configuration" width="600"><br>
+<img src="https://raw.githubusercontent.com/alexpfau/calendar-card-pro/main/.github/img/example_3_complete.png" alt="Complete Configuration" width="600"><br>
 
 ```yaml
 type: custom:calendar-card-pro
