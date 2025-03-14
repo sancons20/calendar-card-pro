@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2023 Alex Pfau
+Copyright (c) 2025 Alex Pfau
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -42,5 +42,5 @@ Calendar Card Pro incorporates code and design elements from the following proje
 
 3. Design Inspiration
    Calendar design elements were inspired by Home Assistant community member
-   @GHA_Steph's button-card calendar design.
+   @kdw2060's button-card calendar design.
    https://community.home-assistant.io/t/calendar-add-on-some-calendar-designs/385790
