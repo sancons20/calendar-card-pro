@@ -20,19 +20,56 @@ Before contributing code, I strongly recommend reviewing my [architecture docume
 5. The compiled card will be available in `dist/calendar-card-pro.js`
 6. For testing in Home Assistant, follow the [testing instructions](#testing-in-home-assistant)
 
+## Branch Structure
+
+The repository follows this branch structure:
+
+- **`main`**: Production-ready code, each release is tagged
+- **`dev`**: Ongoing development branch where features are integrated
+- **Feature branches**: Individual features/fixes (branch from `dev`, merge back to `dev` via PRs)
+
+### Workflow
+
+1. Create feature branches from `dev` for new features or bug fixes
+2. Develop and test your changes in the feature branch
+3. Submit a PR to merge your feature branch into `dev`
+4. After review and testing, changes in `dev` are periodically merged into `main` for releases
+
 ## Testing in Home Assistant
 
 To test your changes in a real Home Assistant environment:
 
-1. Copy `dist/calendar-card-pro.js` to your Home Assistant's `www/community/calendar-card-pro-dev/` folder
+1. Copy `dist/calendar-card-pro-dev.js` to your Home Assistant's `www/community/calendar-card-pro/` folder
 2. Add the resource to Home Assistant:
    ```yaml
-   url: /local/community/calendar-card-pro-dev/calendar-card-pro.js
+   url: /hacsfiles/calendar-card-pro/calendar-card-pro-dev.js
    type: module
    ```
 3. Add the card to your dashboard using type: `custom:calendar-card-pro-dev`
 4. Test with various calendar types and configurations
 5. Verify performance with both small and large event sets
+
+> **💡 Pro Tip: Defeating Home Assistant's Aggressive Caching**
+>
+> Home Assistant aggressively caches resources, and sometimes your changes won't appear even after clearing browser cache or restarting Home Assistant. To solve this:
+>
+> 1. Add a version query parameter to your resource URL:
+>    ```yaml
+>    url: /hacsfiles/calendar-card-pro/calendar-card-pro-dev.js?v=1
+>    type: module
+>    ```
+> 2. Each time you update the file and want to test new changes, increment the version number:
+>    ```yaml
+>    url: /hacsfiles/calendar-card-pro/calendar-card-pro-dev.js?v=2
+>    type: module
+>    ```
+
+> **Note:** The build system automatically generates different filenames depending on the build mode:
+>
+> - Development build (`npm run dev`): Creates `calendar-card-pro-dev.js`
+> - Production build (`npm run build`): Creates `calendar-card-pro.js`
+>
+> This naming convention allows both development and production versions to coexist in the same Home Assistant directory, making it easier to test changes alongside the stable version installed via HACS. The Home Assistant card element name also includes the `-dev` suffix in development mode, ensuring there's no conflict between versions.
 
 ## Adding New Translations
 
