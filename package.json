@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "rollup -c -w",
     "build": "NODE_ENV=prod rollup -c",
-    "lint": "eslint 'src/**/*.ts' --fix --format stylish > logs/eslint.log 2>&1",
+    "lint": "eslint 'src/**/*.ts' --fix --format stylish",
     "format": "prettier --write 'src/**/*.ts'"
   },
   "repository": {
