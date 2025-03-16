@@ -1,0 +1,11 @@
+{
+  "daysOfWeek": ["Sön", "Mån", "Tis", "Ons", "Tor", "Fre", "Lör"],
+  "fullDaysOfWeek": ["Söndag", "Måndag", "Tisdsg", "Onsdag", "Torsdag", "Fredag", "Lördag"],
+  "months": ["Jan", "Feb", "Mar", "Apr", "Maj", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"],
+  "allDay": "heldag",
+  "multiDay": "tills",
+  "at": "vid",
+  "noEvents": "Inga kommande händelse",
+  "loading": "Laddar kalender händelser...",
+  "error": "Fel: Kalender entitet inte funnen eller felaktigt konfigurerad"
+}
