@@ -7,5 +7,5 @@
   "at": "vid",
   "noEvents": "Inga kommande händelse",
   "loading": "Laddar kalenderhändelser...",
-  "error": "Fel: Kalender entitet inte funnen eller felaktigt konfigurerad"
+  "error": "Fel: Kalenderentitet inte funnen eller felaktigt konfigurerad"
 }
