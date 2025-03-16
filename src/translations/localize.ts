@@ -12,6 +12,7 @@ import * as Logger from '../utils/logger';
 // Import language files
 import enTranslations from './languages/en.json';
 import deTranslations from './languages/de.json';
+import heTranslations from './languages/he.json';
 
 /**
  * Available translations keyed by language code
