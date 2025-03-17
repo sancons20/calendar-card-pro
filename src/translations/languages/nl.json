@@ -7,5 +7,5 @@
   "at": "op",
   "noEvents": "Geen afspraken gepland",
   "loading": "Kalender afspraken laden...",
-  "error": "Fout: Kalender niet gevonden of onjuist geconfigureerd"
+  "error": "Fout: Kalender niet gevonden of verkeerd geconfigureerd"
 }
