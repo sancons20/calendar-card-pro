@@ -13,6 +13,7 @@ import * as Logger from '../utils/logger';
 import daTranslations from './languages/da.json';
 import deTranslations from './languages/de.json';
 import enTranslations from './languages/en.json';
+import esTranslations from './languages/es.json';
 import isTranslations from './languages/is.json';
 import nlTranslations from './languages/nl.json';
 import plTranslations from './languages/pl.json';
@@ -28,6 +29,7 @@ export const TRANSLATIONS: Record<string, Types.Translations> = {
   da: daTranslations,
   de: deTranslations,
   en: enTranslations,
+  es: esTranslations,
   is: isTranslations,
   nl: nlTranslations,
   pl: plTranslations,
