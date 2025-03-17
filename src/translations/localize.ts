@@ -9,7 +9,6 @@
 import * as Types from '../config/types';
 import * as Logger from '../utils/logger';
 
-
 // Import language files (sorted alphabetically by language code)
 import csTranslations from './languages/cs.json';
 import daTranslations from './languages/da.json';
@@ -56,6 +55,58 @@ export const DEFAULT_LANGUAGE = 'en';
 //-----------------------------------------------------------------------------
 // HIGH-LEVEL API FUNCTIONS
 //-----------------------------------------------------------------------------
+
+/**
+ * Determine the effective language based on priority order:
+ * 1. User config language (if specified and supported)
+ * 2. HA system language (if available and supported)
+ * 3. Default language fallback
+ *
+ * @param configLanguage - Language from user configuration
+ * @param hassLocale - Home Assistant locale information
+ * @returns The effective language code to use
+ */
+export function getEffectiveLanguage(
+  configLanguage?: string,
+  hassLocale?: { language: string },
+): string {
+  Logger.debug(`Language detection - Config language: ${configLanguage || 'not set'}`);
+  Logger.debug(
+    `Language detection - HA system language: ${hassLocale?.language || 'not available'}`,
+  );
+
+  // Priority 1: Use config language if specified and supported
+  if (configLanguage && configLanguage.trim() !== '') {
+    const configLang = configLanguage.toLowerCase();
+    if (TRANSLATIONS[configLang]) {
+      Logger.debug(`Using config language: ${configLang}`);
+      return configLang;
+    }
+    Logger.debug(`Config language ${configLang} not supported, trying HA system language`);
+  }
+
+  // Priority 2: Use HA system language if available and supported
+  if (hassLocale?.language) {
+    const sysLang = hassLocale.language.toLowerCase();
+    if (TRANSLATIONS[sysLang]) {
+      Logger.debug(`Using HA system language: ${sysLang}`);
+      return sysLang;
+    }
+
+    // Check for language part only (e.g., "de" from "de-DE")
+    const langPart = sysLang.split(/[-_]/)[0];
+    if (langPart !== sysLang && TRANSLATIONS[langPart]) {
+      Logger.debug(`Using base language part from HA system language: ${langPart}`);
+      return langPart;
+    }
+
+    Logger.debug(`No supported translation for HA language ${sysLang}`);
+  }
+
+  // Priority 3: Use default language as fallback
+  Logger.debug(`Using default language: ${DEFAULT_LANGUAGE}`);
+  return DEFAULT_LANGUAGE;
+}
 
 /**
  * Get translations for the specified language
@@ -114,6 +165,29 @@ export function translateString(
 //-----------------------------------------------------------------------------
 
 /**
+ * Determine the date format style for a given language
+ *
+ * @param language - Language code
+ * @returns Date format style identifier ('day-dot-month', 'month-day', or 'day-month')
+ */
+export function getDateFormatStyle(language: string): 'day-dot-month' | 'month-day' | 'day-month' {
+  const lang = language?.toLowerCase() || '';
+
+  // German uses day with dot, then month (e.g., "17. Mar")
+  if (lang === 'de') {
+    return 'day-dot-month';
+  }
+
+  // English uses month then day (e.g., "Mar 17")
+  if (lang === 'en') {
+    return 'month-day';
+  }
+
+  // Default for most other languages: day then month without dot (e.g., "17 Mar")
+  return 'day-month';
+}
+
+/**
  * Get day name from translations based on day index
  *
  * @param language - Language code
@@ -162,13 +236,17 @@ export function getMonthName(language: string, monthIndex: number): string {
 export function formatDateShort(language: string, date: Date): string {
   const day = date.getDate();
   const month = getMonthName(language, date.getMonth());
+  const formatStyle = getDateFormatStyle(language);
 
-  // Different formats based on language conventions
-  if (language.toLowerCase() === 'de') {
-    return `${day}. ${month}`;
+  switch (formatStyle) {
+    case 'day-dot-month':
+      return `${day}. ${month}`;
+    case 'month-day':
+      return `${month} ${day}`;
+    case 'day-month':
+    default:
+      return `${day} ${month}`;
   }
-
-  return `${month} ${day}`;
 }
 
 //-----------------------------------------------------------------------------

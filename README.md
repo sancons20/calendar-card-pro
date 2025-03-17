@@ -165,7 +165,7 @@ The following table provides an overview of all available configuration options.
 | **days_to_show**            | number  | `3`                           | Number of days to display                         |
 | **max_events_to_show**      | number  | `-`                           | Maximum number of events to show in compact mode  |
 | **show_past_events**        | boolean | `false`                       | Show today's events that have already ended       |
-| **language**                | string  | `System`                      | Interface language (`en`, `de`)                   |
+| **language**                | string  | `System`, fallback `en`       | Interface language (`en`, `de`)                   |
 | **time_24h**                | boolean | `true`                        | Use 24-hour time format                           |
 | **show_end_time**           | boolean | `true`                        | Show event end times                              |
 | **show_month**              | boolean | `true`                        | Show month names                                  |
