@@ -161,6 +161,9 @@ export interface Hass {
   // Fix API call method signature to match what Home Assistant actually provides
   callApi: (method: string, path: string, parameters?: object) => Promise<unknown>;
   callService: (domain: string, service: string, serviceData?: object) => void;
+  locale?: {
+    language: string;
+  };
   // Add connection property that may be needed
   connection?: {
     subscribeEvents: (callback: (event: unknown) => void, eventType: string) => Promise<() => void>;
