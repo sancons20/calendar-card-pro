@@ -20,6 +20,7 @@ import heTranslations from './languages/he.json';
 export const TRANSLATIONS: Record<string, Types.Translations> = {
   en: enTranslations,
   de: deTranslations,
+  he: heTranslations,
 };
 
 /**
