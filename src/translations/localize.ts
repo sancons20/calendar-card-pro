@@ -31,6 +31,58 @@ export const DEFAULT_LANGUAGE = 'en';
 //-----------------------------------------------------------------------------
 
 /**
+ * Determine the effective language based on priority order:
+ * 1. User config language (if specified and supported)
+ * 2. HA system language (if available and supported)
+ * 3. Default language fallback
+ *
+ * @param configLanguage - Language from user configuration
+ * @param hassLocale - Home Assistant locale information
+ * @returns The effective language code to use
+ */
+export function getEffectiveLanguage(
+  configLanguage?: string,
+  hassLocale?: { language: string },
+): string {
+  Logger.debug(`Language detection - Config language: ${configLanguage || 'not set'}`);
+  Logger.debug(
+    `Language detection - HA system language: ${hassLocale?.language || 'not available'}`,
+  );
+
+  // Priority 1: Use config language if specified and supported
+  if (configLanguage && configLanguage.trim() !== '') {
+    const configLang = configLanguage.toLowerCase();
+    if (TRANSLATIONS[configLang]) {
+      Logger.debug(`Using config language: ${configLang}`);
+      return configLang;
+    }
+    Logger.debug(`Config language ${configLang} not supported, trying HA system language`);
+  }
+
+  // Priority 2: Use HA system language if available and supported
+  if (hassLocale?.language) {
+    const sysLang = hassLocale.language.toLowerCase();
+    if (TRANSLATIONS[sysLang]) {
+      Logger.debug(`Using HA system language: ${sysLang}`);
+      return sysLang;
+    }
+
+    // Check for language part only (e.g., "de" from "de-DE")
+    const langPart = sysLang.split(/[-_]/)[0];
+    if (langPart !== sysLang && TRANSLATIONS[langPart]) {
+      Logger.debug(`Using base language part from HA system language: ${langPart}`);
+      return langPart;
+    }
+
+    Logger.debug(`No supported translation for HA language ${sysLang}`);
+  }
+
+  // Priority 3: Use default language as fallback
+  Logger.debug(`Using default language: ${DEFAULT_LANGUAGE}`);
+  return DEFAULT_LANGUAGE;
+}
+
+/**
  * Get translations for the specified language
  * Falls back to English if the language is not available
  *
