@@ -5,6 +5,8 @@
   "allDay": "tutto-il-giorno",
   "multiDay": "fino a",
   "at": "a",
+  "endsToday": "termina oggi",
+  "endsTomorrow": "termina domani",
   "noEvents": "Nessun evento programmato",
   "loading": "Sto caricando il calendario degli eventi...",
   "error": "Errore: Entità Calendario non trovata o non configurata correttamente"
