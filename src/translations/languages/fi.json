@@ -5,6 +5,8 @@
   "allDay": "koko päivä",
   "multiDay": "asti",
   "at": "klo",
+  "endsToday": "päättyy tänään",
+  "endsTomorrow": "päättyy huomenna",
   "noEvents": "Ei tulevia tapahtumia",
   "loading": "Ladataan kalenteritapahtumia...",
   "error": "Virhe: Kalenteriyksikköä ei löydy tai se on väärin määritetty"
