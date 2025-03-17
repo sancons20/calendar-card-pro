@@ -474,13 +474,28 @@ For those interested in contributing code, I maintain detailed **[architecture d
 
 - **English (`en`)**
 - **German (`de`)**
+- **Czech (`cs`)**
+- **Danish (`da`)**
+- **Finnish (`fi`)**
+- **French (`fr`)**
+- **Hebrew (`he`)**
+- **Icelandic (`is`)**
+- **Italian (`it`)**
+- **Dutch (`nl`)**
+- **Polish (`pl`)**
+- **Russian (`ru`)**
+- **Swedish (`sv`)**
+- **Ukrainian (`uk`)**
+
+
 
 To add a new language:
 
 1. **Create a new file** in `src/translations/languages/[lang-code].json`
 2. **Copy the structure** from an existing language file.
-3. **Translate all strings** to your language.
-4. **Submit a Pull Request** with your changes.
+3. **Update the localize file** in `src/translations/localize.ts`
+4. **Translate all strings** to your language.
+5. **Submit a Pull Request** with your changes.
 
 ### 🏆 Acknowledgements
 
