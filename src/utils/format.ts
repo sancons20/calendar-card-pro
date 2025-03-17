@@ -211,16 +211,57 @@ function formatMultiDayTime(
   language: string,
   translations: Types.Translations,
 ): string {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  // Case 3: Event ends today
+  if (endDate.toDateString() === today.toDateString()) {
+    const endTimeStr = formatTime(endDate, true);
+    return `${translations.endsToday} ${translations.at} ${endTimeStr}`;
+  }
+
+  // NEW Case 4: Event ends tomorrow
+  if (endDate.toDateString() === tomorrow.toDateString()) {
+    const endTimeStr = formatTime(endDate, true);
+    return `${translations.endsTomorrow} ${translations.at} ${endTimeStr}`;
+  }
+
   const endDay = endDate.getDate();
   const endMonthName = translations.months[endDate.getMonth()];
   const endWeekday = translations.fullDaysOfWeek[endDate.getDay()];
-
-  const startTimeStr = formatTime(startDate, true);
   const endTimeStr = formatTime(endDate, true);
 
-  // Different date formats based on language
+  // Case 2: Today is after start date but before end date (middle day)
+  if (today.toDateString() !== startDate.toDateString() && today < endDate) {
+    // Omit start time for days between start and end
+    if (language === 'de') {
+      return [
+        translations.multiDay,
+        endWeekday + ',',
+        `${endDay}.`,
+        endMonthName,
+        translations.at,
+        endTimeStr,
+      ].join(' ');
+    } else {
+      return [
+        translations.multiDay,
+        endWeekday + ',',
+        endMonthName,
+        endDay,
+        translations.at,
+        endTimeStr,
+      ].join(' ');
+    }
+  }
+
+  // Case 1: Default - Today is on start date (or before start)
+  const startTimeStr = formatTime(startDate, true);
+
+  // Use existing format with start time
   if (language === 'de') {
-    // German: "7:00 bis Freitag, 21. Mär um 20:00"
     return [
       startTimeStr,
       translations.multiDay,
@@ -231,7 +272,6 @@ function formatMultiDayTime(
       endTimeStr,
     ].join(' ');
   } else {
-    // English: "7:00 until Friday, Mar 21 at 20:00"
     return [
       startTimeStr,
       translations.multiDay,
@@ -257,6 +297,21 @@ function formatMultiDayAllDayTime(
   language: string,
   translations: Types.Translations,
 ): string {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  // UPDATED: On the end date, just show "All-day"
+  if (endDate.toDateString() === today.toDateString()) {
+    return translations.allDay;
+  }
+
+  // NEW: Day before end date shows "ends tomorrow"
+  if (endDate.toDateString() === tomorrow.toDateString()) {
+    return `${translations.allDay}, ${translations.endsTomorrow}`;
+  }
+
   const endDay = endDate.getDate();
   const endMonthName = translations.months[endDate.getMonth()];
 
