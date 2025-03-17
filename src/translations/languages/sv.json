@@ -5,6 +5,8 @@
   "allDay": "heldag",
   "multiDay": "till",
   "at": "vid",
+  "endsToday": "slutar idag",
+  "endsTomorrow": "slutar imorgon",
   "noEvents": "Inga kommande händelser",
   "loading": "Laddar kalenderhändelser...",
   "error": "Fel: Kalenderentiteten hittades inte eller är felaktigt konfigurerad."
