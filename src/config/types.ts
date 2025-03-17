@@ -195,15 +195,17 @@ export interface HassMoreInfoEvent extends CustomEvent {
  * Interface for language translations
  */
 export interface Translations {
-  daysOfWeek: string[];
-  fullDaysOfWeek: string[];
-  months: string[];
+  loading: string;
+  noEvents: string;
+  error: string;
   allDay: string;
   multiDay: string;
   at: string;
-  noEvents: string;
-  loading: string;
-  error: string;
+  months: string[];
+  daysOfWeek: string[];
+  fullDaysOfWeek: string[];
+  endsToday: string;
+  endsTomorrow: string;
 }
 
 // -----------------------------------------------------------------------------
