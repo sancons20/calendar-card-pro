@@ -474,7 +474,19 @@ For those interested in contributing code, I maintain detailed **[architecture d
 
 - **English (`en`)**
 - **German (`de`)**
+- **Czech (`cs`)**
+- **Danish (`da`)**
+- **Finnish (`fi`)**
+- **French (`fr`)**
 - **Hebrew (`he`)**
+- **Icelandic (`is`)**
+- **Italian (`it`)**
+- **Dutch (`nl`)**
+- **Polish (`pl`)**
+- **Russian (`ru`)**
+- **Swedish (`sv`)**
+- **Ukrainian (`uk`)**
+
 
 
 To add a new language:
