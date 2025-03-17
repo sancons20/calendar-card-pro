@@ -3,7 +3,7 @@
   "fullDaysOfWeek": ["Zondag", "Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag"],
   "months": ["Jan", "Feb", "Mrt", "Apr", "Mei", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"],
   "allDay": "hele dag",
-  "multiDay": "to",
+  "multiDay": "tot",
   "at": "op",
   "noEvents": "Geen afspraken gepland",
   "loading": "Kalender afspraken laden...",
