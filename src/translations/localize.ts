@@ -13,9 +13,11 @@ import * as Logger from '../utils/logger';
 import daTranslations from './languages/da.json';
 import deTranslations from './languages/de.json';
 import enTranslations from './languages/en.json';
+import isTranslations from './languages/is.json';
 import nlTranslations from './languages/nl.json';
 import plTranslations from './languages/pl.json';
 import ruTranslations from './languages/ru.json';
+import svTranslations from './languages/sv.json';
 import ukTranslations from './languages/uk.json';
 
 /**
@@ -26,9 +28,11 @@ export const TRANSLATIONS: Record<string, Types.Translations> = {
   da: daTranslations,
   de: deTranslations,
   en: enTranslations,
+  is: isTranslations,
   nl: nlTranslations,
   pl: plTranslations,
   ru: ruTranslations,
+  sv: svTranslations,
   uk: ukTranslations,
 };
 
