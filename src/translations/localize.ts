@@ -14,6 +14,7 @@ import csTranslations from './languages/cs.json';
 import daTranslations from './languages/da.json';
 import deTranslations from './languages/de.json';
 import enTranslations from './languages/en.json';
+import esTranslations from './languages/es.json';
 import fiTranslations from './languages/fi.json';
 import frTranslations from './languages/fr.json';
 import heTranslations from './languages/he.json';
@@ -35,6 +36,7 @@ export const TRANSLATIONS: Record<string, Types.Translations> = {
   da: daTranslations,
   de: deTranslations,
   en: enTranslations,
+  es: esTranslations,
   fi: fiTranslations,
   fr: frTranslations,
   he: heTranslations,
@@ -47,7 +49,6 @@ export const TRANSLATIONS: Record<string, Types.Translations> = {
   sv: svTranslations,
   uk: ukTranslations,
 };
-
 
 /**
  * Default language to use if requested language is not available
