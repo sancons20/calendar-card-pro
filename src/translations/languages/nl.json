@@ -4,7 +4,7 @@
   "months": ["Jan", "Feb", "Mrt", "Apr", "Mei", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"],
   "allDay": "hele dag",
   "multiDay": "tot",
-  "at": "op",
+  "at": "om",
   "noEvents": "Geen afspraken gepland",
   "loading": "Kalender afspraken laden...",
   "error": "Fout: Kalender niet gevonden of verkeerd geconfigureerd"
