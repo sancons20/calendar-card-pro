@@ -232,12 +232,51 @@ function formatMultiDayTime(
   const endMonthName = translations.months[endDate.getMonth()];
   const endWeekday = translations.fullDaysOfWeek[endDate.getDay()];
   const endTimeStr = formatTime(endDate, true);
+  const formatStyle = Localize.getDateFormatStyle(language);
 
   // Case 2: Today is after start date but before end date (middle day)
   if (today.toDateString() !== startDate.toDateString() && today < endDate) {
-    // Omit start time for days between start and end
-    if (language === 'de') {
+    // Create date format based on language style
+    switch (formatStyle) {
+      case 'day-dot-month':
+        return [
+          translations.multiDay,
+          endWeekday + ',',
+          `${endDay}.`,
+          endMonthName,
+          translations.at,
+          endTimeStr,
+        ].join(' ');
+      case 'month-day':
+        return [
+          translations.multiDay,
+          endWeekday + ',',
+          endMonthName,
+          endDay,
+          translations.at,
+          endTimeStr,
+        ].join(' ');
+      case 'day-month':
+      default:
+        return [
+          translations.multiDay,
+          endWeekday + ',',
+          endDay,
+          endMonthName,
+          translations.at,
+          endTimeStr,
+        ].join(' ');
+    }
+  }
+
+  // Case 1: Default - Today is on start date (or before start)
+  const startTimeStr = formatTime(startDate, true);
+
+  // Use existing format with start time based on language style
+  switch (formatStyle) {
+    case 'day-dot-month':
       return [
+        startTimeStr,
         translations.multiDay,
         endWeekday + ',',
         `${endDay}.`,
@@ -245,8 +284,9 @@ function formatMultiDayTime(
         translations.at,
         endTimeStr,
       ].join(' ');
-    } else {
+    case 'month-day':
       return [
+        startTimeStr,
         translations.multiDay,
         endWeekday + ',',
         endMonthName,
@@ -254,33 +294,17 @@ function formatMultiDayTime(
         translations.at,
         endTimeStr,
       ].join(' ');
-    }
-  }
-
-  // Case 1: Default - Today is on start date (or before start)
-  const startTimeStr = formatTime(startDate, true);
-
-  // Use existing format with start time
-  if (language === 'de') {
-    return [
-      startTimeStr,
-      translations.multiDay,
-      endWeekday + ',',
-      `${endDay}.`,
-      endMonthName,
-      translations.at,
-      endTimeStr,
-    ].join(' ');
-  } else {
-    return [
-      startTimeStr,
-      translations.multiDay,
-      endWeekday + ',',
-      endMonthName,
-      endDay,
-      translations.at,
-      endTimeStr,
-    ].join(' ');
+    case 'day-month':
+    default:
+      return [
+        startTimeStr,
+        translations.multiDay,
+        endWeekday + ',',
+        endDay,
+        endMonthName,
+        translations.at,
+        endTimeStr,
+      ].join(' ');
   }
 }
 
@@ -314,13 +338,16 @@ function formatMultiDayAllDayTime(
 
   const endDay = endDate.getDate();
   const endMonthName = translations.months[endDate.getMonth()];
+  const formatStyle = Localize.getDateFormatStyle(language);
 
-  // Different date formats based on language
-  if (language === 'de') {
-    // German: All-Day, until 21. März
-    return `${translations.allDay}, ${translations.multiDay} ${endDay}. ${endMonthName}`;
-  } else {
-    // English: All-Day, until Mar 21
-    return `${translations.allDay}, ${translations.multiDay} ${endMonthName} ${endDay}`;
+  // Different date formats based on language style
+  switch (formatStyle) {
+    case 'day-dot-month':
+      return `${translations.allDay}, ${translations.multiDay} ${endDay}. ${endMonthName}`;
+    case 'month-day':
+      return `${translations.allDay}, ${translations.multiDay} ${endMonthName} ${endDay}`;
+    case 'day-month':
+    default:
+      return `${translations.allDay}, ${translations.multiDay} ${endDay} ${endMonthName}`;
   }
 }

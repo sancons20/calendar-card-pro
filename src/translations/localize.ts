@@ -9,18 +9,27 @@
 import * as Types from '../config/types';
 import * as Logger from '../utils/logger';
 
-// Import language files
-import enTranslations from './languages/en.json';
+// Import language files (sorted alphabetically by language code)
+import daTranslations from './languages/da.json';
 import deTranslations from './languages/de.json';
+import enTranslations from './languages/en.json';
+import nlTranslations from './languages/nl.json';
 import plTranslations from './languages/pl.json';
+import ruTranslations from './languages/ru.json';
+import ukTranslations from './languages/uk.json';
 
 /**
  * Available translations keyed by language code
  */
 export const TRANSLATIONS: Record<string, Types.Translations> = {
-  en: enTranslations,
+  // Sorted alphabetically by language code
+  da: daTranslations,
   de: deTranslations,
+  en: enTranslations,
+  nl: nlTranslations,
   pl: plTranslations,
+  ru: ruTranslations,
+  uk: ukTranslations,
 };
 
 /**
@@ -141,6 +150,29 @@ export function translateString(
 //-----------------------------------------------------------------------------
 
 /**
+ * Determine the date format style for a given language
+ *
+ * @param language - Language code
+ * @returns Date format style identifier ('day-dot-month', 'month-day', or 'day-month')
+ */
+export function getDateFormatStyle(language: string): 'day-dot-month' | 'month-day' | 'day-month' {
+  const lang = language?.toLowerCase() || '';
+
+  // German uses day with dot, then month (e.g., "17. Mar")
+  if (lang === 'de') {
+    return 'day-dot-month';
+  }
+
+  // English uses month then day (e.g., "Mar 17")
+  if (lang === 'en') {
+    return 'month-day';
+  }
+
+  // Default for most other languages: day then month without dot (e.g., "17 Mar")
+  return 'day-month';
+}
+
+/**
  * Get day name from translations based on day index
  *
  * @param language - Language code
@@ -189,13 +221,17 @@ export function getMonthName(language: string, monthIndex: number): string {
 export function formatDateShort(language: string, date: Date): string {
   const day = date.getDate();
   const month = getMonthName(language, date.getMonth());
+  const formatStyle = getDateFormatStyle(language);
 
-  // Different formats based on language conventions
-  if (language.toLowerCase() === 'de') {
-    return `${day}. ${month}`;
+  switch (formatStyle) {
+    case 'day-dot-month':
+      return `${day}. ${month}`;
+    case 'month-day':
+      return `${month} ${day}`;
+    case 'day-month':
+    default:
+      return `${day} ${month}`;
   }
-
-  return `${month} ${day}`;
 }
 
 //-----------------------------------------------------------------------------
