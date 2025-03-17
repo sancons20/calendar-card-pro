@@ -10,13 +10,19 @@ import * as Types from '../config/types';
 import * as Logger from '../utils/logger';
 
 // Import language files (sorted alphabetically by language code)
+import csTranslations from './languages/cs.json';
 import daTranslations from './languages/da.json';
 import deTranslations from './languages/de.json';
 import enTranslations from './languages/en.json';
 import esTranslations from './languages/es.json';
+import fiTranslations from './languages/fi.json';
+import frTranslations from './languages/fr.json';
+import heTranslations from './languages/he.json';
 import isTranslations from './languages/is.json';
+import itTranslations from './languages/it.json';
 import nlTranslations from './languages/nl.json';
 import plTranslations from './languages/pl.json';
+import ptTranslations from './languages/pt.json';
 import ruTranslations from './languages/ru.json';
 import svTranslations from './languages/sv.json';
 import ukTranslations from './languages/uk.json';
@@ -26,13 +32,19 @@ import ukTranslations from './languages/uk.json';
  */
 export const TRANSLATIONS: Record<string, Types.Translations> = {
   // Sorted alphabetically by language code
+  cs: csTranslations,
   da: daTranslations,
   de: deTranslations,
   en: enTranslations,
   es: esTranslations,
+  fi: fiTranslations,
+  fr: frTranslations,
+  he: heTranslations,
   is: isTranslations,
+  it: itTranslations,
   nl: nlTranslations,
   pl: plTranslations,
+  pt: ptTranslations,
   ru: ruTranslations,
   sv: svTranslations,
   uk: ukTranslations,
