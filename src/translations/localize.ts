@@ -14,7 +14,10 @@ import csTranslations from './languages/cs.json';
 import daTranslations from './languages/da.json';
 import deTranslations from './languages/de.json';
 import enTranslations from './languages/en.json';
+import fiTranslations from './languages/fi.json';
+import frTranslations from './languages/fr.json';
 import isTranslations from './languages/is.json';
+import itTranslations from './languages/it.json';
 import nlTranslations from './languages/nl.json';
 import plTranslations from './languages/pl.json';
 import ruTranslations from './languages/ru.json';
@@ -30,7 +33,10 @@ export const TRANSLATIONS: Record<string, Types.Translations> = {
   da: daTranslations,
   de: deTranslations,
   en: enTranslations,
+  fi: fiTranslations,
+  fr: frTranslations,
   is: isTranslations,
+  it: itTranslations,
   nl: nlTranslations,
   pl: plTranslations,
   ru: ruTranslations,
