@@ -87,15 +87,17 @@ Example language file structure:
 
 ```json
 {
-  "daysOfWeek": ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"],
-  "fullDaysOfWeek": ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"],
-  "months": ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"],
-  "allDay": "toute la journée",
-  "multiDay": "jusqu'au",
-  "at": "à",
-  "noEvents": "Aucun événement à venir",
-  "loading": "Chargement des événements...",
-  "error": "Erreur: Entité de calendrier introuvable ou mal configurée"
+  "daysOfWeek": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+  "fullDaysOfWeek": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+  "allDay": "all-day",
+  "multiDay": "until",
+  "at": "at",
+  "endsToday": "ends today",
+  "endsTomorrow": "ends tomorrow",
+  "noEvents": "No upcoming events",
+  "loading": "Loading calendar events...",
+  "error": "Error: Calendar entity not found or improperly configured"
 }
 ```
 
@@ -139,6 +141,8 @@ window.addEventListener('load', () => {
         allDay: 'TEST all-day',
         multiDay: 'TEST until',
         at: 'TEST at',
+        endsToday: 'TEST ends today',
+        endsTomorrow: 'TEST ends tomorrow',
         noEvents: 'TEST No upcoming events',
         loading: 'TEST Loading calendar events...',
         error: 'TEST Error: Calendar entity not found or improperly configured',
