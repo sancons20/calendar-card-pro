@@ -10,7 +10,7 @@
     "Laugardagur"
   ],
   "months": ["Jan", "Feb", "Mar", "Apr", "Maí", "Jún", "Júl", "Ágú", "Sep", "Okt", "Nóv", "Des"],
-  "allDay": "Allur Dagurinn",
+  "allDay": "allur dagurinn",
   "multiDay": "þar til",
   "at": "hjá",
   "endsToday": "lýkur í dag",
