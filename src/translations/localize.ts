@@ -9,16 +9,49 @@
 import * as Types from '../config/types';
 import * as Logger from '../utils/logger';
 
-// Import language files
-import enTranslations from './languages/en.json';
+// Import language files (sorted alphabetically by language code)
+import csTranslations from './languages/cs.json';
+import daTranslations from './languages/da.json';
 import deTranslations from './languages/de.json';
+import enTranslations from './languages/en.json';
+import esTranslations from './languages/es.json';
+import fiTranslations from './languages/fi.json';
+import frTranslations from './languages/fr.json';
+import heTranslations from './languages/he.json';
+import huTranslations from './languages/hu.json';
+import isTranslations from './languages/is.json';
+import itTranslations from './languages/it.json';
+import nlTranslations from './languages/nl.json';
+import plTranslations from './languages/pl.json';
+import ptTranslations from './languages/pt.json';
+import ruTranslations from './languages/ru.json';
+import svTranslations from './languages/sv.json';
+import ukTranslations from './languages/uk.json';
+import viTranslations from './languages/vi.json';
 
 /**
  * Available translations keyed by language code
  */
 export const TRANSLATIONS: Record<string, Types.Translations> = {
-  en: enTranslations,
+  // Sorted alphabetically by language code
+  cs: csTranslations,
+  da: daTranslations,
   de: deTranslations,
+  en: enTranslations,
+  es: esTranslations,
+  fi: fiTranslations,
+  fr: frTranslations,
+  he: heTranslations,
+  hu: huTranslations,
+  is: isTranslations,
+  it: itTranslations,
+  nl: nlTranslations,
+  pl: plTranslations,
+  pt: ptTranslations,
+  ru: ruTranslations,
+  sv: svTranslations,
+  uk: ukTranslations,
+  vi: viTranslations,
 };
 
 /**
@@ -139,6 +172,29 @@ export function translateString(
 //-----------------------------------------------------------------------------
 
 /**
+ * Determine the date format style for a given language
+ *
+ * @param language - Language code
+ * @returns Date format style identifier ('day-dot-month', 'month-day', or 'day-month')
+ */
+export function getDateFormatStyle(language: string): 'day-dot-month' | 'month-day' | 'day-month' {
+  const lang = language?.toLowerCase() || '';
+
+  // German uses day with dot, then month (e.g., "17. Mar")
+  if (lang === 'de') {
+    return 'day-dot-month';
+  }
+
+  // English uses month then day (e.g., "Mar 17")
+  if (lang === 'en') {
+    return 'month-day';
+  }
+
+  // Default for most other languages: day then month without dot (e.g., "17 Mar")
+  return 'day-month';
+}
+
+/**
  * Get day name from translations based on day index
  *
  * @param language - Language code
@@ -187,13 +243,17 @@ export function getMonthName(language: string, monthIndex: number): string {
 export function formatDateShort(language: string, date: Date): string {
   const day = date.getDate();
   const month = getMonthName(language, date.getMonth());
+  const formatStyle = getDateFormatStyle(language);
 
-  // Different formats based on language conventions
-  if (language.toLowerCase() === 'de') {
-    return `${day}. ${month}`;
+  switch (formatStyle) {
+    case 'day-dot-month':
+      return `${day}. ${month}`;
+    case 'month-day':
+      return `${month} ${day}`;
+    case 'day-month':
+    default:
+      return `${day} ${month}`;
   }
-
-  return `${month} ${day}`;
 }
 
 //-----------------------------------------------------------------------------
