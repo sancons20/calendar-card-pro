@@ -1,0 +1,13 @@
+{
+  "daysOfWeek": ["ned", "pon", "tor", "sre", "čet", "pet", "sob"],
+  "fullDaysOfWeek": ["nedelja", "ponedeljek", "torek", "sreda", "četrtek", "petek", "sobota"],
+  "months": ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "avg", "sep", "okt", "nov", "dec"],
+  "allDay": "cel dan",
+  "multiDay": "do",
+  "at": "ob",
+  "endsToday": "konča se danes",
+  "endsTomorrow": "konča se jutri",
+  "noEvents": "Ni planiranih dogodkov",
+  "loading": "Nalagam dogodke...",
+  "error": "Napaka: Entiteta ni bila najdena ali pa je nepravilno konfigurirana."
+}
