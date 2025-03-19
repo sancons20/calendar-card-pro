@@ -402,7 +402,7 @@ export function groupEventsByDay(
   // Sort days and limit to configured number of days
   let days = Object.values(eventsByDay)
     .sort((a, b) => a.timestamp - b.timestamp)
-    .slice(0, config.days_to_show || Constants.DEFAULTS.DAYS_TO_SHOW);
+    .slice(0, config.days_to_show || 3);
 
   // Apply max_events_to_show limit if configured and not expanded
   if (config.max_events_to_show && !isExpanded) {
@@ -450,18 +450,18 @@ export function groupEventsByDay(
  * @returns Color string from entity config or default
  */
 export function getEntityColor(entityId: string | undefined, config: Types.Config): string {
-  if (!entityId) return Constants.COLORS.PRIMARY_TEXT;
+  if (!entityId) return 'var(--primary-text-color)';
 
   const entityConfig = config.entities.find(
     (e) =>
       (typeof e === 'string' && e === entityId) || (typeof e === 'object' && e.entity === entityId),
   );
 
-  if (!entityConfig) return Constants.COLORS.PRIMARY_TEXT;
+  if (!entityConfig) return 'var(--primary-text-color)';
 
   return typeof entityConfig === 'string'
-    ? Constants.COLORS.PRIMARY_TEXT
-    : entityConfig.color || Constants.COLORS.PRIMARY_TEXT;
+    ? 'var(--primary-text-color)'
+    : entityConfig.color || 'var(--primary-text-color)';
 }
 
 //-----------------------------------------------------------------------------
@@ -478,7 +478,7 @@ export function getTimeWindow(daysToShow: number): { start: Date; end: Date } {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Start of today
   const end = new Date(start);
-  const days = parseInt(daysToShow.toString()) || Constants.DEFAULTS.DAYS_TO_SHOW;
+  const days = parseInt(daysToShow.toString()) || 3;
   end.setDate(start.getDate() + days);
   end.setHours(23, 59, 59, 999);
 

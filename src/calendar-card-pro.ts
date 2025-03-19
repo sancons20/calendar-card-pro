@@ -11,6 +11,7 @@ import { LitElement, html, css, PropertyValues, TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { classMap } from 'lit/directives/class-map.js';
+import { unsafeCSS } from 'lit';
 
 // Import all types via namespace for cleaner imports
 import * as Config from './config/config';
@@ -109,174 +110,7 @@ class CalendarCardPro extends LitElement {
 
   static get styles() {
     return css`
-      :host {
-        display: block;
-      }
-
-      ha-card {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        position: relative;
-        cursor: pointer;
-        --mdc-ripple-color: var(--card-line-color-vertical, var(--primary-color));
-      }
-
-      ha-card:focus {
-        outline: none;
-        box-shadow: 0 0 0 2px var(--card-line-color-vertical, var(--primary-color));
-      }
-
-      .calendar-card {
-        height: 100%;
-        width: 100%;
-        padding: 16px;
-        box-sizing: border-box;
-        position: relative;
-      }
-
-      .card-header {
-        color: var(--ha-card-header-color, var(--primary-text-color));
-        font-family: var(--ha-card-header-font-family, inherit);
-        font-size: var(--ha-card-header-font-size, 24px);
-        font-weight: var(--ha-card-header-font-weight, normal);
-        line-height: 1.2;
-        letter-spacing: -0.012em;
-        padding: 4px 0 12px;
-        display: block;
-      }
-
-      .date-column {
-        width: var(--card-date-column-width, 60px);
-        text-align: center;
-        padding-right: 12px;
-        border-right: var(--card-line-width-vertical, 2px) solid
-          var(--card-line-color-vertical, var(--primary-color));
-      }
-
-      .weekday {
-        font-size: var(--card-font-size-weekday, 14px);
-        line-height: var(--card-font-size-weekday, 14px);
-        color: var(--card-color-weekday, var(--primary-text-color));
-      }
-
-      .day {
-        font-size: var(--card-font-size-day, 26px);
-        line-height: var(--card-font-size-day, 26px);
-        font-weight: 500;
-        color: var(--card-color-day, var(--primary-text-color));
-      }
-
-      .month {
-        font-size: var(--card-font-size-month, 12px);
-        line-height: var(--card-font-size-month, 12px);
-        text-transform: uppercase;
-        color: var(--card-color-month, var(--primary-text-color));
-      }
-
-      .date-content {
-        display: flex;
-        flex-direction: column;
-      }
-
-      table {
-        width: 100%;
-        table-layout: fixed;
-        border-spacing: 0;
-        margin-bottom: var(--card-spacing-row, 5px);
-        border-bottom: var(--card-line-width-horizontal, 0px) solid
-          var(--card-line-color-horizontal, var(--secondary-text-color));
-        padding-bottom: var(--card-spacing-row, 5px);
-      }
-
-      table:last-of-type {
-        margin-bottom: 0;
-        border-bottom: 0;
-        padding-bottom: 0;
-      }
-
-      .event {
-        padding-left: 12px;
-      }
-
-      .event-not-first {
-        padding-top: 4px;
-      }
-
-      .event-content {
-        display: flex;
-        flex-direction: column;
-      }
-
-      .event-title {
-        font-size: var(--card-font-size-event, 14px);
-        font-weight: 500;
-        line-height: 1.2;
-        color: var(--card-color-event, var(--primary-text-color));
-      }
-
-      .time-location {
-        display: flex;
-        flex-direction: column;
-        margin-top: 0;
-      }
-
-      .time,
-      .location {
-        display: flex;
-        align-items: center;
-        line-height: 1.2;
-        margin-top: 2px;
-      }
-
-      .time ha-icon,
-      .location ha-icon {
-        flex-shrink: 0;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        height: var(--card-icon-size, 14px);
-        width: var(--card-icon-size, 14px);
-        vertical-align: top;
-        position: relative;
-        top: 0;
-        margin-right: 4px;
-        --mdc-icon-size: var(--card-icon-size, 14px);
-      }
-
-      .time span,
-      .location span {
-        display: inline-block;
-        vertical-align: middle;
-      }
-
-      .time {
-        font-size: var(--card-font-size-time, 12px);
-        color: var(--card-color-time, var(--secondary-text-color));
-      }
-
-      .location {
-        font-size: var(--card-font-size-location, 12px);
-        color: var(--card-color-location, var(--secondary-text-color));
-      }
-
-      .no-events {
-        text-align: center;
-        color: var(--secondary-text-color);
-        font-style: italic;
-        padding: 16px;
-      }
-
-      .loading,
-      .error {
-        text-align: center;
-        padding: 16px;
-      }
-
-      .error {
-        color: var(--error-color);
-      }
+      ${unsafeCSS(Styles.getBaseCardStyles())}
     `;
   }
 
@@ -641,7 +475,7 @@ class CalendarCardPro extends LitElement {
       >
         <ha-ripple></ha-ripple>
         <div class="calendar-card">
-          ${this.config.title ? html`<h1 class="card-header">${this.config.title}</h1>` : ''}
+          ${this.config.title ? html`<h1 class="header">${this.config.title}</h1>` : ''}
           ${eventsByDay.map((day) => this._renderDay(day))}
         </div>
       </ha-card>
@@ -677,6 +511,19 @@ class CalendarCardPro extends LitElement {
         ? FormatUtils.formatLocation(event.location, this.config.remove_location_country)
         : '';
 
+    // Determine event position for styling
+    const isFirst = index === 0;
+    const isLast = index === day.events.length - 1;
+    const isMiddle = !isFirst && !isLast;
+
+    // Create class map with position classes
+    const eventClasses = {
+      event: true,
+      'event-first': isFirst,
+      'event-middle': isMiddle,
+      'event-last': isLast,
+    };
+
     return html`
       <tr>
         ${index === 0
@@ -690,7 +537,7 @@ class CalendarCardPro extends LitElement {
               </td>
             `
           : ''}
-        <td class=${classMap({ event: true, 'event-not-first': index > 0 })}>
+        <td class=${classMap(eventClasses)}>
           <div class="event-content">
             <div class="event-title" style="color: ${entityColor}">${event.summary}</div>
             <div class="time-location">

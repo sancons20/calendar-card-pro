@@ -159,6 +159,11 @@ show_location: true
 
 The following table provides an overview of all available configuration options.
 
+# TO_DO
+
+time_icon_size
+location_icon_size
+
 | Name                        | Type    | Default                       | Description                                       |
 | --------------------------- | ------- | ----------------------------- | ------------------------------------------------- |
 | **entities**                | array   | Required                      | List of calendar entities with optional styling   |

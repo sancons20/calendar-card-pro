@@ -38,7 +38,8 @@ export interface Config {
   event_font_size: string;
   time_font_size: string;
   location_font_size: string;
-  time_location_icon_size: string;
+  time_icon_size: string;
+  location_icon_size: string;
   title_color: string;
   weekday_color: string;
   day_color: string;
