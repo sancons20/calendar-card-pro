@@ -8,7 +8,6 @@
 
 import * as Types from '../config/types';
 import * as Logger from '../utils/logger';
-import * as Constants from '../config/constants';
 
 // Import language files (sorted alphabetically by language code)
 import csTranslations from './languages/cs.json';
@@ -158,23 +157,6 @@ export function translate(
 
   // Use fallback or key name if translation is missing
   return fallback !== undefined ? fallback : key;
-}
-
-/**
- * Get a specific string translation from the provided language
- * Use this for string-only translation keys
- *
- * @param language - Language code
- * @param key - Translation key that returns a string
- * @param fallback - Optional fallback string if translation is missing
- * @returns Translated string
- */
-export function translateString(
-  language: string,
-  key: Exclude<keyof Types.Translations, 'daysOfWeek' | 'fullDaysOfWeek' | 'months'>,
-  fallback?: string,
-): string {
-  return translate(language, key, fallback) as string;
 }
 
 //-----------------------------------------------------------------------------

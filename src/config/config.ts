@@ -27,7 +27,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   title_color: '',
 
   // Layout and spacing
-  background_color: '',
+  background_color: 'var(--ha-card-background)',
   row_spacing: '5px',
   additional_card_spacing: '0px',
   vertical_line_width: '2px',
@@ -36,6 +36,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   horizontal_line_color: 'var(--secondary-text-color)',
 
   // Date column
+  date_vertical_alignment: 'middle',
   weekday_font_size: '14px',
   weekday_color: 'var(--primary-text-color)',
   day_font_size: '26px',

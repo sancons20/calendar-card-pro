@@ -161,8 +161,11 @@ The following table provides an overview of all available configuration options.
 
 # TO_DO
 
-time_icon_size
-location_icon_size
+add/change parameters:
+
+- time_icon_size
+- location_icon_size
+- date_vertical_alignment
 
 | Name                        | Type    | Default                       | Description                                       |
 | --------------------------- | ------- | ----------------------------- | ------------------------------------------------- |

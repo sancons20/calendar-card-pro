@@ -4,10 +4,26 @@
  *
  * A sleek and highly customizable calendar card for Home Assistant,
  * designed for performance and a clean, modern look.
+ *
+ * @author Alex Pfau
+ * @license MIT
+ * @version vPLACEHOLDER
+ *
+ * Project Home: https://github.com/alexpfau/calendar-card-pro
+ * Documentation: https://github.com/alexpfau/calendar-card-pro/blob/main/README.md
+ *
+ * Design inspired by Home Assistant community member @GHA_Steph's button-card calendar design
+ * https://community.home-assistant.io/t/calendar-add-on-some-calendar-designs/385790
+ *
+ * Interaction patterns inspired by Home Assistant's Tile Card
+ * and Material Design, both licensed under the Apache License 2.0.
+ * https://github.com/home-assistant/frontend/blob/dev/LICENSE.md
+ *
+ * This package includes lit/LitElement (BSD-3-Clause License)
  */
 
 // Import Lit libraries
-import { LitElement, html, css, PropertyValues, TemplateResult } from 'lit';
+import { LitElement, PropertyValues, css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { classMap } from 'lit/directives/class-map.js';
@@ -28,6 +44,10 @@ import * as Editor from './rendering/editor';
 import * as Styles from './rendering/styles';
 import * as Feedback from './interaction/feedback';
 
+//-----------------------------------------------------------------------------
+// GLOBAL TYPE DECLARATIONS
+//-----------------------------------------------------------------------------
+
 // Ensure this file is treated as a module
 export {};
 
@@ -44,8 +64,14 @@ declare global {
   }
 }
 
+//-----------------------------------------------------------------------------
+// MAIN COMPONENT CLASS
+//-----------------------------------------------------------------------------
+
 /**
- * The main Calendar Card Pro component
+ * The main Calendar Card Pro component that extends LitElement
+ * This class orchestrates the different modules to create a complete
+ * calendar card for Home Assistant
  */
 @customElement('calendar-card-pro-dev')
 class CalendarCardPro extends LitElement {
@@ -383,7 +409,7 @@ class CalendarCardPro extends LitElement {
       );
 
       // Try to get from cache first
-      const isManualReload = false; // Simplified case
+      const isManualReload = EventUtils.isManualPageLoad();
       if (!force) {
         const cachedEvents = EventUtils.getCachedEvents(cacheKey, this.config, isManualReload);
         if (cachedEvents) {
@@ -627,8 +653,8 @@ class CalendarCardPro extends LitElement {
 customElements.define('calendar-card-pro-dev-editor', Editor.CalendarCardProEditor);
 
 // Register with HACS
-(window as any).customCards = (window as any).customCards || [];
-(window as any).customCards.push({
+window.customCards = window.customCards || [];
+window.customCards.push({
   type: 'calendar-card-pro-dev',
   name: 'Calendar Card Pro',
   preview: true,

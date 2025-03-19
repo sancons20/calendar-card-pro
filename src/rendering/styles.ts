@@ -34,6 +34,7 @@ export function generateCustomProperties(config: Types.Config): string {
     --calendar-card-icon-size-time: ${config.time_icon_size || '14px'};
     --calendar-card-icon-size-location: ${config.location_icon_size || '14px'};
     --calendar-card-date-column-width: ${parseFloat(config.day_font_size) * 1.75}px;
+    --calendar-card-date-column-vertical-alignment: ${config.date_vertical_alignment};
     --calendar-card-event-border-radius: calc(var(--ha-card-border-radius, 10px) / 2);
     --ha-ripple-hover-opacity: 0.04;
     --ha-ripple-hover-color: ${config.vertical_line_color};
@@ -104,6 +105,7 @@ export function getBaseCardStyles() {
     }
 
     .date-column {
+      vertical-align: var(--calendar-card-date-column-vertical-alignment);
       width: var(--calendar-card-date-column-width);
       text-align: center;
       padding-right: 12px;

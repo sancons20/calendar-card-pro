@@ -21,7 +21,7 @@ import * as Constants from '../config/constants';
  *
  * @returns True if this appears to be a manual page load/reload
  */
-function isManualPageLoad(): boolean {
+export function isManualPageLoad(): boolean {
   // Use the Performance Navigation API when available
   if (window.performance && window.performance.navigation) {
     // navigation.type: 0=navigate, 1=reload, 2=back/forward
@@ -38,196 +38,6 @@ function isManualPageLoad(): boolean {
 
   // Default to false if we can't determine
   return false;
-}
-
-/**
- * Orchestrates the complete event update process with state management
- * This function manages loading states, cache access, API calls, and error handling
- *
- * @param options Configuration object containing all necessary parameters
- * @returns Promise that resolves when the update is complete
- */
-export async function orchestrateEventUpdate(options: {
-  hass: Types.Hass | null;
-  config: Types.Config;
-  instanceId: string;
-  force: boolean;
-  currentEvents: Types.CalendarEventData[];
-  callbacks: {
-    setLoading: (loading: boolean) => void;
-    setEvents: (events: Types.CalendarEventData[]) => void;
-    updateLastUpdate: () => void;
-    renderCallback: () => void;
-    restartTimer?: () => void;
-  };
-}): Promise<void> {
-  const { hass, config, instanceId, force, currentEvents, callbacks } = options;
-
-  // Early return if state is invalid
-  if (!isValidState(hass, config.entities)) {
-    Logger.debug('State invalid, aborting event update');
-    callbacks.setLoading(false); // Ensure loading state is reset
-    return;
-  }
-
-  // Set loading state at the beginning
-  callbacks.setLoading(true);
-  callbacks.renderCallback();
-
-  // Detect if this is a manual page reload
-  const isManualReload = isManualPageLoad();
-  if (isManualReload) {
-    Logger.debug('Manual page reload detected - using shorter cache lifetime');
-  }
-
-  // Use instanceId in cache key generation
-  const cacheKey = getBaseCacheKey(
-    instanceId,
-    config.entities,
-    config.days_to_show,
-    config.show_past_events,
-  );
-
-  try {
-    // Check cache first unless forced refresh
-    const cacheExists = !force && doesCacheExist(cacheKey, isManualReload);
-
-    if (cacheExists) {
-      const cachedEvents = getCachedEvents(cacheKey, config, isManualReload);
-      if (cachedEvents) {
-        Logger.info(`Using ${cachedEvents.length} events from cache`);
-        callbacks.setEvents(cachedEvents);
-        callbacks.setLoading(false);
-        callbacks.renderCallback();
-        return;
-      }
-    }
-
-    // Cache miss or forced refresh - fetch fresh data
-    Logger.info(
-      `Fetching events from API${force ? ' (forced refresh)' : ''}${isManualReload ? ' (manual page reload)' : ''}`,
-    );
-
-    const result = await updateCalendarEvents(hass, config, instanceId, force, currentEvents);
-
-    if (result.events) {
-      callbacks.setEvents(result.events);
-      callbacks.updateLastUpdate();
-
-      // Restart the timer after successful data fetch and cache update
-      if (callbacks.restartTimer) {
-        callbacks.restartTimer();
-      }
-    }
-
-    if (result.error) {
-      Logger.error('Error during event update:', result.error);
-    }
-  } catch (error) {
-    Logger.error('Failed to update events:', error);
-  } finally {
-    // Always ensure loading state is reset, even on error
-    callbacks.setLoading(false);
-    callbacks.renderCallback();
-  }
-}
-
-/**
- * Updates calendar events with caching and error handling
- *
- * @param hass - Home Assistant interface
- * @param config - Card configuration
- * @param instanceId - Component instance ID for cache keying
- * @param force - Force refresh ignoring cache
- * @param currentEvents - Current events array for fallback
- * @returns Object with events and status information
- */
-export async function updateCalendarEvents(
-  hass: Types.Hass | null,
-  config: Types.Config,
-  instanceId: string,
-  force = false,
-  currentEvents: Types.CalendarEventData[] = [],
-): Promise<{
-  events: Types.CalendarEventData[];
-  fromCache: boolean;
-  error: unknown | null;
-}> {
-  // Check if state is valid
-  if (!isValidState(hass, config.entities)) {
-    return { events: currentEvents, fromCache: false, error: null };
-  }
-
-  // Generate cache key with instanceId
-  const cacheKey = getBaseCacheKey(
-    instanceId,
-    config.entities,
-    config.days_to_show,
-    config.show_past_events,
-  );
-
-  // Try to get from cache if not forced
-  const cachedEvents = !force && getCachedEvents(cacheKey, config);
-  if (cachedEvents) {
-    return { events: cachedEvents, fromCache: true, error: null };
-  }
-
-  try {
-    // Convert string entities to EntityConfig objects
-    const entities = config.entities.map((entity) => {
-      return typeof entity === 'string' ? { entity, color: 'var(--primary-text-color)' } : entity;
-    });
-
-    // Fetch events
-    const timeWindow = getTimeWindow(config.days_to_show);
-    const events = await fetchEvents(hass!, entities, timeWindow);
-    Logger.info(`Fetched ${events.length} events from ${entities.length} calendars`);
-
-    // Cache the events
-    cacheEvents(cacheKey, [...events]);
-
-    return { events: [...events], fromCache: false, error: null };
-  } catch (error) {
-    Logger.error('API error:', error);
-
-    // Attempt fallback if no events already
-    if (currentEvents.length === 0) {
-      try {
-        Logger.info('Trying fallback to fetch today events');
-        const firstEntity =
-          typeof config.entities[0] === 'string' ? config.entities[0] : config.entities[0].entity;
-
-        const partialEvents = await fetchTodayEvents(hass!, firstEntity);
-        return {
-          events: partialEvents ? [...partialEvents] : [],
-          fromCache: false,
-          error,
-        };
-      } catch (fallbackError) {
-        Logger.error('Fallback failed:', fallbackError);
-        return { events: [], fromCache: false, error: fallbackError };
-      }
-    }
-
-    return { events: currentEvents, fromCache: false, error };
-  }
-}
-
-/**
- * Check if the card state is valid for processing events
- *
- * @param hass - Home Assistant interface
- * @param entities - Calendar entities (strings or objects)
- * @returns Boolean indicating if the state is valid
- */
-export function isValidState(
-  hass: Types.Hass | null,
-  entities: Array<string | Types.EntityConfig>,
-): boolean {
-  if (!hass || !entities.length) {
-    return false;
-  }
-  return true;
 }
 
 /**
@@ -537,34 +347,6 @@ export async function fetchEvents(
   return allEvents;
 }
 
-/**
- * Fetch events for just today
- * Used as a fallback when full event fetching fails
- *
- * @param hass - Home Assistant interface
- * @param entity - Calendar entity to fetch events for
- * @returns Array of calendar events for today or null if fetching fails
- */
-export async function fetchTodayEvents(
-  hass: Types.Hass,
-  entity: string,
-): Promise<Types.CalendarEventData[] | null> {
-  try {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const end = new Date(start);
-    end.setHours(23, 59, 59, 999);
-
-    const events = await hass.callApi(
-      'GET',
-      `calendars/${entity}?start=${start.toISOString()}&end=${end.toISOString()}`,
-    );
-    return events as Types.CalendarEventData[];
-  } catch {
-    return null;
-  }
-}
-
 //-----------------------------------------------------------------------------
 // CACHE MANAGEMENT FUNCTIONS
 //-----------------------------------------------------------------------------
@@ -601,17 +383,6 @@ export function getBaseCacheKey(
  */
 export function getCacheDuration(config?: Types.Config): number {
   return (config?.refresh_interval || Constants.CACHE.DEFAULT_DATA_REFRESH_MINUTES) * 60 * 1000;
-}
-
-/**
- * Check if valid cache exists for a key
- *
- * @param key - Cache key
- * @param isManualReload - Whether this check is during a manual page reload
- * @returns Boolean indicating if valid cache exists
- */
-export function doesCacheExist(key: string, isManualReload: boolean = false): boolean {
-  return getValidCacheEntry(key, undefined, isManualReload) !== null;
 }
 
 /**
@@ -700,67 +471,5 @@ export function cacheEvents(key: string, events: Types.CalendarEventData[]): boo
   } catch (e) {
     Logger.error('Failed to cache calendar events:', e);
     return false;
-  }
-}
-
-/**
- * Invalidate cached events by removing them from storage
- *
- * @param keys - Array of cache keys to invalidate
- */
-export function invalidateCache(keys: string[]): void {
-  try {
-    const invalidated = keys.filter((key) => {
-      if (localStorage.getItem(key) !== null) {
-        localStorage.removeItem(key);
-        return true;
-      }
-      return false;
-    });
-
-    if (invalidated.length > 0) {
-      Logger.info(`Invalidated ${invalidated.length} cache entries`);
-    }
-  } catch (e) {
-    Logger.warn('Failed to invalidate cache:', e);
-  }
-}
-
-/**
- * Clean up old cache entries
- *
- * @param _prefix - Cache key prefix (unused but kept for API compatibility)
- * @param config - Card configuration for cleanup time calculation
- */
-export function cleanupCache(_prefix: string, config?: Types.Config): void {
-  try {
-    const keysToRemove: string[] = [];
-    const now = Date.now();
-
-    // Calculate cleanup threshold using user's cache_duration and the multiplier
-    const cacheDurationMinutes =
-      config?.refresh_interval || Constants.CACHE.DEFAULT_DATA_REFRESH_MINUTES;
-    const cleanupThreshold =
-      cacheDurationMinutes * 60 * 1000 * Constants.CACHE.CACHE_EXPIRY_MULTIPLIER;
-
-    Object.keys(localStorage)
-      .filter((key) => key.startsWith(Constants.CACHE.EVENT_CACHE_KEY_PREFIX))
-      .forEach((key) => {
-        try {
-          const cacheEntry = JSON.parse(localStorage.getItem(key) || '') as Types.CacheEntry;
-          if (now - cacheEntry.timestamp > cleanupThreshold) {
-            keysToRemove.push(key);
-          }
-        } catch {
-          keysToRemove.push(key);
-        }
-      });
-
-    if (keysToRemove.length > 0) {
-      Logger.info(`Cleaned up ${keysToRemove.length} old cache entries`);
-      keysToRemove.forEach((key) => localStorage.removeItem(key));
-    }
-  } catch (e) {
-    Logger.warn('Cache cleanup failed:', e);
   }
 }

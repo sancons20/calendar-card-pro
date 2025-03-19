@@ -55,23 +55,6 @@ export const LOGGING = {
   PREFIX: '📅 Calendar Card Pro',
 };
 
-/**
- * Performance-related constants
- */
-export const PERFORMANCE = {
-  /** Threshold in milliseconds for warning about slow rendering */
-  RENDER_TIME_THRESHOLD: 300,
-
-  /** Size of chunks for progressive rendering */
-  CHUNK_SIZE: 10,
-
-  /** Delay between rendering chunks in milliseconds */
-  RENDER_DELAY: 50,
-
-  /** Maximum number of measurements to keep in performance history */
-  MAX_MEASUREMENTS: 10,
-};
-
 //-----------------------------------------------------------------------------
 // UI BEHAVIOR & INTERACTIONS
 //-----------------------------------------------------------------------------

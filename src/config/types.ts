@@ -49,6 +49,7 @@ export interface Config {
   location_color: string;
   tap_action: ActionConfig;
   hold_action: ActionConfig;
+  date_vertical_alignment: string;
 }
 
 /**
@@ -108,27 +109,6 @@ export interface ActionConfig {
   service_data?: object;
   url_path?: string;
   open_tab?: string;
-}
-
-/**
- * Interaction state for tracking pointer events and visual feedback
- * Enhanced with additional flags for better state management
- */
-export interface InteractionState {
-  // Pointer tracking
-  activePointerId: number | null;
-
-  // Action state
-  holdTriggered: boolean;
-  holdTimer: number | null;
-  pendingHoldAction: boolean;
-
-  // Visual elements
-  holdIndicator: HTMLElement | null;
-  lastPointerEvent: PointerEvent | null;
-
-  // Timing
-  lastActionTime: number;
 }
 
 /**
@@ -210,73 +190,4 @@ export interface Translations {
   fullDaysOfWeek: string[];
   endsToday: string;
   endsTomorrow: string;
-}
-
-// -----------------------------------------------------------------------------
-// PERFORMANCE & UTILITIES
-// -----------------------------------------------------------------------------
-
-/**
- * Performance monitoring data
- */
-export interface PerformanceData {
-  readonly renderTime: number[];
-  eventCount: number;
-  lastUpdate: number;
-}
-
-/**
- * Performance metrics structure
- */
-export interface PerfMetrics {
-  startTime: number;
-  eventCount: number;
-}
-
-/**
- * Memoization cache interface
- */
-export interface MemoCache<T> {
-  readonly cache: Map<string, T>;
-  clear(): void;
-}
-
-/**
- * Calendar component interface for component instances
- */
-export interface CalendarComponent {
-  config: Config;
-  events: CalendarEventData[];
-  _hass: Hass | null;
-  isLoading: boolean;
-  isExpanded: boolean;
-  renderTimeout?: number;
-  updateEvents: (force?: boolean) => Promise<void>;
-  toggleExpanded: () => void;
-  renderCard: () => void;
-  performanceMetrics: PerformanceData;
-  memoizedFormatTime: (date: Date) => string & MemoCache<string>;
-  memoizedFormatLocation: (location: string) => string & MemoCache<string>;
-  interactionManager: {
-    state: InteractionState;
-    container: HTMLElement | null;
-    cleanup: (() => void) | null;
-  };
-  shadowRoot: ShadowRoot | null;
-  visibilityCleanup?: () => void;
-  refreshTimer?: {
-    start: () => void;
-    stop: () => void;
-    restart: () => void;
-  };
-  cleanupInterval: number;
-}
-
-/**
- * Performance tracker interface
- */
-export interface PerformanceTracker {
-  beginMeasurement: (eventCount: number) => PerfMetrics;
-  endMeasurement: (metrics: PerfMetrics, performanceData: PerformanceData) => number;
-  getAverageRenderTime: (performanceData: PerformanceData) => number;
 }
