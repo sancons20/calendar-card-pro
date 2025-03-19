@@ -13,6 +13,7 @@ import * as Logger from '../utils/logger';
 import csTranslations from './languages/cs.json';
 import daTranslations from './languages/da.json';
 import deTranslations from './languages/de.json';
+import elTranslations from './languages/el.json';
 import enTranslations from './languages/en.json';
 import esTranslations from './languages/es.json';
 import fiTranslations from './languages/fi.json';
@@ -26,9 +27,12 @@ import noTranslations from './languages/no.json';
 import plTranslations from './languages/pl.json';
 import ptTranslations from './languages/pt.json';
 import ruTranslations from './languages/ru.json';
+import slTranslations from './languages/sl.json';
 import svTranslations from './languages/sv.json';
 import ukTranslations from './languages/uk.json';
 import viTranslations from './languages/vi.json';
+import zhCNTranslations from './languages/zh-CN.json';
+import zhTWTranslations from './languages/zh-TW.json';
 
 /**
  * Available translations keyed by language code
@@ -38,6 +42,7 @@ export const TRANSLATIONS: Record<string, Types.Translations> = {
   cs: csTranslations,
   da: daTranslations,
   de: deTranslations,
+  el: elTranslations,
   en: enTranslations,
   es: esTranslations,
   fi: fiTranslations,
@@ -51,9 +56,12 @@ export const TRANSLATIONS: Record<string, Types.Translations> = {
   pl: plTranslations,
   pt: ptTranslations,
   ru: ruTranslations,
+  sl: slTranslations,
   sv: svTranslations,
   uk: ukTranslations,
   vi: viTranslations,
+  'zh-cn': zhCNTranslations,
+  'zh-tw': zhTWTranslations,
 };
 
 /**

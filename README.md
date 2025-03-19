@@ -33,7 +33,7 @@ Built with **performance in mind**, the card leverages **intelligent refresh mec
 - 🔧 **Highly Customizable** – Fine-tune layout, colors, event details, and behavior.
 - ⚡ **Optimized Performance** – Smart caching, progressive rendering, and minimal API calls.
 - 💡 **Deep Home Assistant Integration** – Theme-aware with native ripple effects.
-- 🌍 **Multi-Language Support** – [Available in 18 languages](#-adding-translations), community contributions welcome!
+- 🌍 **Multi-Language Support** – [Available in 23 languages](#-adding-translations), community contributions welcome!
 - 🧩 **Modular & Extensible** – Designed for future enhancements and easy customization.
 
 ### 🔗 Dependencies
@@ -479,17 +479,22 @@ For those interested in contributing code, I maintain detailed **[architecture d
 - **Finnish** (`fi`)
 - **French** (`fr`)
 - **German** (`de`)
+- **Greek** (`el`)
 - **Hebrew** (`he`)
 - **Hungarian** (`hu`)
 - **Icelandic** (`is`)
 - **Italian** (`it`)
+- **Norwegian** (`no`)
 - **Polish** (`pl`)
 - **Portuguese** (`pt`)
 - **Russian** (`ru`)
+- **Slovenian** (`sl`)
 - **Spanish** (`es`)
 - **Swedish** (`sv`)
 - **Ukrainian** (`uk`)
 - **Vietnamese** (`vi`)
+- **Chinese (Simplified)** (`zh-cn`)
+- **Chinese (Traditional)** (`zh-tw`)
 
 To add a new language:
 
