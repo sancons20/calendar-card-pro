@@ -7,7 +7,7 @@
  * within the main component's render method.
  */
 
-import { html, TemplateResult } from 'lit';
+import { TemplateResult, html } from 'lit';
 import { classMap } from 'lit/directives/class-map.js';
 import { repeat } from 'lit/directives/repeat.js';
 

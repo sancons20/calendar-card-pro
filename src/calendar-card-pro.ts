@@ -33,7 +33,6 @@ import * as Constants from './config/constants';
 import * as Types from './config/types';
 import * as Localize from './translations/localize';
 import * as EventUtils from './utils/events';
-import * as Core from './interaction/core';
 import * as Actions from './interaction/actions';
 import * as Helpers from './utils/helpers';
 import * as Logger from './utils/logger';
@@ -297,13 +296,13 @@ class CalendarCardPro extends LitElement {
     // Execute the appropriate action based on whether hold was triggered
     if (this._holdTriggered && this.config.hold_action) {
       Logger.debug('Executing hold action');
-      const entityId = Core.getPrimaryEntityId(this.config.entities);
+      const entityId = Actions.getPrimaryEntityId(this.config.entities);
       Actions.handleAction(this.config.hold_action, this.safeHass, this, entityId, () =>
         this.toggleExpanded(),
       );
     } else if (!this._holdTriggered && this.config.tap_action) {
       Logger.debug('Executing tap action');
-      const entityId = Core.getPrimaryEntityId(this.config.entities);
+      const entityId = Actions.getPrimaryEntityId(this.config.entities);
       Actions.handleAction(this.config.tap_action, this.safeHass, this, entityId, () =>
         this.toggleExpanded(),
       );
@@ -347,7 +346,7 @@ class CalendarCardPro extends LitElement {
   private _handleKeyDown(ev: KeyboardEvent) {
     if (ev.key === 'Enter' || ev.key === ' ') {
       ev.preventDefault();
-      const entityId = Core.getPrimaryEntityId(this.config.entities);
+      const entityId = Actions.getPrimaryEntityId(this.config.entities);
       Actions.handleAction(this.config.tap_action, this.safeHass, this, entityId, () =>
         this.toggleExpanded(),
       );
@@ -460,7 +459,7 @@ class CalendarCardPro extends LitElement {
    * Handle user action
    */
   handleAction(actionConfig: Types.ActionConfig): void {
-    const entityId = Core.getPrimaryEntityId(this.config.entities);
+    const entityId = Actions.getPrimaryEntityId(this.config.entities);
     Actions.handleAction(actionConfig, this.safeHass, this, entityId, () => this.toggleExpanded());
   }
 

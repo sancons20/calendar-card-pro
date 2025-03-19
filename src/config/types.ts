@@ -12,18 +12,18 @@
  * Main configuration interface for the card
  */
 export interface Config {
+  // Core settings
   entities: Array<string | EntityConfig>;
   days_to_show: number;
   max_events_to_show?: number;
-  show_past_events: boolean;
-  refresh_interval: number;
   language: string;
-  time_24h: boolean;
-  show_end_time: boolean;
-  show_month: boolean;
-  show_location: boolean;
-  remove_location_country: boolean;
+
+  // Header
   title: string;
+  title_font_size: string;
+  title_color: string;
+
+  // Layout and spacing
   background_color: string;
   row_spacing: string;
   additional_card_spacing: string;
@@ -31,25 +31,38 @@ export interface Config {
   vertical_line_color: string;
   horizontal_line_width: string;
   horizontal_line_color: string;
-  title_font_size: string;
+
+  // Date column
+  date_vertical_alignment: string;
   weekday_font_size: string;
-  day_font_size: string;
-  month_font_size: string;
-  event_font_size: string;
-  time_font_size: string;
-  location_font_size: string;
-  time_icon_size: string;
-  location_icon_size: string;
-  title_color: string;
   weekday_color: string;
+  day_font_size: string;
   day_color: string;
+  show_month: boolean;
+  month_font_size: string;
   month_color: string;
+
+  // Event column
+  show_past_events: boolean;
+  event_font_size: string;
   event_color: string;
+  time_24h: boolean;
+  show_end_time: boolean;
+  time_font_size: string;
   time_color: string;
+  time_icon_size: string;
+  show_location: boolean;
+  remove_location_country: boolean;
+  location_font_size: string;
   location_color: string;
+  location_icon_size: string;
+
+  // Actions
   tap_action: ActionConfig;
   hold_action: ActionConfig;
-  date_vertical_alignment: string;
+
+  // Cache and refresh settings
+  refresh_interval: number;
 }
 
 /**
