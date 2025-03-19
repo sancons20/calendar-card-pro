@@ -25,8 +25,6 @@
 // Import Lit libraries
 import { LitElement, PropertyValues, css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { repeat } from 'lit/directives/repeat.js';
-import { classMap } from 'lit/directives/class-map.js';
 import { unsafeCSS } from 'lit';
 
 // Import all types via namespace for cleaner imports
@@ -34,7 +32,6 @@ import * as Config from './config/config';
 import * as Constants from './config/constants';
 import * as Types from './config/types';
 import * as Localize from './translations/localize';
-import * as FormatUtils from './utils/format';
 import * as EventUtils from './utils/events';
 import * as Core from './interaction/core';
 import * as Actions from './interaction/actions';
@@ -43,6 +40,7 @@ import * as Logger from './utils/logger';
 import * as Editor from './rendering/editor';
 import * as Styles from './rendering/styles';
 import * as Feedback from './interaction/feedback';
+import * as Render from './rendering/render';
 
 //-----------------------------------------------------------------------------
 // GLOBAL TYPE DECLARATIONS
@@ -473,12 +471,12 @@ class CalendarCardPro extends LitElement {
   render() {
     // Show loading state
     if (this.isLoading) {
-      return this._renderError('loading');
+      return Render.renderError('loading', this.config, this.effectiveLanguage);
     }
 
     // Show error state if missing hass or entities
     if (!this.safeHass || !this.config.entities.length) {
-      return this._renderError('error');
+      return Render.renderError('error', this.config, this.effectiveLanguage);
     }
 
     // Get grouped events
@@ -486,7 +484,7 @@ class CalendarCardPro extends LitElement {
 
     // Show empty state if no events
     if (eventsByDay.length === 0) {
-      return this._renderError('empty');
+      return Render.renderError('empty', this.config, this.effectiveLanguage);
     }
 
     // Regular rendering
@@ -502,143 +500,7 @@ class CalendarCardPro extends LitElement {
         <ha-ripple></ha-ripple>
         <div class="calendar-card">
           ${this.config.title ? html`<h1 class="header">${this.config.title}</h1>` : ''}
-          ${eventsByDay.map((day) => this._renderDay(day))}
-        </div>
-      </ha-card>
-    `;
-  }
-
-  /**
-   * Render a single day with its events
-   */
-  private _renderDay(day: Types.EventsByDay) {
-    return html`
-      <table>
-        ${repeat(
-          day.events,
-          (event, index) => `${event._entityId}-${event.summary}-${index}`,
-          (event, index) => this._renderEvent(event, day, index),
-        )}
-      </table>
-    `;
-  }
-
-  /**
-   * Render a single event
-   */
-  private _renderEvent(event: Types.CalendarEventData, day: Types.EventsByDay, index: number) {
-    // Get color from config based on entity ID
-    const entityColor = EventUtils.getEntityColor(event._entityId, this.config);
-
-    // Format event time and location
-    const eventTime = FormatUtils.formatEventTime(event, this.config, this.effectiveLanguage);
-    const eventLocation =
-      event.location && this.config.show_location
-        ? FormatUtils.formatLocation(event.location, this.config.remove_location_country)
-        : '';
-
-    // Determine event position for styling
-    const isFirst = index === 0;
-    const isLast = index === day.events.length - 1;
-    const isMiddle = !isFirst && !isLast;
-
-    // Create class map with position classes
-    const eventClasses = {
-      event: true,
-      'event-first': isFirst,
-      'event-middle': isMiddle,
-      'event-last': isLast,
-    };
-
-    return html`
-      <tr>
-        ${index === 0
-          ? html`
-              <td class="date-column" rowspan="${day.events.length}">
-                <div class="date-content">
-                  <div class="weekday">${day.weekday}</div>
-                  <div class="day">${day.day}</div>
-                  ${this.config.show_month ? html`<div class="month">${day.month}</div>` : ''}
-                </div>
-              </td>
-            `
-          : ''}
-        <td class=${classMap(eventClasses)}>
-          <div class="event-content">
-            <div class="event-title" style="color: ${entityColor}">${event.summary}</div>
-            <div class="time-location">
-              <div class="time">
-                <ha-icon icon="mdi:clock-outline"></ha-icon>
-                <span>${eventTime}</span>
-              </div>
-              ${eventLocation
-                ? html`
-                    <div class="location">
-                      <ha-icon icon="mdi:map-marker"></ha-icon>
-                      <span>${eventLocation}</span>
-                    </div>
-                  `
-                : ''}
-            </div>
-          </div>
-        </td>
-      </tr>
-    `;
-  }
-
-  /**
-   * Render error, loading, or empty states
-   */
-  private _renderError(state: 'loading' | 'empty' | 'error') {
-    const translations = Localize.getTranslations(this.effectiveLanguage);
-
-    if (state === 'loading') {
-      return html`
-        <ha-card>
-          <div class="calendar-card">
-            <div class="loading">${translations.loading}</div>
-          </div>
-        </ha-card>
-      `;
-    }
-
-    if (state === 'error') {
-      return html`
-        <ha-card>
-          <div class="calendar-card">
-            <div class="error">${translations.error}</div>
-          </div>
-        </ha-card>
-      `;
-    }
-
-    // Empty state
-    const now = new Date();
-    const emptyDay = {
-      weekday: Localize.getDayName(this.effectiveLanguage, now.getDay()),
-      day: now.getDate(),
-      month: Localize.getMonthName(this.effectiveLanguage, now.getMonth()),
-    };
-
-    return html`
-      <ha-card>
-        <div class="calendar-card">
-          <table>
-            <tr>
-              <td class="date-column" rowspan="1">
-                <div class="date-content">
-                  <div class="weekday">${emptyDay.weekday}</div>
-                  <div class="day">${emptyDay.day}</div>
-                  ${this.config.show_month ? html`<div class="month">${emptyDay.month}</div>` : ''}
-                </div>
-              </td>
-              <td class="event">
-                <div class="event-content">
-                  <div class="event-title">${translations.noEvents}</div>
-                </div>
-              </td>
-            </tr>
-          </table>
+          ${eventsByDay.map((day) => Render.renderDay(day, this.config, this.effectiveLanguage))}
         </div>
       </ha-card>
     `;
