@@ -25,6 +25,7 @@ import * as Helpers from './utils/helpers';
 import * as Logger from './utils/logger';
 import * as Editor from './rendering/editor';
 import * as Styles from './rendering/styles';
+import * as Feedback from './interaction/feedback';
 
 // Ensure this file is treated as a module
 export {};
@@ -38,7 +39,7 @@ declare global {
   interface HTMLElementTagNameMap {
     'calendar-card-pro-dev': CalendarCardPro;
     'calendar-card-pro-dev-editor': Editor.CalendarCardProEditor;
-    'mwc-ripple': HTMLElement;
+    'ha-ripple': HTMLElement;
   }
 }
 
@@ -62,6 +63,12 @@ class CalendarCardPro extends LitElement {
   private _language = '';
   private _refreshTimerId?: number;
   private _lastUpdateTime = Date.now();
+
+  // Interaction state
+  private _activePointerId: number | null = null;
+  private _holdTriggered = false;
+  private _holdTimer: number | null = null;
+  private _holdIndicator: HTMLElement | null = null;
 
   //-----------------------------------------------------------------------------
   // COMPUTED GETTERS
@@ -114,6 +121,11 @@ class CalendarCardPro extends LitElement {
         position: relative;
         cursor: pointer;
         --mdc-ripple-color: var(--card-line-color-vertical, var(--primary-color));
+      }
+
+      ha-card:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px var(--card-line-color-vertical, var(--primary-color));
       }
 
       .calendar-card {
@@ -300,6 +312,17 @@ class CalendarCardPro extends LitElement {
       clearTimeout(this._refreshTimerId);
     }
 
+    if (this._holdTimer) {
+      clearTimeout(this._holdTimer);
+      this._holdTimer = null;
+    }
+
+    // Clean up hold indicator if it exists
+    if (this._holdIndicator) {
+      Feedback.removeHoldIndicator(this._holdIndicator);
+      this._holdIndicator = null;
+    }
+
     // Remove listeners
     document.removeEventListener('visibilitychange', this._handleVisibilityChange);
 
@@ -371,6 +394,106 @@ class CalendarCardPro extends LitElement {
     }, refreshMs);
 
     Logger.debug(`Scheduled next refresh in ${refreshMinutes} minutes`);
+  }
+
+  /**
+   * Handle pointer down events for hold detection
+   */
+  private _handlePointerDown(ev: PointerEvent) {
+    // Store this pointer ID to track if it's the same pointer throughout
+    this._activePointerId = ev.pointerId;
+    this._holdTriggered = false;
+
+    // Only set up hold timer if hold action is configured
+    if (this.config.hold_action?.action !== 'none') {
+      // Clear any existing timer
+      if (this._holdTimer) {
+        clearTimeout(this._holdTimer);
+      }
+
+      // Start a new hold timer
+      this._holdTimer = window.setTimeout(() => {
+        if (this._activePointerId === ev.pointerId) {
+          this._holdTriggered = true;
+
+          // Create hold indicator for visual feedback
+          this._holdIndicator = Feedback.createHoldIndicator(ev, this.config);
+        }
+      }, Constants.TIMING.HOLD_THRESHOLD);
+    }
+  }
+
+  /**
+   * Handle pointer up events to execute actions
+   */
+  private _handlePointerUp(ev: PointerEvent) {
+    // Only process if this is the pointer we've been tracking
+    if (ev.pointerId !== this._activePointerId) return;
+
+    // Clear hold timer
+    if (this._holdTimer) {
+      clearTimeout(this._holdTimer);
+      this._holdTimer = null;
+    }
+
+    // Execute the appropriate action based on whether hold was triggered
+    if (this._holdTriggered && this.config.hold_action) {
+      Logger.debug('Executing hold action');
+      const entityId = Core.getPrimaryEntityId(this.config.entities);
+      Actions.handleAction(this.config.hold_action, this.safeHass, this, entityId, () =>
+        this.toggleExpanded(),
+      );
+    } else if (!this._holdTriggered && this.config.tap_action) {
+      Logger.debug('Executing tap action');
+      const entityId = Core.getPrimaryEntityId(this.config.entities);
+      Actions.handleAction(this.config.tap_action, this.safeHass, this, entityId, () =>
+        this.toggleExpanded(),
+      );
+    }
+
+    // Reset state
+    this._activePointerId = null;
+    this._holdTriggered = false;
+
+    // Remove hold indicator if it exists
+    if (this._holdIndicator) {
+      Feedback.removeHoldIndicator(this._holdIndicator);
+      this._holdIndicator = null;
+    }
+  }
+
+  /**
+   * Handle pointer cancel/leave events to clean up
+   */
+  private _handlePointerCancel() {
+    // Clear hold timer
+    if (this._holdTimer) {
+      clearTimeout(this._holdTimer);
+      this._holdTimer = null;
+    }
+
+    // Reset state
+    this._activePointerId = null;
+    this._holdTriggered = false;
+
+    // Remove hold indicator if it exists
+    if (this._holdIndicator) {
+      Feedback.removeHoldIndicator(this._holdIndicator);
+      this._holdIndicator = null;
+    }
+  }
+
+  /**
+   * Handle keyboard navigation for accessibility
+   */
+  private _handleKeyDown(ev: KeyboardEvent) {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      const entityId = Core.getPrimaryEntityId(this.config.entities);
+      Actions.handleAction(this.config.tap_action, this.safeHass, this, entityId, () =>
+        this.toggleExpanded(),
+      );
+    }
   }
 
   //-----------------------------------------------------------------------------
@@ -508,36 +631,21 @@ class CalendarCardPro extends LitElement {
 
     // Regular rendering
     return html`
-      <ha-card tabindex="0" @click=${this._handleClick} @keydown=${this._handleKeyDown}>
-        <mwc-ripple></mwc-ripple>
+      <ha-card
+        tabindex="0"
+        @keydown=${this._handleKeyDown}
+        @pointerdown=${this._handlePointerDown}
+        @pointerup=${this._handlePointerUp}
+        @pointercancel=${this._handlePointerCancel}
+        @pointerleave=${this._handlePointerCancel}
+      >
+        <ha-ripple></ha-ripple>
         <div class="calendar-card">
           ${this.config.title ? html`<h1 class="card-header">${this.config.title}</h1>` : ''}
           ${eventsByDay.map((day) => this._renderDay(day))}
         </div>
       </ha-card>
     `;
-  }
-
-  /**
-   * Handle click events for tap action
-   */
-  private _handleClick() {
-    if (this.config.tap_action) {
-      const entityId = Core.getPrimaryEntityId(this.config.entities);
-      Actions.handleAction(this.config.tap_action, this.safeHass, this, entityId, () =>
-        this.toggleExpanded(),
-      );
-    }
-  }
-
-  /**
-   * Handle keyboard events for accessibility
-   */
-  private _handleKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      this._handleClick();
-    }
   }
 
   /**
