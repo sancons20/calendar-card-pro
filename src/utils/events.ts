@@ -64,7 +64,15 @@ export async function orchestrateEventUpdate(options: {
   const { hass, config, instanceId, force, currentEvents, callbacks } = options;
 
   // Early return if state is invalid
-  if (!isValidState(hass, config.entities)) return;
+  if (!isValidState(hass, config.entities)) {
+    Logger.debug('State invalid, aborting event update');
+    callbacks.setLoading(false); // Ensure loading state is reset
+    return;
+  }
+
+  // Set loading state at the beginning
+  callbacks.setLoading(true);
+  callbacks.renderCallback();
 
   // Detect if this is a manual page reload
   const isManualReload = isManualPageLoad();
@@ -80,28 +88,26 @@ export async function orchestrateEventUpdate(options: {
     config.show_past_events,
   );
 
-  // Check cache first unless forced refresh
-  const cacheExists = !force && doesCacheExist(cacheKey, isManualReload);
-
-  if (cacheExists) {
-    const cachedEvents = getCachedEvents(cacheKey, config, isManualReload);
-    if (cachedEvents) {
-      Logger.info(`Using ${cachedEvents.length} events from cache`);
-      callbacks.setEvents(cachedEvents);
-      callbacks.setLoading(false);
-      callbacks.renderCallback();
-      return;
-    }
-  }
-
-  // Show loading state and fetch fresh data
-  Logger.info(
-    `Fetching events from API${force ? ' (forced refresh)' : ''}${isManualReload ? ' (manual page reload)' : ''}`,
-  );
-  callbacks.setLoading(true);
-  callbacks.renderCallback();
-
   try {
+    // Check cache first unless forced refresh
+    const cacheExists = !force && doesCacheExist(cacheKey, isManualReload);
+
+    if (cacheExists) {
+      const cachedEvents = getCachedEvents(cacheKey, config, isManualReload);
+      if (cachedEvents) {
+        Logger.info(`Using ${cachedEvents.length} events from cache`);
+        callbacks.setEvents(cachedEvents);
+        callbacks.setLoading(false);
+        callbacks.renderCallback();
+        return;
+      }
+    }
+
+    // Cache miss or forced refresh - fetch fresh data
+    Logger.info(
+      `Fetching events from API${force ? ' (forced refresh)' : ''}${isManualReload ? ' (manual page reload)' : ''}`,
+    );
+
     const result = await updateCalendarEvents(hass, config, instanceId, force, currentEvents);
 
     if (result.events) {
@@ -109,7 +115,6 @@ export async function orchestrateEventUpdate(options: {
       callbacks.updateLastUpdate();
 
       // Restart the timer after successful data fetch and cache update
-      // This ensures the timer and cache timestamps are properly synchronized
       if (callbacks.restartTimer) {
         callbacks.restartTimer();
       }
@@ -121,6 +126,7 @@ export async function orchestrateEventUpdate(options: {
   } catch (error) {
     Logger.error('Failed to update events:', error);
   } finally {
+    // Always ensure loading state is reset, even on error
     callbacks.setLoading(false);
     callbacks.renderCallback();
   }

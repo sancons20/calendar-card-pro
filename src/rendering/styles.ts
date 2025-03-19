@@ -3,6 +3,8 @@
  * Styles module for Calendar Card Pro
  *
  * Contains functions for generating card styles based on configuration.
+ * Some functions are maintained for backward compatibility but marked as obsolete
+ * as LitElement now handles styles through its static styles property.
  */
 
 import * as Constants from '../config/constants';
@@ -13,10 +15,11 @@ import type * as Types from '../config/types';
 //-----------------------------------------------------------------------------
 
 /**
- * Generate complete styles for the calendar card
+ * @deprecated This function is partially obsolete with the LitElement implementation.
+ * Base styles should be defined in the static styles property. However, this is still
+ * useful for generating custom properties based on configuration.
  *
- * @param config - Card configuration
- * @returns Complete CSS string with all styles
+ * Generate complete styles for the calendar card
  */
 export function getStyles(config: Types.Config): string {
   // Combine custom properties with base styles
@@ -27,11 +30,10 @@ export function getStyles(config: Types.Config): string {
 }
 
 /**
+ * @deprecated This function is obsolete with the LitElement implementation.
+ * Error styles should be included in the static styles property.
+ *
  * Generate a simple error message style
- *
- * Creates minimal CSS for error message display
- *
- * @returns CSS string for error message styling
  */
 export function getErrorStyles(): string {
   return `
@@ -94,12 +96,10 @@ export function generateCustomProperties(config: Types.Config): string {
 }
 
 /**
+ * @deprecated This function is obsolete with the LitElement implementation.
+ * Base styles should be defined in the static styles property.
+ *
  * Generate base styles for the calendar card
- *
- * Creates the foundational CSS styles that define the structure and
- * basic appearance of the calendar card
- *
- * @returns CSS string with base styles
  */
 export function generateBaseStyles(): string {
   return `

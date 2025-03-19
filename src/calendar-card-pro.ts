@@ -4,23 +4,13 @@
  *
  * A sleek and highly customizable calendar card for Home Assistant,
  * designed for performance and a clean, modern look.
- *
- * @author Alex Pfau
- * @license MIT
- * @version vPLACEHOLDER
- *
- * Project Home: https://github.com/alexpfau/calendar-card-pro
- * Documentation: https://github.com/alexpfau/calendar-card-pro/blob/main/README.md
- *
- * Design inspired by Home Assistant community member @GHA_Steph's button-card calendar design
- * https://community.home-assistant.io/t/calendar-add-on-some-calendar-designs/385790
- *
- * Interaction patterns inspired by Home Assistant's Tile Card
- * and Material Design, both licensed under the Apache License 2.0.
- * https://github.com/home-assistant/frontend/blob/dev/LICENSE.md
- *
- * This package includes lit/LitElement (BSD-3-Clause License)
  */
+
+// Import Lit libraries
+import { LitElement, html, css, PropertyValues, TemplateResult } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+import { repeat } from 'lit/directives/repeat.js';
+import { classMap } from 'lit/directives/class-map.js';
 
 // Import all types via namespace for cleaner imports
 import * as Config from './config/config';
@@ -32,427 +22,645 @@ import * as EventUtils from './utils/events';
 import * as Core from './interaction/core';
 import * as Actions from './interaction/actions';
 import * as Helpers from './utils/helpers';
-import * as StateUtils from './utils/state';
-import * as Render from './rendering/render';
-import * as DomUtils from './utils/dom';
 import * as Logger from './utils/logger';
 import * as Editor from './rendering/editor';
-import './interaction/ripple';
-
-//-----------------------------------------------------------------------------
-// GLOBAL TYPE DECLARATIONS
-//-----------------------------------------------------------------------------
+import * as Styles from './rendering/styles';
 
 // Ensure this file is treated as a module
 export {};
 
-// Add window interface extension for customCards
+// Add global type declarations
 declare global {
   interface Window {
     customCards: Array<Types.CustomCard>;
   }
 
-  // Add custom element interface
   interface HTMLElementTagNameMap {
     'calendar-card-pro-dev': CalendarCardPro;
     'calendar-card-pro-dev-editor': Editor.CalendarCardProEditor;
-  }
-
-  // Add improved DOM interfaces
-  interface HTMLElementEventMap {
-    'hass-more-info': Types.HassMoreInfoEvent;
-    'location-changed': Event;
-  }
-
-  // Add custom property for ripple handler
-  interface HTMLElement {
-    _rippleHandler?: (ev: PointerEvent) => void;
+    'mwc-ripple': HTMLElement;
   }
 }
 
-//-----------------------------------------------------------------------------
-// MAIN COMPONENT CLASS
-//-----------------------------------------------------------------------------
-
 /**
- * The main Calendar Card Pro component that extends HTMLElement
- * This class orchestrates the different modules to create a complete
- * calendar card for Home Assistant
+ * The main Calendar Card Pro component
  */
-class CalendarCardPro extends HTMLElement implements Types.CalendarComponent {
+@customElement('calendar-card-pro-dev')
+class CalendarCardPro extends LitElement {
   //-----------------------------------------------------------------------------
-  // PROPERTIES AND STATE
-  //-----------------------------------------------------------------------------
-
-  // Change from private to public to match interface
-  public config!: Types.Config;
-  public events: Types.CalendarEventData[] = [];
-  public _hass: Types.Hass | null = null;
-  public isLoading = true;
-  public isExpanded = false;
-  public performanceMetrics: Types.PerformanceData = {
-    renderTime: [],
-    eventCount: 0,
-    lastUpdate: Date.now(),
-  };
-
-  private instanceId: string;
-
-  // These properties will be initialized in the constructor
-  public debouncedUpdate: () => void;
-  public memoizedFormatTime: (date: Date) => string & Types.MemoCache<string>;
-  public memoizedFormatLocation: (location: string) => string & Types.MemoCache<string>;
-  public cleanupInterval: number;
-  public renderTimeout?: number;
-  public performanceTracker: {
-    beginMeasurement: (eventCount: number) => Types.PerfMetrics;
-    endMeasurement: (metrics: Types.PerfMetrics, performanceData: Types.PerformanceData) => number;
-    getAverageRenderTime: (performanceData: Types.PerformanceData) => number;
-  };
-  public visibilityCleanup?: () => void;
-  public refreshTimer?: {
-    start: () => void;
-    stop: () => void;
-    restart: () => void;
-  };
-  public interactionManager: {
-    state: Types.InteractionState;
-    container: HTMLElement | null;
-    cleanup: (() => void) | null;
-  };
-
-  //-----------------------------------------------------------------------------
-  // STATIC PROPERTIES AND METHODS
+  // PROPERTIES
   //-----------------------------------------------------------------------------
 
-  static get DEFAULT_CONFIG(): Types.Config {
-    return Config.DEFAULT_CONFIG;
+  @property({ attribute: false }) hass?: Types.Hass;
+  @property({ attribute: false }) config: Types.Config = { ...Config.DEFAULT_CONFIG };
+  @property({ attribute: false }) events: Types.CalendarEventData[] = [];
+  @property({ attribute: false }) isLoading = true;
+  @property({ attribute: false }) isExpanded = false;
+
+  // Private, non-reactive properties
+  private _instanceId = Helpers.generateInstanceId();
+  private _language = '';
+  private _refreshTimerId?: number;
+  private _lastUpdateTime = Date.now();
+
+  //-----------------------------------------------------------------------------
+  // COMPUTED GETTERS
+  //-----------------------------------------------------------------------------
+
+  /**
+   * Safe accessor for hass - always returns hass object or null
+   */
+  get safeHass(): Types.Hass | null {
+    return this.hass || null;
   }
 
-  static get TRANSLATIONS(): Readonly<Record<string, Types.Translations>> {
-    return Localize.TRANSLATIONS;
+  /**
+   * Get the effective language to use based on configuration and HA locale
+   */
+  get effectiveLanguage(): string {
+    if (!this._language && this.hass) {
+      this._language = Localize.getEffectiveLanguage(this.config.language, this.hass.locale);
+    }
+    return this._language || 'en';
   }
 
-  static findCalendarEntity(hass: Types.Hass): string | null {
-    return Config.findCalendarEntity(hass.states);
-  }
-
-  static getStubConfig(hass: Types.Hass) {
-    return Config.getStubConfig(hass.states);
-  }
-
-  static get displayName() {
-    return 'Calendar Card Pro';
+  /**
+   * Get events grouped by day
+   */
+  get groupedEvents(): Types.EventsByDay[] {
+    return EventUtils.groupEventsByDay(
+      this.events,
+      this.config,
+      this.isExpanded,
+      this.effectiveLanguage,
+    );
   }
 
   //-----------------------------------------------------------------------------
-  // COMPONENT LIFECYCLE
+  // STATIC PROPERTIES
+  //-----------------------------------------------------------------------------
+
+  static get styles() {
+    return css`
+      :host {
+        display: block;
+      }
+
+      ha-card {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        position: relative;
+        cursor: pointer;
+        --mdc-ripple-color: var(--card-line-color-vertical, var(--primary-color));
+      }
+
+      .calendar-card {
+        height: 100%;
+        width: 100%;
+        padding: 16px;
+        box-sizing: border-box;
+        position: relative;
+      }
+
+      .card-header {
+        color: var(--ha-card-header-color, var(--primary-text-color));
+        font-family: var(--ha-card-header-font-family, inherit);
+        font-size: var(--ha-card-header-font-size, 24px);
+        font-weight: var(--ha-card-header-font-weight, normal);
+        line-height: 1.2;
+        letter-spacing: -0.012em;
+        padding: 4px 0 12px;
+        display: block;
+      }
+
+      .date-column {
+        width: var(--card-date-column-width, 60px);
+        text-align: center;
+        padding-right: 12px;
+        border-right: var(--card-line-width-vertical, 2px) solid
+          var(--card-line-color-vertical, var(--primary-color));
+      }
+
+      .weekday {
+        font-size: var(--card-font-size-weekday, 14px);
+        line-height: var(--card-font-size-weekday, 14px);
+        color: var(--card-color-weekday, var(--primary-text-color));
+      }
+
+      .day {
+        font-size: var(--card-font-size-day, 26px);
+        line-height: var(--card-font-size-day, 26px);
+        font-weight: 500;
+        color: var(--card-color-day, var(--primary-text-color));
+      }
+
+      .month {
+        font-size: var(--card-font-size-month, 12px);
+        line-height: var(--card-font-size-month, 12px);
+        text-transform: uppercase;
+        color: var(--card-color-month, var(--primary-text-color));
+      }
+
+      .date-content {
+        display: flex;
+        flex-direction: column;
+      }
+
+      table {
+        width: 100%;
+        table-layout: fixed;
+        border-spacing: 0;
+        margin-bottom: var(--card-spacing-row, 5px);
+        border-bottom: var(--card-line-width-horizontal, 0px) solid
+          var(--card-line-color-horizontal, var(--secondary-text-color));
+        padding-bottom: var(--card-spacing-row, 5px);
+      }
+
+      table:last-of-type {
+        margin-bottom: 0;
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+
+      .event {
+        padding-left: 12px;
+      }
+
+      .event-not-first {
+        padding-top: 4px;
+      }
+
+      .event-content {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .event-title {
+        font-size: var(--card-font-size-event, 14px);
+        font-weight: 500;
+        line-height: 1.2;
+        color: var(--card-color-event, var(--primary-text-color));
+      }
+
+      .time-location {
+        display: flex;
+        flex-direction: column;
+        margin-top: 0;
+      }
+
+      .time,
+      .location {
+        display: flex;
+        align-items: center;
+        line-height: 1.2;
+        margin-top: 2px;
+      }
+
+      .time ha-icon,
+      .location ha-icon {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: var(--card-icon-size, 14px);
+        width: var(--card-icon-size, 14px);
+        vertical-align: top;
+        position: relative;
+        top: 0;
+        margin-right: 4px;
+        --mdc-icon-size: var(--card-icon-size, 14px);
+      }
+
+      .time span,
+      .location span {
+        display: inline-block;
+        vertical-align: middle;
+      }
+
+      .time {
+        font-size: var(--card-font-size-time, 12px);
+        color: var(--card-color-time, var(--secondary-text-color));
+      }
+
+      .location {
+        font-size: var(--card-font-size-location, 12px);
+        color: var(--card-color-location, var(--secondary-text-color));
+      }
+
+      .no-events {
+        text-align: center;
+        color: var(--secondary-text-color);
+        font-style: italic;
+        padding: 16px;
+      }
+
+      .loading,
+      .error {
+        text-align: center;
+        padding: 16px;
+      }
+
+      .error {
+        color: var(--error-color);
+      }
+    `;
+  }
+
+  //-----------------------------------------------------------------------------
+  // LIFECYCLE METHODS
   //-----------------------------------------------------------------------------
 
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
-    // Generate a temporary instance ID - this will be replaced with a deterministic one in setConfig
-    this.instanceId = Helpers.generateInstanceId();
-    // Initialize basic component state
-    const initialState = StateUtils.initializeState();
-    this.config = initialState.config;
-    this.events = initialState.events;
-    this._hass = initialState.hass;
-    this.isLoading = initialState.isLoading;
-    this.isExpanded = initialState.isExpanded;
-
-    // Set up lifecycle and controllers
-    const lifecycle = StateUtils.setupComponentLifecycle(this);
-
-    // Store lifecycle components
-    this.performanceTracker = lifecycle.performanceTracker;
-    this.visibilityCleanup = lifecycle.visibilityCleanup;
-    this.refreshTimer = lifecycle.refreshTimer;
-    this.cleanupInterval = lifecycle.cleanupInterval;
-    this.debouncedUpdate = lifecycle.debouncedUpdate;
-    this.memoizedFormatTime = lifecycle.memoizedFormatTime;
-    this.memoizedFormatLocation = lifecycle.memoizedFormatLocation;
-    this.interactionManager = lifecycle.interactionManager;
+    this._instanceId = Helpers.generateInstanceId();
+    Logger.initializeLogger(Constants.VERSION.CURRENT);
   }
 
   connectedCallback() {
-    StateUtils.handleConnectedCallback(this);
+    super.connectedCallback();
+    Logger.debug('Component connected');
+
+    // Set up refresh timer
+    this.startRefreshTimer();
+
+    // Load events on initial connection
+    this.updateEvents();
+
+    // Set up visibility listener
+    document.addEventListener('visibilitychange', this._handleVisibilityChange);
   }
 
   disconnectedCallback() {
-    StateUtils.cleanupComponent(this);
+    super.disconnectedCallback();
+
+    // Clean up timers
+    if (this._refreshTimerId) {
+      clearTimeout(this._refreshTimerId);
+    }
+
+    // Remove listeners
+    document.removeEventListener('visibilitychange', this._handleVisibilityChange);
+
+    Logger.debug('Component disconnected');
   }
 
-  //-----------------------------------------------------------------------------
-  // HOME ASSISTANT INTEGRATION
-  //-----------------------------------------------------------------------------
+  firstUpdated() {
+    // Style updates need to happen after first render
+    this.updateStyles();
+  }
 
-  set hass(hass: Types.Hass) {
-    const previousHass = this._hass;
-    this._hass = hass;
+  updated(changedProps: PropertyValues) {
+    // Update language if locale or config language changed
+    if (
+      (changedProps.has('hass') && this.hass?.locale) ||
+      (changedProps.has('config') && changedProps.get('config')?.language !== this.config.language)
+    ) {
+      this._language = Localize.getEffectiveLanguage(this.config.language, this.hass?.locale);
+    }
 
-    const entitiesChanged = this.config.entities.some(
-      (entity) =>
-        !previousHass ||
-        previousHass.states[typeof entity === 'string' ? entity : entity.entity]?.state !==
-          hass.states[typeof entity === 'string' ? entity : entity.entity]?.state,
-    );
-
-    if (entitiesChanged) {
-      this.updateEvents();
+    // Update styles if config changed
+    if (changedProps.has('config')) {
+      this.updateStyles();
     }
   }
 
+  //-----------------------------------------------------------------------------
+  // PRIVATE METHODS
+  //-----------------------------------------------------------------------------
+
+  /**
+   * Update custom CSS properties based on configuration
+   */
+  private updateStyles() {
+    // Generate custom properties from config
+    const customProperties = Styles.generateCustomProperties(this.config);
+    this.style.cssText = customProperties;
+  }
+
+  /**
+   * Handle visibility changes to refresh data when returning to the page
+   */
+  private _handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      const now = Date.now();
+      // Only refresh if it's been a while
+      if (now - this._lastUpdateTime > Constants.TIMING.VISIBILITY_REFRESH_THRESHOLD) {
+        Logger.debug('Visibility changed to visible, updating events');
+        this.updateEvents();
+      }
+    }
+  };
+
+  /**
+   * Start the refresh timer
+   */
+  private startRefreshTimer() {
+    if (this._refreshTimerId) {
+      clearTimeout(this._refreshTimerId);
+    }
+
+    const refreshMinutes =
+      this.config.refresh_interval || Constants.CACHE.DEFAULT_DATA_REFRESH_MINUTES;
+    const refreshMs = refreshMinutes * 60 * 1000;
+
+    this._refreshTimerId = window.setTimeout(() => {
+      this.updateEvents();
+      this.startRefreshTimer();
+    }, refreshMs);
+
+    Logger.debug(`Scheduled next refresh in ${refreshMinutes} minutes`);
+  }
+
+  //-----------------------------------------------------------------------------
+  // PUBLIC METHODS
+  //-----------------------------------------------------------------------------
+
+  /**
+   * Handle configuration updates from Home Assistant
+   */
   setConfig(config: Partial<Types.Config>) {
     const previousConfig = this.config;
-    this.config = { ...CalendarCardPro.DEFAULT_CONFIG, ...config };
+    this.config = { ...Config.DEFAULT_CONFIG, ...config };
     this.config.entities = Config.normalizeEntities(this.config.entities);
 
-    // Generate deterministic instance ID based on data-affecting config
-    this.instanceId = Helpers.generateDeterministicId(
+    // Generate deterministic ID for caching
+    this._instanceId = Helpers.generateDeterministicId(
       this.config.entities,
       this.config.days_to_show,
       this.config.show_past_events,
     );
 
-    // Check if data-affect configuration has changed
+    // Check if we need to reload data
     const configChanged = Config.hasConfigChanged(previousConfig, this.config);
-
-    // Check if only entity colors changed (requires re-render but not data refresh)
-    const colorChanged = Config.haveEntityColorsChanged(previousConfig, this.config);
-
     if (configChanged) {
       Logger.debug('Configuration changed, refreshing data');
-      this.updateEvents(true); // Force refresh
-    } else if (colorChanged) {
-      // If only entity colors changed, just re-render without data refresh
-      Logger.debug('Entity colors changed, re-rendering without data refresh');
-      this.renderCard();
-    } else {
-      // Re-render with new styling for other changes
-      this.renderCard();
+      this.updateEvents(true);
     }
 
-    // Restart the refresh timer with the new configuration
-    if (this.refreshTimer) {
-      this.refreshTimer.restart();
-    }
+    // Restart the timer with new config
+    this.startRefreshTimer();
   }
 
-  //-----------------------------------------------------------------------------
-  // DATA HANDLING
-  //-----------------------------------------------------------------------------
-
-  invalidateCache() {
-    const baseKey = EventUtils.getBaseCacheKey(
-      this.instanceId,
-      this.config.entities,
-      this.config.days_to_show,
-      this.config.show_past_events,
-    );
-    EventUtils.invalidateCache([baseKey]);
-  }
-
+  /**
+   * Update calendar events from API or cache
+   */
   async updateEvents(force = false): Promise<void> {
-    await EventUtils.orchestrateEventUpdate({
-      hass: this._hass,
-      config: this.config,
-      instanceId: this.instanceId,
-      force,
-      currentEvents: this.events,
-      callbacks: {
-        setLoading: (loading) => {
-          this.isLoading = loading;
-        },
-        setEvents: (events) => {
-          this.events = events;
-        },
-        updateLastUpdate: () => {
-          this.performanceMetrics.lastUpdate = Date.now();
-        },
-        renderCallback: () => {
-          this.renderCard();
-        },
-        restartTimer: () => {
-          if (this.refreshTimer && this.refreshTimer.restart) {
-            Logger.debug('Restarting refresh timer after data fetch');
-            this.refreshTimer.restart();
-          }
-        },
-      },
-    });
+    Logger.debug(`Updating events (force=${force})`);
+
+    // Skip update if no Home Assistant connection or no entities
+    if (!this.safeHass || !this.config.entities.length) {
+      this.isLoading = false;
+      return;
+    }
+
+    try {
+      this.isLoading = true;
+
+      const cacheKey = EventUtils.getBaseCacheKey(
+        this._instanceId,
+        this.config.entities,
+        this.config.days_to_show,
+        this.config.show_past_events,
+      );
+
+      // Try to get from cache first
+      const isManualReload = false; // Simplified case
+      if (!force) {
+        const cachedEvents = EventUtils.getCachedEvents(cacheKey, this.config, isManualReload);
+        if (cachedEvents) {
+          Logger.info(`Using ${cachedEvents.length} events from cache`);
+          // Fix for TypeScript error: Create a mutable copy of the readonly array
+          this.events = [...cachedEvents];
+          this.isLoading = false;
+          this._lastUpdateTime = Date.now();
+          return;
+        }
+      }
+
+      // Fetch from API
+      Logger.info('Fetching events from API');
+      const entities = this.config.entities.map((e) =>
+        typeof e === 'string' ? { entity: e, color: 'var(--primary-text-color)' } : e,
+      );
+
+      const timeWindow = EventUtils.getTimeWindow(this.config.days_to_show);
+      const fetchedEvents = await EventUtils.fetchEvents(this.safeHass, entities, timeWindow);
+
+      // Fix for TypeScript error: Create a mutable copy of the readonly array
+      const mutableEvents = Array.from(fetchedEvents);
+
+      // Cache the results
+      EventUtils.cacheEvents(cacheKey, mutableEvents);
+
+      // Update component state with a new array
+      this.events = [...mutableEvents];
+      this._lastUpdateTime = Date.now();
+
+      Logger.info('Event update completed successfully');
+    } catch (error) {
+      Logger.error('Failed to update events:', error);
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  /**
+   * Toggle expanded state for view modes with limited events
+   */
+  toggleExpanded(): void {
+    if (this.config.max_events_to_show) {
+      this.isExpanded = !this.isExpanded;
+    }
+  }
+
+  /**
+   * Handle user action
+   */
+  handleAction(actionConfig: Types.ActionConfig): void {
+    const entityId = Core.getPrimaryEntityId(this.config.entities);
+    Actions.handleAction(actionConfig, this.safeHass, this, entityId, () => this.toggleExpanded());
   }
 
   //-----------------------------------------------------------------------------
   // RENDERING
   //-----------------------------------------------------------------------------
 
-  async renderCard() {
-    // Use the performance tracker
-    const metrics = this.performanceTracker.beginMeasurement(this.events.length);
-
-    if (!EventUtils.isValidState(this._hass, this.config.entities)) {
-      Render.renderErrorToDOM(this.shadowRoot!, 'error', this.config);
-      this.performanceTracker.endMeasurement(metrics, this.performanceMetrics);
-      return;
-    }
-
+  render() {
+    // Show loading state
     if (this.isLoading) {
-      Render.renderErrorToDOM(this.shadowRoot!, 'loading', this.config);
-      this.performanceTracker.endMeasurement(metrics, this.performanceMetrics);
-      return;
+      return this._renderError('loading');
     }
 
-    // Get the effective language based on priority order
-    const effectiveLanguage = Localize.getEffectiveLanguage(
-      this.config.language,
-      this._hass?.locale,
-    );
+    // Show error state if missing hass or entities
+    if (!this.safeHass || !this.config.entities.length) {
+      return this._renderError('error');
+    }
 
-    const eventsByDay = EventUtils.groupEventsByDay(
-      this.events,
-      this.config,
-      this.isExpanded,
-      effectiveLanguage,
-    );
+    // Get grouped events
+    const eventsByDay = this.groupedEvents;
 
+    // Show empty state if no events
     if (eventsByDay.length === 0) {
-      Render.renderErrorToDOM(this.shadowRoot!, 'empty', this.config);
-      this.performanceTracker.endMeasurement(metrics, this.performanceMetrics);
-      return;
+      return this._renderError('empty');
     }
 
-    try {
-      Logger.debug('Creating card structure');
+    // Regular rendering
+    return html`
+      <ha-card tabindex="0" @click=${this._handleClick} @keydown=${this._handleKeyDown}>
+        <mwc-ripple></mwc-ripple>
+        <div class="calendar-card">
+          ${this.config.title ? html`<h1 class="card-header">${this.config.title}</h1>` : ''}
+          ${eventsByDay.map((day) => this._renderDay(day))}
+        </div>
+      </ha-card>
+    `;
+  }
 
-      // Get the calendar content using the render module
-      const { container: contentContainer, style } = await Render.renderCalendarCard(
-        this.config,
-        eventsByDay,
-        (event) => FormatUtils.formatEventTime(event, this.config, effectiveLanguage),
-        (location) => FormatUtils.formatLocation(location, this.config.remove_location_country),
-        Constants.PERFORMANCE.CHUNK_SIZE,
-        Constants.PERFORMANCE.RENDER_DELAY,
-      );
-
-      // Clean up any previous interaction handlers
-      if (this.interactionManager.cleanup) {
-        this.interactionManager.cleanup();
-        this.interactionManager.cleanup = null;
-      }
-
-      // Use DOM utilities to create card structure
-      const { container, ripple } = DomUtils.createCardStructure(contentContainer);
-
-      // Update shadow DOM with the new structure
-      DomUtils.updateCardInShadowDOM(this.shadowRoot!, container, style);
-
-      // Store container reference for later
-      this.interactionManager.container = container;
-
-      // Get primary entity ID for interactions
+  /**
+   * Handle click events for tap action
+   */
+  private _handleClick() {
+    if (this.config.tap_action) {
       const entityId = Core.getPrimaryEntityId(this.config.entities);
-
-      // Set up interactions
-      this.interactionManager.cleanup = Core.setupInteractions(
-        this.config,
-        container,
-        this._hass,
-        entityId,
-        () => this.toggleExpanded(),
-        ripple,
+      Actions.handleAction(this.config.tap_action, this.safeHass, this, entityId, () =>
+        this.toggleExpanded(),
       );
-    } catch (error) {
-      Logger.error('Render error:', error);
-      Render.renderErrorToDOM(this.shadowRoot!, 'error', this.config);
-    }
-
-    this.performanceTracker.endMeasurement(metrics, this.performanceMetrics);
-  }
-
-  //-----------------------------------------------------------------------------
-  // USER INTERACTIONS
-  //-----------------------------------------------------------------------------
-
-  handleAction(actionConfig: Types.ActionConfig) {
-    // Get the primary entity ID
-    const entityId = Core.getPrimaryEntityId(this.config.entities);
-
-    // Call the action handler from the interaction module
-    Actions.handleAction(
-      actionConfig,
-      this._hass,
-      this,
-      entityId,
-      // Pass a callback to handle expand action
-      () => this.toggleExpanded(),
-    );
-  }
-
-  toggleExpanded() {
-    if (this.config.max_events_to_show) {
-      this.isExpanded = !this.isExpanded;
-
-      // Add delay to allow ripple animation to complete before re-rendering
-      setTimeout(() => this.renderCard(), Constants.TIMING.RIPPLE_ANIMATION);
     }
   }
 
-  //-----------------------------------------------------------------------------
-  // STATE MANAGEMENT
-  //-----------------------------------------------------------------------------
-
-  initializeState() {
-    const initialState = StateUtils.initializeState();
-    this.config = initialState.config;
-    this.events = initialState.events;
-    this._hass = initialState.hass;
-    this.isLoading = initialState.isLoading;
-    this.isExpanded = initialState.isExpanded;
+  /**
+   * Handle keyboard events for accessibility
+   */
+  private _handleKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      this._handleClick();
+    }
   }
 
-  cleanup() {
-    StateUtils.cleanup(
-      this.renderTimeout,
-      this.memoizedFormatTime as unknown as Types.MemoCache<string>,
-      this.memoizedFormatLocation as unknown as Types.MemoCache<string>,
-      this.interactionManager.state,
-    );
+  /**
+   * Render a single day with its events
+   */
+  private _renderDay(day: Types.EventsByDay) {
+    return html`
+      <table>
+        ${repeat(
+          day.events,
+          (event, index) => `${event._entityId}-${event.summary}-${index}`,
+          (event, index) => this._renderEvent(event, day, index),
+        )}
+      </table>
+    `;
   }
 
-  get translations() {
-    // Use the effective language based on priority order
-    const effectiveLanguage = Localize.getEffectiveLanguage(
-      this.config.language,
-      this._hass?.locale,
-    );
-    return Localize.getTranslations(effectiveLanguage);
+  /**
+   * Render a single event
+   */
+  private _renderEvent(event: Types.CalendarEventData, day: Types.EventsByDay, index: number) {
+    // Get color from config based on entity ID
+    const entityColor = EventUtils.getEntityColor(event._entityId, this.config);
+
+    // Format event time and location
+    const eventTime = FormatUtils.formatEventTime(event, this.config, this.effectiveLanguage);
+    const eventLocation =
+      event.location && this.config.show_location
+        ? FormatUtils.formatLocation(event.location, this.config.remove_location_country)
+        : '';
+
+    return html`
+      <tr>
+        ${index === 0
+          ? html`
+              <td class="date-column" rowspan="${day.events.length}">
+                <div class="date-content">
+                  <div class="weekday">${day.weekday}</div>
+                  <div class="day">${day.day}</div>
+                  ${this.config.show_month ? html`<div class="month">${day.month}</div>` : ''}
+                </div>
+              </td>
+            `
+          : ''}
+        <td class=${classMap({ event: true, 'event-not-first': index > 0 })}>
+          <div class="event-content">
+            <div class="event-title" style="color: ${entityColor}">${event.summary}</div>
+            <div class="time-location">
+              <div class="time">
+                <ha-icon icon="mdi:clock-outline"></ha-icon>
+                <span>${eventTime}</span>
+              </div>
+              ${eventLocation
+                ? html`
+                    <div class="location">
+                      <ha-icon icon="mdi:map-marker"></ha-icon>
+                      <span>${eventLocation}</span>
+                    </div>
+                  `
+                : ''}
+            </div>
+          </div>
+        </td>
+      </tr>
+    `;
   }
 
-  //-----------------------------------------------------------------------------
-  // UTILITY METHODS
-  //-----------------------------------------------------------------------------
+  /**
+   * Render error, loading, or empty states
+   */
+  private _renderError(state: 'loading' | 'empty' | 'error') {
+    const translations = Localize.getTranslations(this.effectiveLanguage);
 
-  debounce<T extends (...args: unknown[]) => void>(
-    func: T,
-    wait: number,
-  ): (...args: Parameters<T>) => void {
-    return Helpers.debounce(func, wait);
-  }
+    if (state === 'loading') {
+      return html`
+        <ha-card>
+          <div class="calendar-card">
+            <div class="loading">${translations.loading}</div>
+          </div>
+        </ha-card>
+      `;
+    }
 
-  memoize<T extends readonly unknown[], R>(
-    func: (...args: T) => R,
-  ): ((...args: T) => R) & Types.MemoCache<R> {
-    return Helpers.memoize(func, this);
-  }
+    if (state === 'error') {
+      return html`
+        <ha-card>
+          <div class="calendar-card">
+            <div class="error">${translations.error}</div>
+          </div>
+        </ha-card>
+      `;
+    }
 
-  //-----------------------------------------------------------------------------
-  // PERFORMANCE MONITORING
-  //-----------------------------------------------------------------------------
+    // Empty state
+    const now = new Date();
+    const emptyDay = {
+      weekday: Localize.getDayName(this.effectiveLanguage, now.getDay()),
+      day: now.getDate(),
+      month: Localize.getMonthName(this.effectiveLanguage, now.getMonth()),
+    };
 
-  getAverageRenderTime() {
-    return this.performanceTracker.getAverageRenderTime(this.performanceMetrics);
+    return html`
+      <ha-card>
+        <div class="calendar-card">
+          <table>
+            <tr>
+              <td class="date-column" rowspan="1">
+                <div class="date-content">
+                  <div class="weekday">${emptyDay.weekday}</div>
+                  <div class="day">${emptyDay.day}</div>
+                  ${this.config.show_month ? html`<div class="month">${emptyDay.month}</div>` : ''}
+                </div>
+              </td>
+              <td class="event">
+                <div class="event-content">
+                  <div class="event-title">${translations.noEvents}</div>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </ha-card>
+    `;
   }
 }
 
@@ -460,15 +668,12 @@ class CalendarCardPro extends HTMLElement implements Types.CalendarComponent {
 // ELEMENT REGISTRATION
 //-----------------------------------------------------------------------------
 
-// Register the custom element
-customElements.define('calendar-card-pro-dev', CalendarCardPro);
+// Register the editor - main component registered by decorator
 customElements.define('calendar-card-pro-dev-editor', Editor.CalendarCardProEditor);
 
-// Card registration for HACS and Home Assistant
-(window as unknown as { customCards: Array<Types.CustomCard> }).customCards =
-  (window as unknown as { customCards: Array<Types.CustomCard> }).customCards || [];
-
-(window as unknown as { customCards: Array<Types.CustomCard> }).customCards.push({
+// Register with HACS
+(window as any).customCards = (window as any).customCards || [];
+(window as any).customCards.push({
   type: 'calendar-card-pro-dev',
   name: 'Calendar Card Pro',
   preview: true,

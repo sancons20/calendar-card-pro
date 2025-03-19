@@ -35,11 +35,14 @@ export function setupInteractions(
   toggleCallback?: () => void,
   ripple?: HTMLElement,
 ): () => void {
+  Logger.debug('Setting up interactions for container', container);
+
   // Create interaction state
   const state: Types.InteractionState = createDefaultState();
 
   // Set up action handler for mdw:action events (clicks from ripple)
-  const handleActionEvent = (_ev: CustomEvent) => {
+  const handleActionEvent = (ev: CustomEvent) => {
+    Logger.debug('mdw:action event received', ev);
     if (!hass) return;
 
     // Only handle click events if hold wasn't triggered
@@ -57,8 +60,14 @@ export function setupInteractions(
 
   // Attach ripple to container if provided
   if (ripple instanceof HTMLElement && 'attach' in ripple) {
-    // Fix: Use a more specific type instead of any
-    (ripple as { attach: (element: HTMLElement) => void }).attach(container);
+    Logger.debug('Attaching ripple to container');
+    try {
+      (ripple as { attach: (element: HTMLElement) => void }).attach(container);
+    } catch (e) {
+      Logger.error('Failed to attach ripple:', e);
+    }
+  } else {
+    Logger.warn('No ripple element provided or invalid ripple element');
   }
 
   // Handle pointer down - start hold timer

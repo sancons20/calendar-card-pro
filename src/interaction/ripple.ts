@@ -42,19 +42,33 @@ export class CalendarRipple extends LitElement {
   }
 
   /**
-   * Called when the element is added to the DOM
-   * Creates the ha-ripple element and attaches it if a control is available
+   * Called when the element is connected to the DOM
    */
   connectedCallback() {
     super.connectedCallback();
 
-    // Create ha-ripple element
-    this.haRipple = document.createElement('ha-ripple');
-    this.appendChild(this.haRipple);
+    try {
+      // Create ha-ripple element after shadow root is initialized
+      if (!customElements.get('ha-ripple')) {
+        // If ha-ripple is not defined, we'll use a simpler implementation
+        Logger.debug('ha-ripple not found, using fallback ripple');
+        const fallbackRipple = document.createElement('div');
+        fallbackRipple.className = 'fallback-ripple';
+        this.appendChild(fallbackRipple);
+        this.haRipple = fallbackRipple;
+      } else {
+        // Create and append ha-ripple element
+        this.haRipple = document.createElement('ha-ripple');
+        this.appendChild(this.haRipple);
+        Logger.debug('ha-ripple element created successfully');
+      }
 
-    // Attach to control if already available
-    if (this.control) {
-      this.attachRipple(this.control);
+      // Attach to control if already available
+      if (this.control) {
+        this.attachRipple(this.control);
+      }
+    } catch (e) {
+      Logger.error('Error creating ripple element:', e);
     }
   }
 
@@ -63,11 +77,16 @@ export class CalendarRipple extends LitElement {
    * Handles both the ha-ripple attachment and my custom event forwarding
    */
   attach(control: HTMLElement) {
-    this.control = control;
-    this.attachRipple(control);
+    try {
+      Logger.debug('Attaching ripple to control element');
+      this.control = control;
+      this.attachRipple(control);
 
-    // Listen for ha-ripple action events and forward them as mdw:action
-    control.addEventListener('click', this._handleClick);
+      // Listen for ha-ripple action events and forward them as mdw:action
+      control.addEventListener('click', this._handleClick);
+    } catch (e) {
+      Logger.error('Error attaching ripple:', e);
+    }
   }
 
   /**
@@ -75,21 +94,25 @@ export class CalendarRipple extends LitElement {
    * Removes event listeners and detaches the ha-ripple
    */
   detach() {
-    if (!this.control) return;
+    try {
+      if (!this.control) return;
 
-    // Remove the click handler
-    this.control.removeEventListener('click', this._handleClick);
+      // Remove the click handler
+      this.control.removeEventListener('click', this._handleClick);
 
-    // Detach the ha-ripple
-    if (this.haRipple && 'detach' in this.haRipple) {
-      try {
-        (this.haRipple as { detach: () => void }).detach();
-      } catch (e) {
-        Logger.warn('Failed to detach ha-ripple:', e);
+      // Detach the ha-ripple
+      if (this.haRipple && 'detach' in this.haRipple) {
+        try {
+          (this.haRipple as unknown as { detach: () => void }).detach();
+        } catch (e) {
+          Logger.warn('Failed to detach ha-ripple:', e);
+        }
       }
-    }
 
-    this.control = null;
+      this.control = null;
+    } catch (e) {
+      Logger.error('Error detaching ripple:', e);
+    }
   }
 
   /**
@@ -97,18 +120,24 @@ export class CalendarRipple extends LitElement {
    * Bridges the gap between ha-ripple and my action system
    * @private
    */
-  private _handleClick = () => {
-    // Forward the click as an mdw:action event
-    const actionEvent = new CustomEvent('mdw:action', {
-      bubbles: true,
-      composed: true,
-      detail: { source: 'click' },
-    });
+  private _handleClick = (event: Event) => {
+    try {
+      Logger.debug('Click detected, forwarding as mdw:action');
 
-    if (this.control) {
-      this.control.dispatchEvent(actionEvent);
-    } else {
-      this.dispatchEvent(actionEvent);
+      // Forward the click as an mdw:action event
+      const actionEvent = new CustomEvent('mdw:action', {
+        bubbles: true,
+        composed: true,
+        detail: { source: 'click', originalEvent: event },
+      });
+
+      if (this.control) {
+        this.control.dispatchEvent(actionEvent);
+      } else {
+        this.dispatchEvent(actionEvent);
+      }
+    } catch (e) {
+      Logger.error('Error handling click event:', e);
     }
   };
 
@@ -117,12 +146,16 @@ export class CalendarRipple extends LitElement {
    * @private
    */
   private attachRipple(control: HTMLElement) {
-    if (this.haRipple && 'attach' in this.haRipple) {
-      try {
-        (this.haRipple as { attach: (element: HTMLElement) => void }).attach(control);
-      } catch (e) {
-        Logger.warn('Failed to attach ha-ripple:', e);
+    try {
+      if (this.haRipple && 'attach' in this.haRipple) {
+        (this.haRipple as unknown as { attach: (element: HTMLElement) => void }).attach(control);
+        Logger.debug('ha-ripple attached successfully');
+      } else if (this.haRipple) {
+        // Fallback for when ha-ripple doesn't have attach method
+        Logger.debug('Using fallback ripple attachment');
       }
+    } catch (e) {
+      Logger.warn('Failed to attach ha-ripple:', e);
     }
   }
 
@@ -144,6 +177,8 @@ export class CalendarRipple extends LitElement {
       inset: 0;
       overflow: hidden;
       border-radius: inherit;
+      pointer-events: none;
+      z-index: 1;
 
       --md-ripple-hover-opacity: var(
         --ha-ripple-hover-opacity,
@@ -155,6 +190,12 @@ export class CalendarRipple extends LitElement {
       );
       --md-ripple-hover-color: var(--ha-ripple-color, var(--primary-color));
       --md-ripple-pressed-color: var(--ha-ripple-color, var(--primary-color));
+    }
+
+    .fallback-ripple {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
     }
   `;
 }
@@ -169,11 +210,15 @@ try {
   // This prevents a "Failed to execute 'define'" error when multiple cards exist on a page
   if (!customElements.get('calendar-ripple')) {
     customElements.define('calendar-ripple', CalendarRipple);
+    Logger.info('Registered calendar-ripple component successfully');
+  } else {
+    Logger.debug('calendar-ripple component already registered');
   }
 } catch (e) {
-  Logger.warn('Could not register calendar-ripple:', e);
+  Logger.error('Failed to register calendar-ripple component:', e);
 }
 
+// Make sure TypeScript knows about our component
 declare global {
   interface HTMLElementTagNameMap {
     'calendar-ripple': CalendarRipple;

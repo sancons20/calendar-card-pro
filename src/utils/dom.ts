@@ -3,6 +3,8 @@
  * DOM utility functions for Calendar Card Pro
  *
  * This module contains functions for DOM element creation and manipulation.
+ * Many of these functions are now obsolete with the LitElement implementation
+ * but are maintained for backward compatibility.
  */
 
 import * as Logger from './logger';
@@ -12,12 +14,10 @@ import * as Logger from './logger';
 //-----------------------------------------------------------------------------
 
 /**
- * Create DOM element with attributes
+ * @deprecated This function is obsolete with the LitElement implementation.
+ * Use lit-html templates instead of manual DOM creation.
  *
- * @param tag - HTML tag name
- * @param attributes - Object with HTML attributes
- * @param children - Array of child nodes
- * @returns Created HTML element
+ * Create DOM element with attributes
  */
 export function createElement(
   tag: string,
@@ -44,10 +44,10 @@ export function createElement(
 }
 
 /**
- * Create a style element with the provided CSS content
+ * @deprecated This function is obsolete with the LitElement implementation.
+ * Use LitElement's static styles property instead.
  *
- * @param cssContent - CSS text content to include in the style element
- * @returns New style element containing the provided CSS
+ * Create a style element with the provided CSS content
  */
 export function createStyleElement(cssContent: string): HTMLStyleElement {
   const style = document.createElement('style');
@@ -56,11 +56,10 @@ export function createStyleElement(cssContent: string): HTMLStyleElement {
 }
 
 /**
- * Set inner HTML safely with basic sanitization
- * Removes potentially harmful content like scripts and event handlers
+ * @deprecated This function is obsolete with the LitElement implementation.
+ * Use lit-html's unsafeHTML directive if needed for sanitized content.
  *
- * @param element - Element to set innerHTML on
- * @param htmlContent - HTML content to sanitize and set
+ * Set inner HTML safely with basic sanitization
  */
 export function setInnerHTML(element: HTMLElement, htmlContent: string): void {
   // Basic sanitization to prevent XSS
@@ -76,10 +75,10 @@ export function setInnerHTML(element: HTMLElement, htmlContent: string): void {
 //-----------------------------------------------------------------------------
 
 /**
- * Clear all child nodes from a shadow root
- * Removes all children from the provided shadow root
+ * @deprecated This function is obsolete with the LitElement implementation.
+ * LitElement manages the shadow DOM rendering automatically.
  *
- * @param shadowRoot - Shadow DOM root to clear
+ * Clear all child nodes from a shadow root
  */
 export function clearShadowRoot(shadowRoot: ShadowRoot): void {
   while (shadowRoot.firstChild) {
@@ -88,11 +87,10 @@ export function clearShadowRoot(shadowRoot: ShadowRoot): void {
 }
 
 /**
- * Update shadow DOM with card structure
+ * @deprecated This function is obsolete with the LitElement implementation.
+ * LitElement manages the shadow DOM rendering automatically.
  *
- * @param shadowRoot - Shadow DOM root
- * @param container - Card container element
- * @param style - Style element
+ * Update shadow DOM with card structure
  */
 export function updateCardInShadowDOM(
   shadowRoot: ShadowRoot,
@@ -114,11 +112,10 @@ export function updateCardInShadowDOM(
 //-----------------------------------------------------------------------------
 
 /**
- * Create card structure with proper container, ripple and content elements
+ * @deprecated This function is obsolete with the LitElement implementation.
+ * Use ha-card element in lit-html templates instead.
  *
- * @param config - Card configuration
- * @param contentContainer - Content container with calendar content
- * @returns Object containing container, ripple and content elements
+ * Create card structure with proper container, ripple and content elements
  */
 export function createCardStructure(contentContainer: HTMLElement): {
   container: HTMLElement;

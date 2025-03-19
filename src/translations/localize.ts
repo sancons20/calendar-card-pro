@@ -8,6 +8,7 @@
 
 import * as Types from '../config/types';
 import * as Logger from '../utils/logger';
+import * as Constants from '../config/constants';
 
 // Import language files (sorted alphabetically by language code)
 import csTranslations from './languages/cs.json';
@@ -63,6 +64,9 @@ export const DEFAULT_LANGUAGE = 'en';
 // HIGH-LEVEL API FUNCTIONS
 //-----------------------------------------------------------------------------
 
+// Cache for already determined languages to prevent repeated calculations
+const languageCache = new Map<string, string>();
+
 /**
  * Determine the effective language based on priority order:
  * 1. User config language (if specified and supported)
@@ -77,42 +81,48 @@ export function getEffectiveLanguage(
   configLanguage?: string,
   hassLocale?: { language: string },
 ): string {
-  Logger.debug(`Language detection - Config language: ${configLanguage || 'not set'}`);
-  Logger.debug(
-    `Language detection - HA system language: ${hassLocale?.language || 'not available'}`,
-  );
+  // Create cache key from inputs
+  const cacheKey = `${configLanguage || ''}:${hassLocale?.language || ''}`;
+
+  // Return cached result if available
+  if (languageCache.has(cacheKey)) {
+    return languageCache.get(cacheKey)!;
+  }
+
+  let effectiveLanguage: string;
 
   // Priority 1: Use config language if specified and supported
   if (configLanguage && configLanguage.trim() !== '') {
     const configLang = configLanguage.toLowerCase();
     if (TRANSLATIONS[configLang]) {
-      Logger.debug(`Using config language: ${configLang}`);
-      return configLang;
+      effectiveLanguage = configLang;
+      languageCache.set(cacheKey, effectiveLanguage);
+      return effectiveLanguage;
     }
-    Logger.debug(`Config language ${configLang} not supported, trying HA system language`);
   }
 
   // Priority 2: Use HA system language if available and supported
   if (hassLocale?.language) {
     const sysLang = hassLocale.language.toLowerCase();
     if (TRANSLATIONS[sysLang]) {
-      Logger.debug(`Using HA system language: ${sysLang}`);
-      return sysLang;
+      effectiveLanguage = sysLang;
+      languageCache.set(cacheKey, effectiveLanguage);
+      return effectiveLanguage;
     }
 
     // Check for language part only (e.g., "de" from "de-DE")
     const langPart = sysLang.split(/[-_]/)[0];
     if (langPart !== sysLang && TRANSLATIONS[langPart]) {
-      Logger.debug(`Using base language part from HA system language: ${langPart}`);
-      return langPart;
+      effectiveLanguage = langPart;
+      languageCache.set(cacheKey, effectiveLanguage);
+      return effectiveLanguage;
     }
-
-    Logger.debug(`No supported translation for HA language ${sysLang}`);
   }
 
   // Priority 3: Use default language as fallback
-  Logger.debug(`Using default language: ${DEFAULT_LANGUAGE}`);
-  return DEFAULT_LANGUAGE;
+  effectiveLanguage = DEFAULT_LANGUAGE;
+  languageCache.set(cacheKey, effectiveLanguage);
+  return effectiveLanguage;
 }
 
 /**

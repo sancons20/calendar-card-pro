@@ -18,6 +18,9 @@ import * as Constants from '../config/constants';
 //-----------------------------------------------------------------------------
 
 /**
+ * @deprecated This function is obsolete with the LitElement implementation.
+ * Use the render method in the main component class instead.
+ *
  * Render a calendar card with proper container setup for MDC ripple
  */
 export async function renderCalendarCard(
@@ -60,11 +63,10 @@ export async function renderCalendarCard(
 }
 
 /**
- * Wrapper for rendering error states to maintain consistent interface
+ * @deprecated This function is obsolete with the LitElement implementation.
+ * Error states are now handled by the render method in the main component.
  *
- * @param shadowRoot - Shadow DOM root to render to
- * @param state - Current state ('loading', 'empty', 'error')
- * @param config - Card configuration
+ * Wrapper for rendering error states to maintain consistent interface
  */
 export function renderErrorToDOM(
   shadowRoot: ShadowRoot,
@@ -94,15 +96,10 @@ export function renderErrorToDOM(
 //-----------------------------------------------------------------------------
 
 /**
- * Render calendar card content progressively to optimize performance
+ * @deprecated This function is obsolete with the LitElement implementation.
+ * Use lit-html's repeat directive for progressive rendering instead.
  *
- * @param days - Array of day objects to render
- * @param config - Card configuration
- * @param formatEventTime - Function to format event time
- * @param formatLocation - Function to format location
- * @param chunkSize - Number of days to render in each chunk
- * @param renderDelay - Delay between rendering chunks (ms)
- * @returns Promise resolving to DocumentFragment with content
+ * Render calendar card content progressively to optimize performance
  */
 export async function renderProgressively(
   days: Types.EventsByDay[],
@@ -144,16 +141,10 @@ export async function renderProgressively(
 }
 
 /**
+ * @deprecated This function is obsolete with the LitElement implementation.
+ * Use the renderDay and renderEvent methods in the main component instead.
+ *
  * Generate HTML content for a single day's events
- *
- * Creates the HTML structure for displaying a day's events
- * with proper formatting and styling
- *
- * @param day - Day object containing events
- * @param config - Card configuration
- * @param formatEventTime - Function to format event time
- * @param formatLocation - Function to format location
- * @returns HTML string representing the day's events
  */
 export function generateDayContent(
   day: Types.EventsByDay,
@@ -217,11 +208,10 @@ export function generateDayContent(
 //-----------------------------------------------------------------------------
 
 /**
- * Generate an error or loading state view
+ * @deprecated This function is obsolete with the LitElement implementation.
+ * Error states are now handled by the renderError method in the main component.
  *
- * @param state - Card state ('loading', 'empty', 'error')
- * @param config - Card configuration
- * @returns HTML Element containing the state view
+ * Generate an error or loading state view
  */
 export function renderErrorState(
   state: 'loading' | 'empty' | 'error',
