@@ -282,6 +282,8 @@ export function getEntityColor(entityId: string | undefined, config: Types.Confi
  * @returns Color string from entity config or default
  */
 export function getEntityAccentColorHex(entityId: string | undefined, config: Types.Config): string {
+  // TODO: convert return values to hex
+
   if (!entityId) return 'var(--calendar-card-line-color-vertical)';
 
   const entityConfig = config.entities.find(
