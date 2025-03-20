@@ -109,7 +109,6 @@ export function getBaseCardStyles() {
       width: var(--calendar-card-date-column-width);
       text-align: center;
       padding-right: 12px;
-      border-right: var(--calendar-card-line-width-vertical) solid var(--calendar-card-line-color-vertical);
     }
 
     .date-content {
