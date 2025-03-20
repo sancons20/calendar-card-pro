@@ -197,8 +197,8 @@ export function getDateFormatStyle(language: string): 'day-dot-month' | 'month-d
     return 'day-dot-month';
   }
 
-  // English uses month then day (e.g., "Mar 17")
-  if (lang === 'en') {
+  // English and Hungarian use month then day (e.g., "Mar 17")
+  if (lang === 'en' || lang === 'hu') {
     return 'month-day';
   }
 
