@@ -55,16 +55,6 @@ export function generateCustomPropertiesObject(config: Types.Config): Record<str
 }
 
 /**
- * Generate CSS custom properties string - kept for backwards compatibility
- */
-export function generateCustomProperties(config: Types.Config): string {
-  const props = generateCustomPropertiesObject(config);
-  return Object.entries(props)
-    .map(([prop, value]) => `${prop}: ${value};`)
-    .join('\n');
-}
-
-/**
  * Base styles for the card component
  * Using direct css template literal for proper variable processing
  */
@@ -98,6 +88,16 @@ export const cardStyles = css`
 
   ha-card:focus-visible {
     outline: 2px solid var(--calendar-card-line-color-vertical);
+  }
+
+  /* Structure containers for stable DOM */
+  .header-container,
+  .content-container {
+    width: 100%;
+  }
+
+  .card-header-placeholder {
+    height: 0;
   }
 
   /* ===== HEADER STYLES ===== */

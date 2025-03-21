@@ -9,12 +9,94 @@
 
 import { TemplateResult, html } from 'lit';
 import { classMap } from 'lit/directives/class-map.js';
+import { styleMap } from 'lit/directives/style-map.js';
 import { repeat } from 'lit/directives/repeat.js';
 
 import * as Types from '../config/types';
 import * as Localize from '../translations/localize';
 import * as FormatUtils from '../utils/format';
 import * as EventUtils from '../utils/events';
+
+//-----------------------------------------------------------------------------
+// MAIN CARD STRUCTURE RENDERING
+//-----------------------------------------------------------------------------
+
+/**
+ * Render the main calendar card structure
+ * Creates a stable DOM structure for card-mod compatibility
+ *
+ * @param customStyles Custom style properties from configuration
+ * @param title Card title from configuration
+ * @param content Main card content (events or status)
+ * @param handlers Event handler functions
+ * @returns TemplateResult for the complete card
+ */
+export function renderMainCardStructure(
+  customStyles: Record<string, string>,
+  title: string | undefined,
+  content: TemplateResult,
+  handlers: {
+    keyDown: (ev: KeyboardEvent) => void;
+    pointerDown: (ev: PointerEvent) => void;
+    pointerUp: (ev: PointerEvent) => void;
+    pointerCancel: (ev: Event) => void;
+    pointerLeave: (ev: Event) => void;
+  },
+): TemplateResult {
+  return html`
+    <ha-card
+      class="calendar-card-pro"
+      style=${styleMap(customStyles)}
+      tabindex="0"
+      @keydown=${handlers.keyDown}
+      @pointerdown=${handlers.pointerDown}
+      @pointerup=${handlers.pointerUp}
+      @pointercancel=${handlers.pointerCancel}
+      @pointerleave=${handlers.pointerLeave}
+    >
+      <ha-ripple></ha-ripple>
+
+      <!-- Title is always rendered with the same structure, even if empty -->
+      <div class="header-container">
+        ${title
+          ? html`<h1 class="card-header">${title}</h1>`
+          : html`<div class="card-header-placeholder"></div>`}
+      </div>
+
+      <!-- Content container is always present -->
+      <div class="content-container">${content}</div>
+    </ha-card>
+  `;
+}
+
+/**
+ * Render card content based on state
+ *
+ * @param state Card state (loading, error, no entities, events)
+ * @param config Card configuration
+ * @param language Language code for translations
+ * @param events Calendar events grouped by day
+ * @returns Template result for card content
+ */
+export function renderCardContent(
+  state: 'loading' | 'error' | 'empty' | 'events',
+  config: Types.Config,
+  language: string,
+  events?: Types.EventsByDay[],
+): TemplateResult {
+  // Show error states
+  if (state === 'loading' || state === 'error' || state === 'empty') {
+    return renderError(state, config, language);
+  }
+
+  // Regular content rendering (events grouped by day)
+  if (events && events.length > 0) {
+    return html`${events.map((day) => renderDay(day, config, language))}`;
+  }
+
+  // Fallback for empty events
+  return renderError('empty', config, language);
+}
 
 //-----------------------------------------------------------------------------
 // CONTENT GENERATION FUNCTIONS
@@ -64,7 +146,7 @@ export function renderEvent(
   // Get color from config based on entity ID
   const entityColor = EventUtils.getEntityColor(event._entityId, config);
   const entityAccentColor = EventUtils.getEntityAccentColorHex(event._entityId, config);
-  const entityAccentBackgroundColor = config.show_event_highlight ? entityAccentColor + "33" : "";
+  const entityAccentBackgroundColor = config.show_event_highlight ? entityAccentColor + '33' : '';
 
   // Format event time and location
   const eventTime = FormatUtils.formatEventTime(event, config, language);
@@ -99,7 +181,10 @@ export function renderEvent(
             </td>
           `
         : ''}
-      <td class=${classMap(eventClasses)} style="border-left: var(--calendar-card-line-width-vertical) solid ${entityAccentColor}; background-color: ${entityAccentBackgroundColor};">
+      <td
+        class=${classMap(eventClasses)}
+        style="border-left: var(--calendar-card-line-width-vertical) solid ${entityAccentColor}; background-color: ${entityAccentBackgroundColor};"
+      >
         <div class="event-content">
           <div class="event-title" style="color: ${entityColor}">${event.summary}</div>
           <div class="time-location">
