@@ -243,21 +243,17 @@ export function renderError(
 
   if (state === 'loading') {
     return html`
-      <ha-card>
-        <div class="calendar-card">
-          <div class="loading">${translations.loading}</div>
-        </div>
-      </ha-card>
+      <div class="calendar-card">
+        <div class="loading">${translations.loading}</div>
+      </div>
     `;
   }
 
   if (state === 'error') {
     return html`
-      <ha-card>
-        <div class="calendar-card">
-          <div class="error">${translations.error}</div>
-        </div>
-      </ha-card>
+      <div class="calendar-card">
+        <div class="error">${translations.error}</div>
+      </div>
     `;
   }
 
@@ -269,26 +265,30 @@ export function renderError(
     month: Localize.getMonthName(language, now.getMonth()),
   };
 
+  // Get the accent color for the empty state's vertical line
+  const accentColor = config.vertical_line_color || 'var(--calendar-card-line-color-vertical)';
+
   return html`
-    <ha-card>
-      <div class="calendar-card">
-        <table>
-          <tr>
-            <td class="date-column" rowspan="1">
-              <div class="date-content">
-                <div class="weekday">${emptyDay.weekday}</div>
-                <div class="day">${emptyDay.day}</div>
-                ${config.show_month ? html`<div class="month">${emptyDay.month}</div>` : ''}
-              </div>
-            </td>
-            <td class="event">
-              <div class="event-content">
-                <div class="event-title">${translations.noEvents}</div>
-              </div>
-            </td>
-          </tr>
-        </table>
-      </div>
-    </ha-card>
+    <div class="calendar-card">
+      <table class="day-table today">
+        <tr>
+          <td class="date-column" rowspan="1">
+            <div class="date-content">
+              <div class="weekday">${emptyDay.weekday}</div>
+              <div class="day">${emptyDay.day}</div>
+              ${config.show_month ? html`<div class="month">${emptyDay.month}</div>` : ''}
+            </div>
+          </td>
+          <td
+            class="event event-first event-last"
+            style="border-left: var(--calendar-card-line-width-vertical) solid ${accentColor};"
+          >
+            <div class="event-content">
+              <div class="no-events">${translations.noEvents}</div>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
   `;
 }
