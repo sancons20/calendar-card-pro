@@ -192,7 +192,11 @@ export function renderEvent(
         style="border-left: var(--calendar-card-line-width-vertical) solid ${entityAccentColor}; background-color: ${entityAccentBackgroundColor};"
       >
         <div class="event-content">
-          <div class="event-title" style="color: ${entityColor}">${event.summary}</div>
+          <div class="event-title" style="color: ${entityColor}">
+            ${event._entityLabel
+              ? html`<span class="calendar-label">${event._entityLabel}</span> `
+              : ''}${event.summary}
+          </div>
           <div class="time-location">
             <div class="time">
               <ha-icon icon="mdi:clock-outline"></ha-icon>

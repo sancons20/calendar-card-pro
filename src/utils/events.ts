@@ -178,6 +178,7 @@ export function groupEventsByDay(
       start: event.start,
       end: event.end,
       _entityId: event._entityId,
+      _entityLabel: getEntityLabel(event._entityId, config),
     });
   });
 
@@ -299,6 +300,29 @@ export function getEntityAccentColorHex(
   return typeof entityConfig === 'string'
     ? 'var(--calendar-card-line-color-vertical)'
     : entityConfig.accent_color || 'var(--calendar-card-line-color-vertical)';
+}
+
+/**
+ * Get entity label from configuration based on entity ID
+ *
+ * @param entityId - The entity ID to find label for
+ * @param config - Current card configuration
+ * @returns Label string or undefined if not set
+ */
+export function getEntityLabel(
+  entityId: string | undefined,
+  config: Types.Config,
+): string | undefined {
+  if (!entityId) return undefined;
+
+  const entityConfig = config.entities.find(
+    (e) =>
+      (typeof e === 'string' && e === entityId) || (typeof e === 'object' && e.entity === entityId),
+  );
+
+  if (!entityConfig || typeof entityConfig === 'string') return undefined;
+
+  return entityConfig.label;
 }
 
 //-----------------------------------------------------------------------------

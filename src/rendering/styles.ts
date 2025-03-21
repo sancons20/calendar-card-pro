@@ -218,6 +218,10 @@ export const cardStyles = css`
     padding-bottom: 2px;
   }
 
+  .calendar-label {
+    display: inline;
+  }
+
   /* ===== TIME & LOCATION STYLES ===== */
   .time-location {
     display: flex;
