@@ -11,14 +11,14 @@ import type * as Types from '../config/types';
 export function generateCustomProperties(config: Types.Config): string {
   return `
     --calendar-card-background-color: ${config.background_color};
-    --calendar-card-font-size-title: ${config.title_font_size};
+    ${config.title_font_size ? `--calendar-card-font-size-title: ${config.title_font_size};` : ''}
+    ${config.title_color ? `--calendar-card-color-title: ${config.title_color};` : ''}
     --calendar-card-font-size-weekday: ${config.weekday_font_size};
     --calendar-card-font-size-day: ${config.day_font_size};
     --calendar-card-font-size-month: ${config.month_font_size};
     --calendar-card-font-size-event: ${config.event_font_size};
     --calendar-card-font-size-time: ${config.time_font_size};
     --calendar-card-font-size-location: ${config.location_font_size};
-    --calendar-card-color-title: ${config.title_color};
     --calendar-card-color-weekday: ${config.weekday_color};
     --calendar-card-color-day: ${config.day_color};
     --calendar-card-color-month: ${config.month_color};
@@ -53,7 +53,7 @@ export function getBaseCardStyles() {
     }
 
     ha-card {
-      background: var(--calendar-card-background-color, var(--ha-card-background), #000);
+      background: var(--calendar-card-background-color, var(--card-background-color));
       height: 100%;
       display: flex;
       flex-direction: column;
@@ -80,10 +80,17 @@ export function getBaseCardStyles() {
       position: relative;
     }
 
-    .header {
-      color: var(--calendar-card-color-title, var(--ha-card-header-font-color), var(--primary-text-color));
-      font-size: var(--calendar-card-font-size-title, var(--ha-card-header-font-size, 24px));
-      font-weight: var(--ha-card-header-font-weight, 500);
+    .card-header {
+      color: var(--calendar-card-color-title, var(--primary-text-color));
+      font-family: var(--paper-font-headline_-_font-family);
+      -webkit-font-smoothing: var(--paper-font-headline_-_-webkit-font-smoothing);
+      font-size: var(--calendar-card-font-size-title, var(--paper-font-headline_-_font-size));
+      font-weight: var(--paper-font-headline_-_font-weight);
+      letter-spacing: var(--paper-font-headline_-_letter-spacing);
+      line-height: var(--paper-font-headline_-_line-height);
+      text-rendering: var(--paper-font-common-expensive-kerning_-_text-rendering);
+      opacity: var(--dark-primary-opacity);
+      float: left;
       margin-top: 0px;
       margin-bottom: 16px;
     }
@@ -238,6 +245,22 @@ export function getBaseCardStyles() {
 
     .error {
       color: var(--error-color);
+    }
+
+    /* Apply font family to all text elements for maximum penetration */
+    .calendar-card, 
+    .card-header,
+    .weekday,
+    .day,
+    .month,
+    .event-title,
+    .time,
+    .location,
+    .no-events,
+    .loading,
+    .error {
+      /* Same multiple fallbacks for key text elements */
+      font-family: var(--lcars-font, Antonio), var(--primary-font-family, var(--paper-font-body1_-_font-family, var(--font-family, Roboto, sans-serif))) !important;
     }
   `;
 }
