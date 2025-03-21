@@ -131,8 +131,6 @@ export const cardStyles = css`
 
     /* Borders & Spacing */
     padding-right: 12px;
-    border-right: var(--calendar-card-line-width-vertical) solid
-      var(--calendar-card-line-color-vertical);
   }
 
   .date-content {
