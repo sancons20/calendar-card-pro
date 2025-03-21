@@ -149,10 +149,19 @@ export function renderEvent(
   config: Types.Config,
   language: string,
 ): TemplateResult {
-  // Get color from config based on entity ID
+  // Get colors from config based on entity ID
   const entityColor = EventUtils.getEntityColor(event._entityId, config);
-  const entityAccentColor = EventUtils.getEntityAccentColorHex(event._entityId, config);
-  const entityAccentBackgroundColor = config.show_event_highlight ? entityAccentColor + '33' : '';
+
+  // Get line color (solid) and background color (with opacity)
+  const entityAccentColor = EventUtils.getEntityAccentColorWithOpacity(event._entityId, config);
+
+  // Explicitly check if event_background_opacity is defined and greater than 0
+  const backgroundOpacity =
+    config.event_background_opacity > 0 ? config.event_background_opacity : 0;
+  const entityAccentBackgroundColor =
+    backgroundOpacity > 0
+      ? EventUtils.getEntityAccentColorWithOpacity(event._entityId, config, backgroundOpacity)
+      : ''; // Empty string for no background
 
   // Format event time and location
   const eventTime = FormatUtils.formatEventTime(event, config, language);

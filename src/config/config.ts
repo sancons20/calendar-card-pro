@@ -34,7 +34,6 @@ export const DEFAULT_CONFIG: Types.Config = {
   vertical_line_color: '#03a9f4',
   horizontal_line_width: '0px',
   horizontal_line_color: 'var(--secondary-text-color)',
-  show_event_highlight: false,
 
   // Date column
   date_vertical_alignment: 'middle',
@@ -47,6 +46,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   month_color: 'var(--primary-text-color)',
 
   // Event column
+  event_background_opacity: 0,
   show_past_events: false,
   event_font_size: '14px',
   event_color: 'var(--primary-text-color)',

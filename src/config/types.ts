@@ -31,7 +31,6 @@ export interface Config {
   vertical_line_color: string;
   horizontal_line_width: string;
   horizontal_line_color: string;
-  show_event_highlight: boolean;
 
   // Date column
   date_vertical_alignment: string;
@@ -44,6 +43,7 @@ export interface Config {
   month_color: string;
 
   // Event column
+  event_background_opacity: number;
   show_past_events: boolean;
   event_font_size: string;
   event_color: string;
