@@ -23,8 +23,9 @@
  */
 
 // Import Lit libraries
-import { LitElement, PropertyValues, html } from 'lit';
+import { LitElement, PropertyValues, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+import { styleMap } from 'lit/directives/style-map.js'; // Add styleMap directive
 
 // Import all types via namespace for cleaner imports
 import * as Config from './config/config';
@@ -131,7 +132,18 @@ class CalendarCardPro extends LitElement {
   //-----------------------------------------------------------------------------
 
   static get styles() {
-    return Styles.cardStyles;
+    return [
+      Styles.cardStyles,
+      css`
+        .header-container,
+        .content-container {
+          width: 100%;
+        }
+        .card-header-placeholder {
+          height: 0;
+        }
+      `,
+    ];
   }
 
   //-----------------------------------------------------------------------------
@@ -183,11 +195,6 @@ class CalendarCardPro extends LitElement {
     Logger.debug('Component disconnected');
   }
 
-  firstUpdated() {
-    // Style updates need to happen after first render
-    this.updateStyles();
-  }
-
   updated(changedProps: PropertyValues) {
     // Update language if locale or config language changed
     if (
@@ -197,10 +204,7 @@ class CalendarCardPro extends LitElement {
       this._language = Localize.getEffectiveLanguage(this.config.language, this.hass?.locale);
     }
 
-    // Update styles if config changed
-    if (changedProps.has('config')) {
-      this.updateStyles();
-    }
+    // No style updates needed - handled by styleMap
   }
 
   //-----------------------------------------------------------------------------
@@ -208,12 +212,12 @@ class CalendarCardPro extends LitElement {
   //-----------------------------------------------------------------------------
 
   /**
-   * Update custom CSS properties based on configuration
+   * Generate style properties from configuration
+   * Returns a style object for use with styleMap
    */
-  private updateStyles() {
-    // Generate custom properties from config
-    const customProperties = Styles.generateCustomProperties(this.config);
-    this.style.cssText = customProperties;
+  private getCustomStyles(): Record<string, string> {
+    // Convert CSS custom properties to a style object
+    return Styles.generateCustomPropertiesObject(this.config);
   }
 
   /**
@@ -350,6 +354,18 @@ class CalendarCardPro extends LitElement {
     }
   }
 
+  /**
+   * Create the render root with special handling for card-mod compatibility
+   */
+  createRenderRoot() {
+    const root = super.createRenderRoot();
+
+    // This class is critical for card-mod to find our card's shadow root
+    this.classList.add('type-calendar-card-pro-dev');
+
+    return root;
+  }
+
   //-----------------------------------------------------------------------------
   // PUBLIC METHODS
   //-----------------------------------------------------------------------------
@@ -382,6 +398,7 @@ class CalendarCardPro extends LitElement {
 
   /**
    * Update calendar events from API or cache
+   * Fixed for card-mod compatibility
    */
   async updateEvents(force = false): Promise<void> {
     Logger.debug(`Updating events (force=${force})`);
@@ -393,8 +410,16 @@ class CalendarCardPro extends LitElement {
     }
 
     try {
+      // Always start in a loading state
       this.isLoading = true;
 
+      // Force a render cycle to establish DOM structure
+      await this.updateComplete;
+
+      // Give card-mod a chance to inject styles into the established DOM
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // Data fetching logic
       const cacheKey = EventUtils.getBaseCacheKey(
         this._instanceId,
         this.config.entities,
@@ -402,43 +427,45 @@ class CalendarCardPro extends LitElement {
         this.config.show_past_events,
       );
 
-      // Try to get from cache first
+      // Get events (from cache or API)
+      let eventData: Types.CalendarEventData[] = [];
+
+      // Try cache first
       const isManualReload = EventUtils.isManualPageLoad();
       if (!force) {
         const cachedEvents = EventUtils.getCachedEvents(cacheKey, this.config, isManualReload);
         if (cachedEvents) {
           Logger.info(`Using ${cachedEvents.length} events from cache`);
-          // Fix for TypeScript error: Create a mutable copy of the readonly array
-          this.events = [...cachedEvents];
-          this.isLoading = false;
-          this._lastUpdateTime = Date.now();
-          return;
+          eventData = [...cachedEvents];
         }
       }
 
-      // Fetch from API
-      Logger.info('Fetching events from API');
-      const entities = this.config.entities.map((e) =>
-        typeof e === 'string' ? { entity: e, color: 'var(--primary-text-color)' } : e,
-      );
+      // Fetch from API if needed
+      if (eventData.length === 0) {
+        Logger.info('Fetching events from API');
+        const entities = this.config.entities.map((e) =>
+          typeof e === 'string' ? { entity: e, color: 'var(--primary-text-color)' } : e,
+        );
 
-      const timeWindow = EventUtils.getTimeWindow(this.config.days_to_show);
-      const fetchedEvents = await EventUtils.fetchEvents(this.safeHass, entities, timeWindow);
+        const timeWindow = EventUtils.getTimeWindow(this.config.days_to_show);
+        const fetchedEvents = await EventUtils.fetchEvents(this.safeHass, entities, timeWindow);
 
-      // Fix for TypeScript error: Create a mutable copy of the readonly array
-      const mutableEvents = Array.from(fetchedEvents);
+        eventData = Array.from(fetchedEvents);
+        EventUtils.cacheEvents(cacheKey, eventData);
+      }
 
-      // Cache the results
-      EventUtils.cacheEvents(cacheKey, mutableEvents);
+      // Critical step: Clear loading before updating events
+      // This maintains a consistent DOM structure
+      this.isLoading = false;
+      await this.updateComplete;
 
-      // Update component state with a new array
-      this.events = [...mutableEvents];
+      // Finally set the events
+      this.events = [...eventData];
       this._lastUpdateTime = Date.now();
 
       Logger.info('Event update completed successfully');
     } catch (error) {
       Logger.error('Failed to update events:', error);
-    } finally {
       this.isLoading = false;
     }
   }
@@ -464,7 +491,43 @@ class CalendarCardPro extends LitElement {
   // RENDERING
   //-----------------------------------------------------------------------------
 
+  /**
+   * Render method with consistent, stable DOM structure for card-mod
+   */
   render() {
+    const customStyles = this.getCustomStyles();
+
+    // CORE FIX: Maintain a completely stable DOM structure with nested elements
+    return html`
+      <ha-card
+        class="calendar-card-pro"
+        style=${styleMap(customStyles)}
+        tabindex="0"
+        @keydown=${this._handleKeyDown}
+        @pointerdown=${this._handlePointerDown}
+        @pointerup=${this._handlePointerUp}
+        @pointercancel=${this._handlePointerCancel}
+        @pointerleave=${this._handlePointerCancel}
+      >
+        <ha-ripple></ha-ripple>
+
+        <!-- Title is always rendered with the same structure, even if empty -->
+        <div class="header-container">
+          ${this.config.title
+            ? html`<h1 class="card-header">${this.config.title}</h1>`
+            : html`<div class="card-header-placeholder"></div>`}
+        </div>
+
+        <!-- Content container is always present -->
+        <div class="content-container">${this.renderCardContent()}</div>
+      </ha-card>
+    `;
+  }
+
+  /**
+   * Render internal card content while maintaining stable outer structure
+   */
+  private renderCardContent() {
     // Show loading state
     if (this.isLoading) {
       return Render.renderError('loading', this.config, this.effectiveLanguage);
@@ -483,21 +546,10 @@ class CalendarCardPro extends LitElement {
       return Render.renderError('empty', this.config, this.effectiveLanguage);
     }
 
-    // Regular rendering
-    return html`
-      <ha-card
-        tabindex="0"
-        @keydown=${this._handleKeyDown}
-        @pointerdown=${this._handlePointerDown}
-        @pointerup=${this._handlePointerUp}
-        @pointercancel=${this._handlePointerCancel}
-        @pointerleave=${this._handlePointerCancel}
-      >
-        <ha-ripple></ha-ripple>
-        ${this.config.title ? html`<h1 class="card-header">${this.config.title}</h1>` : ''}
-        ${eventsByDay.map((day) => Render.renderDay(day, this.config, this.effectiveLanguage))}
-      </ha-card>
-    `;
+    // Regular content
+    return html`${eventsByDay.map((day) =>
+      Render.renderDay(day, this.config, this.effectiveLanguage),
+    )}`;
   }
 }
 
