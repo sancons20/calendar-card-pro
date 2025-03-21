@@ -115,8 +115,14 @@ export function renderDay(
   config: Types.Config,
   language: string,
 ): TemplateResult {
+  // Check if this day is today
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dayDate = new Date(day.timestamp);
+  const isToday = dayDate.toDateString() === todayStart.toDateString();
+
   return html`
-    <table>
+    <table class="day-table ${isToday ? 'today' : 'future-day'}">
       ${repeat(
         day.events,
         (event, index) => `${event._entityId}-${event.summary}-${index}`,
