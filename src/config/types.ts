@@ -47,6 +47,7 @@ export interface Config {
   show_past_events: boolean;
   event_font_size: string;
   event_color: string;
+  show_time: boolean;
   time_24h: boolean;
   show_end_time: boolean;
   time_font_size: string;

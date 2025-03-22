@@ -207,10 +207,14 @@ export function renderEvent(
               : ''}${event.summary}
           </div>
           <div class="time-location">
-            <div class="time">
-              <ha-icon icon="mdi:clock-outline"></ha-icon>
-              <span>${eventTime}</span>
-            </div>
+            ${config.show_time
+              ? html`
+                  <div class="time">
+                    <ha-icon icon="mdi:clock-outline"></ha-icon>
+                    <span>${eventTime}</span>
+                  </div>
+                `
+              : ''}
             ${eventLocation
               ? html`
                   <div class="location">
