@@ -171,12 +171,23 @@ export function renderEvent(
   // Check if this is an all-day event
   const isAllDayEvent = !event.start.dateTime;
 
+  // Check if this is a multi-day all-day event
+  const isMultiDayAllDayEvent =
+    isAllDayEvent &&
+    event.time &&
+    (event.time.includes(Localize.getTranslations(language).multiDay) ||
+      event.time.includes(Localize.getTranslations(language).endsTomorrow) ||
+      event.time.includes(Localize.getTranslations(language).endsToday));
+
   // Determine if we should show time for this specific event
   // Hide if:
   // 1. showTime is false (global setting or entity override) OR
-  // 2. It's an all-day event AND hide_all_day_time is true OR
+  // 2. It's a SINGLE-DAY all-day event AND hide_all_day_time is true OR
   // 3. It's an empty day placeholder
-  const shouldShowTime = showTime && !(isAllDayEvent && config.hide_all_day_time) && !isEmptyDay;
+  const shouldShowTime =
+    showTime &&
+    !(isAllDayEvent && !isMultiDayAllDayEvent && config.hide_all_day_time) &&
+    !isEmptyDay;
 
   // Format event time and location
   const eventTime = FormatUtils.formatEventTime(event, config, language);
