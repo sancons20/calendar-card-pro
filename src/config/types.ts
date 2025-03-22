@@ -16,6 +16,7 @@ export interface Config {
   entities: Array<string | EntityConfig>;
   days_to_show: number;
   max_events_to_show?: number;
+  show_empty_days: boolean;
   language: string;
 
   // Header
@@ -95,6 +96,7 @@ export interface CalendarEventData {
   location?: string;
   _entityId?: string;
   _entityLabel?: string;
+  _isEmptyDay?: boolean;
   time?: string;
 }
 

@@ -23,7 +23,7 @@
  */
 
 // Import Lit libraries
-import { LitElement, PropertyValues } from 'lit';
+import { LitElement, PropertyValues, html, TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
 // Import all types via namespace for cleaner imports
@@ -450,30 +450,29 @@ class CalendarCardPro extends LitElement {
     };
 
     // Determine card content based on state
-    let contentState: 'loading' | 'error' | 'empty' | 'events' = 'loading';
+    let content: TemplateResult;
 
     if (this.isLoading) {
-      contentState = 'loading';
+      // Loading state
+      content = Render.renderCardContent('loading', this.effectiveLanguage);
     } else if (!this.safeHass || !this.config.entities.length) {
-      contentState = 'error';
-    } else if (this.groupedEvents.length === 0) {
-      contentState = 'empty';
+      // Error state - missing entities
+      content = Render.renderCardContent('error', this.effectiveLanguage);
+    } else if (this.events.length === 0) {
+      // Empty state - generate synthetic empty days
+      const emptyDays = EventUtils.generateEmptyStateEvents(this.config, this.effectiveLanguage);
+      content = html`${emptyDays.map((day) =>
+        Render.renderDay(day, this.config, this.effectiveLanguage),
+      )}`;
     } else {
-      contentState = 'events';
+      // Normal state with events
+      content = html`${this.groupedEvents.map((day) =>
+        Render.renderDay(day, this.config, this.effectiveLanguage),
+      )}`;
     }
 
-    // Render main card structure with appropriate content
-    return Render.renderMainCardStructure(
-      customStyles,
-      this.config.title,
-      Render.renderCardContent(
-        contentState,
-        this.config,
-        this.effectiveLanguage,
-        this.groupedEvents,
-      ),
-      handlers,
-    );
+    // Render main card structure with content
+    return Render.renderMainCardStructure(customStyles, this.config.title, content, handlers);
   }
 }
 

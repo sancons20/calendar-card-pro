@@ -72,30 +72,26 @@ export function renderMainCardStructure(
 /**
  * Render card content based on state
  *
- * @param state Card state (loading, error, no entities, events)
- * @param config Card configuration
+ * @param state Card state (loading, error)
  * @param language Language code for translations
- * @param events Calendar events grouped by day
  * @returns Template result for card content
  */
-export function renderCardContent(
-  state: 'loading' | 'error' | 'empty' | 'events',
-  config: Types.Config,
-  language: string,
-  events?: Types.EventsByDay[],
-): TemplateResult {
-  // Show error states
-  if (state === 'loading' || state === 'error' || state === 'empty') {
-    return renderError(state, config, language);
+export function renderCardContent(state: 'loading' | 'error', language: string): TemplateResult {
+  const translations = Localize.getTranslations(language);
+
+  if (state === 'loading') {
+    return html`
+      <div class="calendar-card">
+        <div class="loading">${translations.loading}</div>
+      </div>
+    `;
   }
 
-  // Regular content rendering (events grouped by day)
-  if (events && events.length > 0) {
-    return html`${events.map((day) => renderDay(day, config, language))}`;
-  }
-
-  // Fallback for empty events
-  return renderError('empty', config, language);
+  return html`
+    <div class="calendar-card">
+      <div class="error">${translations.error}</div>
+    </div>
+  `;
 }
 
 //-----------------------------------------------------------------------------
@@ -149,6 +145,9 @@ export function renderEvent(
   config: Types.Config,
   language: string,
 ): TemplateResult {
+  // Add CSS class for empty days
+  const isEmptyDay = Boolean(event._isEmptyDay);
+
   // Get colors from config based on entity ID
   const entityColor = EventUtils.getEntityColor(event._entityId, config);
 
@@ -175,8 +174,9 @@ export function renderEvent(
   // Determine if we should show time for this specific event
   // Hide if:
   // 1. showTime is false (global setting or entity override) OR
-  // 2. It's an all-day event AND hide_all_day_time is true
-  const shouldShowTime = showTime && !(isAllDayEvent && config.hide_all_day_time);
+  // 2. It's an all-day event AND hide_all_day_time is true OR
+  // 3. It's an empty day placeholder
+  const shouldShowTime = showTime && !(isAllDayEvent && config.hide_all_day_time) && !isEmptyDay;
 
   // Format event time and location
   const eventTime = FormatUtils.formatEventTime(event, config, language);
@@ -196,6 +196,7 @@ export function renderEvent(
     'event-first': isFirst,
     'event-middle': isMiddle,
     'event-last': isLast,
+    'no-events': isEmptyDay, // Add class for empty days
   };
 
   return html`
@@ -216,10 +217,13 @@ export function renderEvent(
         style="border-left: var(--calendar-card-line-width-vertical) solid ${entityAccentColor}; background-color: ${entityAccentBackgroundColor};"
       >
         <div class="event-content">
-          <div class="event-title" style="color: ${entityColor}">
+          <div
+            class="event-title ${isEmptyDay ? 'empty-day-title' : ''}"
+            style="color: ${entityColor}"
+          >
             ${event._entityLabel
               ? html`<span class="calendar-label">${event._entityLabel}</span> `
-              : ''}${event.summary}
+              : ''}${isEmptyDay ? `✓ ${event.summary}` : event.summary}
           </div>
           <div class="time-location">
             ${shouldShowTime
@@ -242,72 +246,5 @@ export function renderEvent(
         </div>
       </td>
     </tr>
-  `;
-}
-
-/**
- * Render error, loading, or empty states
- *
- * @param state - State to render ('loading', 'empty', or 'error')
- * @param config - Card configuration
- * @param language - Language code for translations
- * @returns TemplateResult for the state
- */
-export function renderError(
-  state: 'loading' | 'empty' | 'error',
-  config: Types.Config,
-  language: string,
-): TemplateResult {
-  const translations = Localize.getTranslations(language);
-
-  if (state === 'loading') {
-    return html`
-      <div class="calendar-card">
-        <div class="loading">${translations.loading}</div>
-      </div>
-    `;
-  }
-
-  if (state === 'error') {
-    return html`
-      <div class="calendar-card">
-        <div class="error">${translations.error}</div>
-      </div>
-    `;
-  }
-
-  // Empty state
-  const now = new Date();
-  const emptyDay = {
-    weekday: Localize.getDayName(language, now.getDay()),
-    day: now.getDate(),
-    month: Localize.getMonthName(language, now.getMonth()),
-  };
-
-  // Get the accent color for the empty state's vertical line
-  const accentColor = config.vertical_line_color || 'var(--calendar-card-line-color-vertical)';
-
-  return html`
-    <div class="calendar-card">
-      <table class="day-table today">
-        <tr>
-          <td class="date-column" rowspan="1">
-            <div class="date-content">
-              <div class="weekday">${emptyDay.weekday}</div>
-              <div class="day">${emptyDay.day}</div>
-              ${config.show_month ? html`<div class="month">${emptyDay.month}</div>` : ''}
-            </div>
-          </td>
-          <td
-            class="event event-first event-last"
-            style="border-left: var(--calendar-card-line-width-vertical) solid ${accentColor};"
-          >
-            <div class="event-content">
-              <div class="no-events">${translations.noEvents}</div>
-            </div>
-          </td>
-        </tr>
-      </table>
-    </div>
   `;
 }

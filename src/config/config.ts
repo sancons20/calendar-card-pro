@@ -19,6 +19,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   entities: [],
   days_to_show: 3,
   max_events_to_show: undefined,
+  show_empty_days: false,
   language: '',
 
   // Header

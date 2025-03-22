@@ -60,6 +60,7 @@ export function generateCustomPropertiesObject(config: Types.Config): Record<str
  */
 export const cardStyles = css`
   /* ===== CORE CONTAINER STYLES ===== */
+
   :host {
     display: block;
   }
@@ -101,6 +102,7 @@ export const cardStyles = css`
   }
 
   /* ===== HEADER STYLES ===== */
+
   .card-header {
     /* Layout */
     float: left;
@@ -123,6 +125,7 @@ export const cardStyles = css`
   }
 
   /* ===== DAY TABLE STYLES ===== */
+
   table {
     /* Layout */
     width: 100%;
@@ -218,6 +221,12 @@ export const cardStyles = css`
     padding-bottom: 2px;
   }
 
+  /* Empty day specific styling */
+  .empty-day-title {
+    font-weight: 300 !important;
+    opacity: 0.85;
+  }
+
   .calendar-label {
     display: inline;
   }
@@ -254,6 +263,7 @@ export const cardStyles = css`
   }
 
   /* ===== ICON STYLES ===== */
+
   ha-icon {
     display: inline-flex;
     flex-shrink: 0;
@@ -274,14 +284,7 @@ export const cardStyles = css`
   }
 
   /* ===== STATUS MESSAGES ===== */
-  .no-events {
-    font-size: var(--calendar-card-font-size-event);
-    line-height: 1.2;
-    color: var(--calendar-card-color-event);
-    font-style: italic;
-    padding-bottom: 2px;
-  }
-    
+
   .loading,
   .error {
     text-align: center;

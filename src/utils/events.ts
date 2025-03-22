@@ -17,28 +17,53 @@ import * as Helpers from './helpers';
 //-----------------------------------------------------------------------------
 
 /**
- * Determine if this is likely a manual page reload rather than an automatic refresh
- * Uses performance API to check navigation type when available
+ * Fetch calendar event data with caching support
+ * This function handles both API fetching and cache retrieval
  *
- * @returns True if this appears to be a manual page load/reload
+ * @param hass Home Assistant instance
+ * @param config Calendar card configuration
+ * @param instanceId Component instance ID for caching
+ * @param force Whether to force API refresh
+ * @returns Promise resolving to calendar event data array
  */
-export function isManualPageLoad(): boolean {
-  // Use the Performance Navigation API when available
-  if (window.performance && window.performance.navigation) {
-    // navigation.type: 0=navigate, 1=reload, 2=back/forward
-    return window.performance.navigation.type === 1; // reload
-  }
+export async function fetchEventData(
+  hass: Types.Hass,
+  config: Types.Config,
+  instanceId: string,
+  force = false,
+): Promise<Types.CalendarEventData[]> {
+  // Generate cache key based on configuration
+  const cacheKey = getBaseCacheKey(
+    instanceId,
+    config.entities,
+    config.days_to_show,
+    config.show_past_events,
+  );
 
-  // For newer browsers using Navigation API
-  if (window.performance && window.performance.getEntriesByType) {
-    const navEntries = window.performance.getEntriesByType('navigation');
-    if (navEntries.length > 0 && 'type' in navEntries[0]) {
-      return (navEntries[0] as { type: string }).type === 'reload';
+  // Try cache first
+  const isManualPageReload = isManualPageLoad();
+  if (!force) {
+    const cachedEvents = getCachedEvents(cacheKey, config, isManualPageReload);
+    if (cachedEvents) {
+      Logger.info(`Using ${cachedEvents.length} events from cache`);
+      return [...cachedEvents];
     }
   }
 
-  // Default to false if we can't determine
-  return false;
+  // Fetch from API if needed
+  Logger.info('Fetching events from API');
+  const entities = config.entities.map((e) =>
+    typeof e === 'string' ? { entity: e, color: 'var(--primary-text-color)' } : e,
+  );
+
+  const timeWindow = getTimeWindow(config.days_to_show);
+  const fetchedEvents = await fetchEvents(hass, entities, timeWindow);
+
+  // Create a mutable copy and cache the results
+  const eventData = Array.from(fetchedEvents);
+  cacheEvents(cacheKey, eventData);
+
+  return eventData;
 }
 
 /**
@@ -216,6 +241,50 @@ export function groupEventsByDay(
     .sort((a, b) => a.timestamp - b.timestamp)
     .slice(0, config.days_to_show || 3);
 
+  // Add empty days if configured
+  if (config.show_empty_days) {
+    const translations = Localize.getTranslations(language);
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // Create an array of all days in the configured range
+    const allDays: Types.EventsByDay[] = [];
+
+    for (let i = 0; i < (config.days_to_show || 3); i++) {
+      const currentDate = new Date(todayStart);
+      currentDate.setDate(todayStart.getDate() + i);
+
+      // Create date key for this day
+      const dateKey = FormatUtils.getLocalDateKey(currentDate);
+
+      // If we already have events for this day, use those
+      if (eventsByDay[dateKey]) {
+        allDays.push(eventsByDay[dateKey]);
+      } else {
+        // Otherwise create an empty day with a "fake" event that can use the regular rendering path
+        allDays.push({
+          weekday: translations.daysOfWeek[currentDate.getDay()],
+          day: currentDate.getDate(),
+          month: translations.months[currentDate.getMonth()],
+          timestamp: currentDate.getTime(),
+          events: [
+            {
+              summary: translations.noEvents,
+              start: { date: FormatUtils.getLocalDateKey(currentDate) },
+              end: { date: FormatUtils.getLocalDateKey(currentDate) },
+              _entityId: '_empty_day_', // This allows accent color and background to work
+              _isEmptyDay: true, // Keep this flag for max_events_to_show handling
+              location: '', // Empty location
+            },
+          ],
+        });
+      }
+    }
+
+    // Replace our days array with the complete one
+    days = allDays;
+  }
+
   // Apply max_events_to_show limit if configured and not expanded
   if (config.max_events_to_show && !isExpanded) {
     let eventsShown = 0;
@@ -226,6 +295,12 @@ export function groupEventsByDay(
       // If we've already hit the limit, stop adding days
       if (eventsShown >= maxEvents) {
         break;
+      }
+
+      // For empty days, always include them without counting toward the max_events_to_show limit
+      if (day.events.length === 1 && day.events[0]._isEmptyDay) {
+        limitedDays.push(day);
+        continue;
       }
 
       // Calculate how many events we can still add from this day
@@ -249,6 +324,51 @@ export function groupEventsByDay(
 
     // Replace the original days array with our limited version
     days = limitedDays;
+  }
+
+  return days;
+}
+
+/**
+ * Generate synthetic empty days for when no events are found
+ * Creates placeholder days with "No events" message using the regular rendering pipeline
+ *
+ * @param config - Card configuration
+ * @param language - Language code for translations
+ * @returns Array of EventsByDay objects with empty day placeholders
+ */
+export function generateEmptyStateEvents(
+  config: Types.Config,
+  language: string,
+): Types.EventsByDay[] {
+  const translations = Localize.getTranslations(language);
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days: Types.EventsByDay[] = [];
+
+  // Generate either just today (if show_empty_days is false) or all configured days
+  const daysToGenerate = config.show_empty_days ? config.days_to_show : 1;
+
+  for (let i = 0; i < daysToGenerate; i++) {
+    const currentDate = new Date(todayStart);
+    currentDate.setDate(todayStart.getDate() + i);
+
+    days.push({
+      weekday: translations.daysOfWeek[currentDate.getDay()],
+      day: currentDate.getDate(),
+      month: translations.months[currentDate.getMonth()],
+      timestamp: currentDate.getTime(),
+      events: [
+        {
+          summary: translations.noEvents,
+          start: { date: FormatUtils.getLocalDateKey(currentDate) },
+          end: { date: FormatUtils.getLocalDateKey(currentDate) },
+          _entityId: '_empty_day_',
+          _isEmptyDay: true,
+          location: '',
+        },
+      ],
+    });
   }
 
   return days;
@@ -365,76 +485,34 @@ export function getEntitySetting<K extends keyof Types.EntityConfig>(
   return entityConfig[settingName];
 }
 
-//-----------------------------------------------------------------------------
-// DATA FETCHING FUNCTIONS
-//-----------------------------------------------------------------------------
-
 /**
- * Calculate time window for event fetching
+ * Determine if this is likely a manual page reload rather than an automatic refresh
+ * Uses performance API to check navigation type when available
  *
- * @param daysToShow - Number of days to show in the calendar
- * @returns Object containing start and end dates for the calendar window
+ * @returns True if this appears to be a manual page load/reload
  */
-export function getTimeWindow(daysToShow: number): { start: Date; end: Date } {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Start of today
-  const end = new Date(start);
-  const days = parseInt(daysToShow.toString()) || 3;
-  end.setDate(start.getDate() + days);
-  end.setHours(23, 59, 59, 999);
+export function isManualPageLoad(): boolean {
+  // Use the Performance Navigation API when available
+  if (window.performance && window.performance.navigation) {
+    // navigation.type: 0=navigate, 1=reload, 2=back/forward
+    return window.performance.navigation.type === 1; // reload
+  }
 
-  return { start, end };
-}
-
-/**
- * Fetch calendar event data with caching support
- * This function handles both API fetching and cache retrieval
- *
- * @param hass Home Assistant instance
- * @param config Calendar card configuration
- * @param instanceId Component instance ID for caching
- * @param force Whether to force API refresh
- * @returns Promise resolving to calendar event data array
- */
-export async function fetchEventData(
-  hass: Types.Hass,
-  config: Types.Config,
-  instanceId: string,
-  force = false,
-): Promise<Types.CalendarEventData[]> {
-  // Generate cache key based on configuration
-  const cacheKey = getBaseCacheKey(
-    instanceId,
-    config.entities,
-    config.days_to_show,
-    config.show_past_events,
-  );
-
-  // Try cache first
-  const isManualPageReload = isManualPageLoad();
-  if (!force) {
-    const cachedEvents = getCachedEvents(cacheKey, config, isManualPageReload);
-    if (cachedEvents) {
-      Logger.info(`Using ${cachedEvents.length} events from cache`);
-      return [...cachedEvents];
+  // For newer browsers using Navigation API
+  if (window.performance && window.performance.getEntriesByType) {
+    const navEntries = window.performance.getEntriesByType('navigation');
+    if (navEntries.length > 0 && 'type' in navEntries[0]) {
+      return (navEntries[0] as { type: string }).type === 'reload';
     }
   }
 
-  // Fetch from API if needed
-  Logger.info('Fetching events from API');
-  const entities = config.entities.map((e) =>
-    typeof e === 'string' ? { entity: e, color: 'var(--primary-text-color)' } : e,
-  );
-
-  const timeWindow = getTimeWindow(config.days_to_show);
-  const fetchedEvents = await fetchEvents(hass, entities, timeWindow);
-
-  // Create a mutable copy and cache the results
-  const eventData = Array.from(fetchedEvents);
-  cacheEvents(cacheKey, eventData);
-
-  return eventData;
+  // Default to false if we can't determine
+  return false;
 }
+
+//-----------------------------------------------------------------------------
+// DATA FETCHING FUNCTIONS
+//-----------------------------------------------------------------------------
 
 /**
  * Fetch calendar events from Home Assistant API
@@ -484,9 +562,70 @@ export async function fetchEvents(
   return allEvents;
 }
 
+/**
+ * Calculate time window for event fetching
+ *
+ * @param daysToShow - Number of days to show in the calendar
+ * @returns Object containing start and end dates for the calendar window
+ */
+export function getTimeWindow(daysToShow: number): { start: Date; end: Date } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Start of today
+  const end = new Date(start);
+  const days = parseInt(daysToShow.toString()) || 3;
+  end.setDate(start.getDate() + days);
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+}
+
 //-----------------------------------------------------------------------------
 // CACHE MANAGEMENT FUNCTIONS
 //-----------------------------------------------------------------------------
+
+/**
+ * Get cached event data if available and not expired
+ *
+ * @param key - Cache key
+ * @param config - Card configuration
+ * @param isManualPageReload - Whether this check is during a manual page reload
+ * @returns Cached events or null if expired/unavailable
+ */
+export function getCachedEvents(
+  key: string,
+  config?: Types.Config,
+  isManualPageReload: boolean = false,
+): Types.CalendarEventData[] | null {
+  const cacheEntry = getValidCacheEntry(key, config, isManualPageReload);
+  if (cacheEntry) {
+    return [...cacheEntry.events];
+  }
+  return null;
+}
+
+/**
+ * Cache event data in localStorage
+ *
+ * @param key - Cache key
+ * @param events - Calendar event data to cache
+ * @returns Boolean indicating if caching was successful
+ */
+export function cacheEvents(key: string, events: Types.CalendarEventData[]): boolean {
+  try {
+    Logger.info(`Caching ${events.length} events`);
+    const cacheEntry: Types.CacheEntry = {
+      events,
+      timestamp: Date.now(),
+    };
+
+    localStorage.setItem(key, JSON.stringify(cacheEntry));
+
+    return getValidCacheEntry(key) !== null;
+  } catch (e) {
+    Logger.error('Failed to cache calendar events:', e);
+    return false;
+  }
+}
 
 /**
  * Generate a base cache key from configuration
@@ -510,16 +649,6 @@ export function getBaseCacheKey(
     .join('_');
 
   return `${Constants.CACHE.EVENT_CACHE_KEY_PREFIX}${instanceId}_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}`;
-}
-
-/**
- * Get refresh interval from config or use default
- *
- * @param config - Card configuration
- * @returns Cache duration in milliseconds
- */
-export function getCacheDuration(config?: Types.Config): number {
-  return (config?.refresh_interval || Constants.CACHE.DEFAULT_DATA_REFRESH_MINUTES) * 60 * 1000;
 }
 
 /**
@@ -574,45 +703,11 @@ export function getValidCacheEntry(
 }
 
 /**
- * Get cached event data if available and not expired
+ * Get refresh interval from config or use default
  *
- * @param key - Cache key
  * @param config - Card configuration
- * @param isManualPageReload - Whether this check is during a manual page reload
- * @returns Cached events or null if expired/unavailable
+ * @returns Cache duration in milliseconds
  */
-export function getCachedEvents(
-  key: string,
-  config?: Types.Config,
-  isManualPageReload: boolean = false,
-): Types.CalendarEventData[] | null {
-  const cacheEntry = getValidCacheEntry(key, config, isManualPageReload);
-  if (cacheEntry) {
-    return [...cacheEntry.events];
-  }
-  return null;
-}
-
-/**
- * Cache event data in localStorage
- *
- * @param key - Cache key
- * @param events - Calendar event data to cache
- * @returns Boolean indicating if caching was successful
- */
-export function cacheEvents(key: string, events: Types.CalendarEventData[]): boolean {
-  try {
-    Logger.info(`Caching ${events.length} events`);
-    const cacheEntry: Types.CacheEntry = {
-      events,
-      timestamp: Date.now(),
-    };
-
-    localStorage.setItem(key, JSON.stringify(cacheEntry));
-
-    return getValidCacheEntry(key) !== null;
-  } catch (e) {
-    Logger.error('Failed to cache calendar events:', e);
-    return false;
-  }
+export function getCacheDuration(config?: Types.Config): number {
+  return (config?.refresh_interval || Constants.CACHE.DEFAULT_DATA_REFRESH_MINUTES) * 60 * 1000;
 }
