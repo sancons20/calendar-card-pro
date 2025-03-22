@@ -51,6 +51,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   event_font_size: '14px',
   event_color: 'var(--primary-text-color)',
   show_time: true,
+  hide_all_day_time: false,
   time_24h: true,
   show_end_time: true,
   time_font_size: '12px',

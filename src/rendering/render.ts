@@ -169,6 +169,15 @@ export function renderEvent(
   const showLocation =
     EventUtils.getEntitySetting(event._entityId, 'show_location', config) ?? config.show_location;
 
+  // Check if this is an all-day event
+  const isAllDayEvent = !event.start.dateTime;
+
+  // Determine if we should show time for this specific event
+  // Hide if:
+  // 1. showTime is false (global setting or entity override) OR
+  // 2. It's an all-day event AND hide_all_day_time is true
+  const shouldShowTime = showTime && !(isAllDayEvent && config.hide_all_day_time);
+
   // Format event time and location
   const eventTime = FormatUtils.formatEventTime(event, config, language);
   const eventLocation =
@@ -213,7 +222,7 @@ export function renderEvent(
               : ''}${event.summary}
           </div>
           <div class="time-location">
-            ${showTime
+            ${shouldShowTime
               ? html`
                   <div class="time">
                     <ha-icon icon="mdi:clock-outline"></ha-icon>

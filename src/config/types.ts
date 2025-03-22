@@ -48,6 +48,7 @@ export interface Config {
   event_font_size: string;
   event_color: string;
   show_time: boolean;
+  hide_all_day_time: boolean;
   time_24h: boolean;
   show_end_time: boolean;
   time_font_size: string;
