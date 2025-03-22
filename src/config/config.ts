@@ -29,7 +29,8 @@ export const DEFAULT_CONFIG: Types.Config = {
 
   // Layout and spacing
   background_color: 'var(--ha-card-background)',
-  row_spacing: '5px',
+  day_spacing: '5px',
+  event_spacing: '4px',
   additional_card_spacing: '0px',
   max_height: 'none',
   vertical_line_width: '2px',

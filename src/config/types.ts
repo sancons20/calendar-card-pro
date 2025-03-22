@@ -26,7 +26,8 @@ export interface Config {
 
   // Layout and spacing
   background_color: string;
-  row_spacing: string;
+  day_spacing: string;
+  event_spacing: string;
   additional_card_spacing: string;
   max_height: string;
   vertical_line_width: string;

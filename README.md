@@ -171,7 +171,8 @@ show_location: true
 | title_color              | string  | `--calendar-card-color-title`     | Card title font color                                                            |
 | **Layout and Spacing**   |         |                                   |                                                                                  |
 | background_color         | string  | `--ha-card-background`            | Card background color                                                            |
-| row_spacing              | string  | `5px`                             | Spacing between calendar day rows                                                |
+| day_spacing              | string  | `5px`                             | Spacing between different calendar day rows                                      |
+| event_spacing            | string  | `4px`                             | Vertical padding within each event                                               |
 | additional_card_spacing  | string  | `0px`                             | Additional top/bottom padding for the card                                       |
 | max_height               | string  | `none`                            | Maximum height of the card with scrolling for overflow (e.g., '300px')           |
 | vertical_line_width      | string  | `2px`                             | Vertical line separator width                                                    |

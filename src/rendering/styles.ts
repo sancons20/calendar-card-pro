@@ -29,7 +29,8 @@ export function generateCustomPropertiesObject(config: Types.Config): Record<str
     '--calendar-card-line-color-horizontal': config.horizontal_line_color,
     '--calendar-card-line-width-vertical': config.vertical_line_width,
     '--calendar-card-line-width-horizontal': config.horizontal_line_width,
-    '--calendar-card-spacing-row': config.row_spacing,
+    '--calendar-card-day-spacing': config.day_spacing,
+    '--calendar-card-event-spacing': config.event_spacing,
     '--calendar-card-spacing-additional': config.additional_card_spacing,
     '--calendar-card-max-height': config.max_height,
     '--calendar-card-icon-size-time': config.time_icon_size || '14px',
@@ -156,8 +157,8 @@ export const cardStyles = css`
     border-spacing: 0;
 
     /* Borders & Spacing */
-    margin-bottom: var(--calendar-card-spacing-row);
-    padding-bottom: var(--calendar-card-spacing-row);
+    margin-bottom: var(--calendar-card-day-spacing);
+    padding-bottom: var(--calendar-card-day-spacing);
     border-bottom: var(--calendar-card-line-width-horizontal) solid
       var(--calendar-card-line-color-horizontal, var(--secondary-text-color));
   }
@@ -169,6 +170,7 @@ export const cardStyles = css`
   }
 
   /* ===== DATE COLUMN STYLES ===== */
+
   .date-column {
     /* Layout */
     width: var(--calendar-card-date-column-width);
@@ -206,9 +208,10 @@ export const cardStyles = css`
   }
 
   /* ===== EVENT STYLES ===== */
+
   /* Base event */
   .event {
-    padding: 4px 0 4px 12px;
+    padding: var(--calendar-card-event-spacing) 0 var(--calendar-card-event-spacing) 12px;
     border-radius: 0;
   }
 
@@ -255,6 +258,7 @@ export const cardStyles = css`
   }
 
   /* ===== TIME & LOCATION STYLES ===== */
+
   .time-location {
     display: flex;
     flex-direction: column;
