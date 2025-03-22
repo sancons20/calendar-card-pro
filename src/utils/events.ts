@@ -337,6 +337,34 @@ export function getEntityLabel(
   return entityConfig.label;
 }
 
+/**
+ * Get entity-specific setting or fall back to global setting
+ *
+ * @param entityId - The entity ID to check settings for
+ * @param settingName - Name of the setting to retrieve
+ * @param config - Current card configuration
+ * @returns The entity-specific setting if available, or undefined if not set
+ */
+export function getEntitySetting<K extends keyof Types.EntityConfig>(
+  entityId: string | undefined,
+  settingName: K,
+  config: Types.Config,
+): Types.EntityConfig[K] | undefined {
+  if (!entityId) return undefined;
+
+  // Find entity configuration
+  const entityConfig = config.entities.find(
+    (e) =>
+      (typeof e === 'string' && e === entityId) || (typeof e === 'object' && e.entity === entityId),
+  );
+
+  // Only object configurations can have entity-specific settings
+  if (!entityConfig || typeof entityConfig === 'string') return undefined;
+
+  // Return the entity-specific setting
+  return entityConfig[settingName];
+}
+
 //-----------------------------------------------------------------------------
 // DATA FETCHING FUNCTIONS
 //-----------------------------------------------------------------------------

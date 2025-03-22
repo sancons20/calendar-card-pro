@@ -163,10 +163,16 @@ export function renderEvent(
       ? EventUtils.getEntityAccentColorWithOpacity(event._entityId, config, backgroundOpacity)
       : ''; // Empty string for no background
 
+  // Get entity-specific settings with fallback to global settings
+  const showTime =
+    EventUtils.getEntitySetting(event._entityId, 'show_time', config) ?? config.show_time;
+  const showLocation =
+    EventUtils.getEntitySetting(event._entityId, 'show_location', config) ?? config.show_location;
+
   // Format event time and location
   const eventTime = FormatUtils.formatEventTime(event, config, language);
   const eventLocation =
-    event.location && config.show_location
+    event.location && showLocation
       ? FormatUtils.formatLocation(event.location, config.remove_location_country)
       : '';
 
@@ -207,7 +213,7 @@ export function renderEvent(
               : ''}${event.summary}
           </div>
           <div class="time-location">
-            ${config.show_time
+            ${showTime
               ? html`
                   <div class="time">
                     <ha-icon icon="mdi:clock-outline"></ha-icon>

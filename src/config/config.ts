@@ -80,7 +80,15 @@ export const DEFAULT_CONFIG: Types.Config = {
  */
 export function normalizeEntities(
   entities: Array<
-    string | { entity: string; label?: string; color?: string; accent_color?: string }
+    | string
+    | {
+        entity: string;
+        label?: string;
+        color?: string;
+        accent_color?: string;
+        show_time?: boolean;
+        show_location?: boolean;
+      }
   >,
 ): Array<Types.EntityConfig> {
   if (!Array.isArray(entities)) {
@@ -102,6 +110,8 @@ export function normalizeEntities(
           label: item.label,
           color: item.color || 'var(--primary-text-color)',
           accent_color: item.accent_color || 'var(--calendar-card-line-color-vertical)',
+          show_time: item.show_time,
+          show_location: item.show_location,
         };
       }
       return null;

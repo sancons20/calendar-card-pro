@@ -217,23 +217,32 @@ The `entities` array accepts either:
 
 #### Available Properties for Entity Configuration Objects:
 
-| Property     | Type   | Description                                                                                               |
-| ------------ | ------ | --------------------------------------------------------------------------------------------------------- |
-| entity       | string | **Required.** The calendar entity ID                                                                      |
-| label        | string | Optional label displayed before event titles from this calendar, for instance a calendar name or an emoji |
-| color        | string | Custom color for event titles from this calendar                                                          |
-| accent_color | string | Custom color for the vertical line and event background (when event_background_opacity is >0)             |
+| Property      | Type    | Description                                                                                               |
+| ------------- | ------- | --------------------------------------------------------------------------------------------------------- |
+| entity        | string  | **Required.** The calendar entity ID                                                                      |
+| label         | string  | Optional label displayed before event titles from this calendar, for instance a calendar name or an emoji |
+| color         | string  | Custom color for event titles from this calendar                                                          |
+| accent_color  | string  | Custom color for the vertical line and event background (when event_background_opacity is >0)             |
+| show_time     | boolean | Whether to show event times for this calendar (overrides global show_time setting)                        |
+| show_location | boolean | Whether to show event locations for this calendar (overrides global show_location setting)                |
 
 #### Example:
 
 ```yaml
 entities:
   - calendar.family # Simple entity ID (default styling)
-  - entity: calendar.work # Advanced entity configuration
-    label: '💻' # Show a building emoji before work events
-    color: '#1e90ff' # Custom event text color for this calendar
-    accent_color: '#ff6347' # Custom accent color for vertical line and background
+  - entity: calendar.work
+    label: '💻'
+    color: '#1e90ff'
+    accent_color: '#ff6347'
+  - entity: calendar.holidays
+    show_time: false # Hide times for holiday events
+  - entity: calendar.birthdays
+    show_time: false
+    show_location: false # Hide both time and location for birthdays
 ```
+
+This allows granular control over how information is displayed for different types of calendars.
 
 ### 🎨 Event Styling Options
 
