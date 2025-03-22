@@ -173,6 +173,7 @@ show_location: true
 | background_color         | string  | `--ha-card-background`            | Card background color                                                            |
 | row_spacing              | string  | `5px`                             | Spacing between calendar day rows                                                |
 | additional_card_spacing  | string  | `0px`                             | Additional top/bottom padding for the card                                       |
+| max_height               | string  | `none`                            | Maximum height of the card with scrolling for overflow (e.g., '300px')           |
 | vertical_line_width      | string  | `2px`                             | Vertical line separator width                                                    |
 | vertical_line_color      | string  | `#03a9f4`                         | Vertical line separator color                                                    |
 | horizontal_line_width    | string  | `0px`                             | Horizontal line width between days                                               |

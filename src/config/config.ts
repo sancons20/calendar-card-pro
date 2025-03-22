@@ -31,6 +31,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   background_color: 'var(--ha-card-background)',
   row_spacing: '5px',
   additional_card_spacing: '0px',
+  max_height: 'none',
   vertical_line_width: '2px',
   vertical_line_color: '#03a9f4',
   horizontal_line_width: '0px',

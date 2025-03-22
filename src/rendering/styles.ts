@@ -31,6 +31,7 @@ export function generateCustomPropertiesObject(config: Types.Config): Record<str
     '--calendar-card-line-width-horizontal': config.horizontal_line_width,
     '--calendar-card-spacing-row': config.row_spacing,
     '--calendar-card-spacing-additional': config.additional_card_spacing,
+    '--calendar-card-max-height': config.max_height,
     '--calendar-card-icon-size-time': config.time_icon_size || '14px',
     '--calendar-card-icon-size-location': config.location_icon_size || '14px',
     '--calendar-card-date-column-width': `${parseFloat(config.day_font_size) * 1.75}px`,
@@ -95,6 +96,28 @@ export const cardStyles = css`
   .header-container,
   .content-container {
     width: 100%;
+  }
+
+  /* Add scrolling to content container */
+  .content-container {
+    max-height: var(--calendar-card-max-height, none);
+    overflow-y: auto;
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: var(--secondary-text-color) transparent; /* Firefox */
+  }
+
+  /* Webkit scrollbar styling */
+  .content-container::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .content-container::-webkit-scrollbar-thumb {
+    background-color: var(--secondary-text-color);
+    border-radius: 3px;
+  }
+
+  .content-container::-webkit-scrollbar-track {
+    background: transparent;
   }
 
   .card-header-placeholder {

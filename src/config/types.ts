@@ -28,6 +28,7 @@ export interface Config {
   background_color: string;
   row_spacing: string;
   additional_card_spacing: string;
+  max_height: string;
   vertical_line_width: string;
   vertical_line_color: string;
   horizontal_line_width: string;
