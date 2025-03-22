@@ -205,6 +205,7 @@ show_location: true
 | hold_action              | object  | `none`                            | Action when holding the card                                                     |
 | **Cache and Refresh**    |         |                                   |                                                                                  |
 | refresh_interval         | number  | `30`                              | Time in minutes between data refreshes                                           |
+| refresh_on_navigate      | boolean | `false`                           | Whether to force refresh data when navigating between dashboard views            |
 
 ### 🗂️ Entity Configuration
 
@@ -352,6 +353,7 @@ tap_action:
 - **Minimized API Polling** – Fetches new data **only when necessary**.
 - **Automatic Refresh** – Updates **every `refresh_interval` minutes** (default: `30`).
 - **Smart Caching** – Stores events locally with cache lifetime equal to the refresh interval.
+- **Navigation-Aware Caching** – By default, preserves the cache when navigating between dashboard views to reduce API calls. Set `refresh_on_navigate: true` to always refresh when returning to a view.
 - **Rate-Limited Refresh** – When manually refreshing the page, new data is fetched only if at least 5 seconds have passed since the last update, preventing excessive API calls.
 - **Reactive Updates** – Events update when:
   - A **calendar entity changes**.

@@ -64,6 +64,7 @@ export interface Config {
 
   // Cache and refresh settings
   refresh_interval: number;
+  refresh_on_navigate: boolean;
 }
 
 /**

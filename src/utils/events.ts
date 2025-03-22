@@ -515,11 +515,17 @@ export function getValidCacheEntry(
     const cache = JSON.parse(item) as Types.CacheEntry;
     const now = Date.now();
 
-    // For manual reloads, use a much shorter cache validity
-    // This ensures fresh data on manual reloads while preserving normal caching for auto-refreshes
-    const cacheDuration = isManualPageReload
-      ? Constants.CACHE.MANUAL_RELOAD_CACHE_DURATION_SECONDS * 1000
-      : getCacheDuration(config);
+    // Determine cache duration based on context
+    let cacheDuration;
+
+    // Only apply short cache duration if refresh_on_navigate is enabled
+    // and this is a manual page reload/navigation
+    if (isManualPageReload && config?.refresh_on_navigate) {
+      cacheDuration = Constants.CACHE.MANUAL_RELOAD_CACHE_DURATION_SECONDS * 1000;
+    } else {
+      // Otherwise use normal cache duration
+      cacheDuration = getCacheDuration(config);
+    }
 
     const isValid = now - cache.timestamp < cacheDuration;
 
