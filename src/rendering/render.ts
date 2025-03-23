@@ -220,11 +220,11 @@ export function renderEvent(
   // Determine if we should show time for this specific event
   // Hide if:
   // 1. showTime is false (global setting or entity override) OR
-  // 2. It's a SINGLE-DAY all-day event AND hide_all_day_time is true OR
+  // 2. It's a SINGLE-DAY all-day event AND show_single_allday_time is false OR
   // 3. It's an empty day placeholder
   const shouldShowTime =
     showTime &&
-    !(isAllDayEvent && !isMultiDayAllDayEvent && config.hide_all_day_time) &&
+    !(isAllDayEvent && !isMultiDayAllDayEvent && !config.show_single_allday_time) &&
     !isEmptyDay;
 
   // Format event time and location
