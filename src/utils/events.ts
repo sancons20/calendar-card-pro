@@ -711,7 +711,7 @@ export function getBaseCacheKey(
       } else {
         normalizedStartDate = startDate;
       }
-    } catch (e) {
+    } catch {
       normalizedStartDate = startDate; // Fallback to original
     }
   }

@@ -23,7 +23,7 @@
  */
 
 // Import Lit libraries
-import { LitElement, PropertyValues, html, TemplateResult } from 'lit';
+import { LitElement, PropertyValues, TemplateResult, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
 // Import all types via namespace for cleaner imports

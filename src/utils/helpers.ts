@@ -104,7 +104,7 @@ export function generateDeterministicId(
       } else {
         normalizedStartDate = startDate;
       }
-    } catch (e) {
+    } catch {
       normalizedStartDate = startDate; // Fallback to original
     }
   }

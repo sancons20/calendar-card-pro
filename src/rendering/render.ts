@@ -165,8 +165,7 @@ export function renderEvent(
       // 2. End today (multi-day) OR
       // 3. Span across today (multi-day)
 
-      // Get start/end dates
-      const startDate = event.start.date ? FormatUtils.parseAllDayDate(event.start.date) : null;
+      // Get end date
       let endDate = event.end.date ? FormatUtils.parseAllDayDate(event.end.date) : null;
 
       // Adjust for iCal all-day end date convention (exclusive end date)
