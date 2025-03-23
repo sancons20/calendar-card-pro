@@ -794,17 +794,14 @@ To add a new language:
 
 ### 🏆 Acknowledgements
 
-### 🏆 Acknowledgements
-
 - **Original design inspiration** from [Calendar Add-on & Calendar Designs](https://community.home-assistant.io/t/calendar-add-on-some-calendar-designs/385790) by **[@kdw2060](https://github.com/kdw2060)**.
 - **Interaction patterns** inspired by Home Assistant’s [Tile Card](https://github.com/home-assistant/frontend/blob/dev/src/panels/lovelace/cards/hui-tile-card.ts), which is licensed under the [Apache License 2.0](https://github.com/home-assistant/frontend/blob/dev/LICENSE.md).
-- **Material Design ripple interactions**, originally by Google, used under the [Apache License 2.0](https://github.com/material-components/material-components-web/blob/master/LICENSE).der the [Apache License 2.0](https://github.com/home-assistant/frontend/blob/dev/LICENSE.md).
 - **Material Design ripple interactions**, originally by Google, used under the [Apache License 2.0](https://github.com/material-components/material-components-web/blob/master/LICENSE).
-  <!--Badges-->
-  <!--Badges-->
-  [hacs-img]: https://img.shields.io/badge/HACS-Custom-orange.svg
-  [hacs-url]: https://github.com/alexpfau/calendar-card-pro/actions/workflows/hacs-validate.yml
-  [github-release-img]: https://img.shields.io/github/release/alexpfau/calendar-card-pro.svgyml
-  [github-downloads-img]: https://img.shields.io/github/downloads/alexpfau/calendar-card-pro/total.svg
-  [github-release-url]: https://github.com/alexpfau/calendar-card-pro/releasesendar-card-pro/total.svg
-  [github-release-url]: https://github.com/alexpfau/calendar-card-pro/releases
+
+ <!--Badges-->
+
+[hacs-img]: https://img.shields.io/badge/HACS-Custom-orange.svg
+[hacs-url]: https://github.com/alexpfau/calendar-card-pro/actions/workflows/hacs-validate.yml
+[github-release-img]: https://img.shields.io/github/release/alexpfau/calendar-card-pro.svg
+[github-downloads-img]: https://img.shields.io/github/downloads/alexpfau/calendar-card-pro/total.svg
+[github-release-url]: https://github.com/alexpfau/calendar-card-pro/releases
