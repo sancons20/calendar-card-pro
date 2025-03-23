@@ -148,6 +148,44 @@ export function renderEvent(
   // Add CSS class for empty days
   const isEmptyDay = Boolean(event._isEmptyDay);
 
+  // Check if this is a past event (already ended)
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  let isPastEvent = false;
+
+  if (!isEmptyDay) {
+    const isAllDayEvent = !event.start.dateTime;
+
+    if (isAllDayEvent) {
+      // All-day events should NOT be marked as past when they:
+      // 1. Occur today (single-day) OR
+      // 2. End today (multi-day) OR
+      // 3. Span across today (multi-day)
+
+      // Get start/end dates
+      const startDate = event.start.date ? FormatUtils.parseAllDayDate(event.start.date) : null;
+      let endDate = event.end.date ? FormatUtils.parseAllDayDate(event.end.date) : null;
+
+      // Adjust for iCal all-day end date convention (exclusive end date)
+      if (endDate) {
+        const adjustedEndDate = new Date(endDate);
+        adjustedEndDate.setDate(adjustedEndDate.getDate() - 1);
+        endDate = adjustedEndDate;
+      }
+
+      // All-day events are only "past" if today is completely after their end date
+      // If today is the end date or earlier, the event should NOT be greyed out
+      isPastEvent = endDate !== null && today > endDate;
+    } else {
+      // Regular event with time - use end time to determine if it's past
+      const endDateTime = event.end.dateTime ? new Date(event.end.dateTime) : null;
+      isPastEvent = endDateTime !== null && now > endDateTime;
+    }
+  }
+
   // Get colors from config based on entity ID
   const entityColor = EventUtils.getEntityColor(event._entityId, config);
 
@@ -207,7 +245,7 @@ export function renderEvent(
     'event-first': isFirst,
     'event-middle': isMiddle,
     'event-last': isLast,
-    'no-events': isEmptyDay, // Add class for empty days
+    'past-event': isPastEvent,
   };
 
   return html`

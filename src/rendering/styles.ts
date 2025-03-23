@@ -215,6 +215,13 @@ export const cardStyles = css`
     border-radius: 0;
   }
 
+  /* Past event styling - subtle opacity reduction */
+  .past-event .event-title,
+  .past-event .time,
+  .past-event .location {
+    opacity: 0.6;
+  }
+
   /* Event positioning variations */
   .event-first.event-last {
     border-radius: 0 var(--calendar-card-event-border-radius)
@@ -249,8 +256,7 @@ export const cardStyles = css`
 
   /* Empty day specific styling */
   .empty-day-title {
-    font-weight: 300 !important;
-    opacity: 0.85;
+    opacity: 0.6;
   }
 
   .calendar-label {
