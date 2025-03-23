@@ -12,42 +12,65 @@
  * Main configuration interface for the card
  */
 export interface Config {
+  // Core settings
   entities: Array<string | EntityConfig>;
+  start_date: string;
   days_to_show: number;
   max_events_to_show?: number;
-  show_past_events: boolean;
-  refresh_interval: number;
+  show_empty_days: boolean;
   language: string;
-  time_24h: boolean;
-  show_end_time: boolean;
-  show_month: boolean;
-  show_location: boolean;
-  remove_location_country: boolean;
+
+  // Header
   title: string;
+  title_font_size: string;
+  title_color: string;
+
+  // Layout and spacing
   background_color: string;
-  row_spacing: string;
+  day_spacing: string;
+  event_spacing: string;
   additional_card_spacing: string;
+  max_height: string;
   vertical_line_width: string;
   vertical_line_color: string;
   horizontal_line_width: string;
   horizontal_line_color: string;
-  title_font_size: string;
+
+  // Date column
+  date_vertical_alignment: string;
   weekday_font_size: string;
-  day_font_size: string;
-  month_font_size: string;
-  event_font_size: string;
-  time_font_size: string;
-  location_font_size: string;
-  time_location_icon_size: string;
-  title_color: string;
   weekday_color: string;
+  day_font_size: string;
   day_color: string;
+  show_month: boolean;
+  month_font_size: string;
   month_color: string;
+
+  // Event column
+  event_background_opacity: number;
+  show_past_events: boolean;
+  event_font_size: string;
   event_color: string;
+  show_time: boolean;
+  show_single_allday_time: boolean;
+  time_24h: boolean;
+  show_end_time: boolean;
+  time_font_size: string;
   time_color: string;
+  time_icon_size: string;
+  show_location: boolean;
+  remove_location_country: boolean;
+  location_font_size: string;
   location_color: string;
+  location_icon_size: string;
+
+  // Actions
   tap_action: ActionConfig;
   hold_action: ActionConfig;
+
+  // Cache and refresh settings
+  refresh_interval: number;
+  refresh_on_navigate: boolean;
 }
 
 /**
@@ -55,7 +78,11 @@ export interface Config {
  */
 export interface EntityConfig {
   entity: string;
+  label?: string;
   color?: string;
+  accent_color?: string;
+  show_time?: boolean;
+  show_location?: boolean;
 }
 
 // -----------------------------------------------------------------------------
@@ -71,6 +98,8 @@ export interface CalendarEventData {
   summary?: string;
   location?: string;
   _entityId?: string;
+  _entityLabel?: string;
+  _isEmptyDay?: boolean;
   time?: string;
 }
 
@@ -107,27 +136,6 @@ export interface ActionConfig {
   service_data?: object;
   url_path?: string;
   open_tab?: string;
-}
-
-/**
- * Interaction state for tracking pointer events and visual feedback
- * Enhanced with additional flags for better state management
- */
-export interface InteractionState {
-  // Pointer tracking
-  activePointerId: number | null;
-
-  // Action state
-  holdTriggered: boolean;
-  holdTimer: number | null;
-  pendingHoldAction: boolean;
-
-  // Visual elements
-  holdIndicator: HTMLElement | null;
-  lastPointerEvent: PointerEvent | null;
-
-  // Timing
-  lastActionTime: number;
 }
 
 /**
@@ -209,73 +217,4 @@ export interface Translations {
   fullDaysOfWeek: string[];
   endsToday: string;
   endsTomorrow: string;
-}
-
-// -----------------------------------------------------------------------------
-// PERFORMANCE & UTILITIES
-// -----------------------------------------------------------------------------
-
-/**
- * Performance monitoring data
- */
-export interface PerformanceData {
-  readonly renderTime: number[];
-  eventCount: number;
-  lastUpdate: number;
-}
-
-/**
- * Performance metrics structure
- */
-export interface PerfMetrics {
-  startTime: number;
-  eventCount: number;
-}
-
-/**
- * Memoization cache interface
- */
-export interface MemoCache<T> {
-  readonly cache: Map<string, T>;
-  clear(): void;
-}
-
-/**
- * Calendar component interface for component instances
- */
-export interface CalendarComponent {
-  config: Config;
-  events: CalendarEventData[];
-  _hass: Hass | null;
-  isLoading: boolean;
-  isExpanded: boolean;
-  renderTimeout?: number;
-  updateEvents: (force?: boolean) => Promise<void>;
-  toggleExpanded: () => void;
-  renderCard: () => void;
-  performanceMetrics: PerformanceData;
-  memoizedFormatTime: (date: Date) => string & MemoCache<string>;
-  memoizedFormatLocation: (location: string) => string & MemoCache<string>;
-  interactionManager: {
-    state: InteractionState;
-    container: HTMLElement | null;
-    cleanup: (() => void) | null;
-  };
-  shadowRoot: ShadowRoot | null;
-  visibilityCleanup?: () => void;
-  refreshTimer?: {
-    start: () => void;
-    stop: () => void;
-    restart: () => void;
-  };
-  cleanupInterval: number;
-}
-
-/**
- * Performance tracker interface
- */
-export interface PerformanceTracker {
-  beginMeasurement: (eventCount: number) => PerfMetrics;
-  endMeasurement: (metrics: PerfMetrics, performanceData: PerformanceData) => number;
-  getAverageRenderTime: (performanceData: PerformanceData) => number;
 }

@@ -17,53 +17,63 @@ import * as Logger from '../utils/logger';
 export const DEFAULT_CONFIG: Types.Config = {
   // Core settings
   entities: [],
-  days_to_show: Constants.DEFAULTS.DAYS_TO_SHOW,
-  max_events_to_show: Constants.DEFAULTS.MAX_EVENTS_TO_SHOW,
-  show_past_events: Constants.DEFAULTS.SHOW_PAST_EVENTS,
-  language: Constants.DEFAULTS.LANGUAGE,
+  start_date: '',
+  days_to_show: 3,
+  max_events_to_show: undefined,
+  show_empty_days: false,
+  language: '',
 
-  // Display settings
-  time_24h: Constants.DISPLAY.TIME_24H,
-  show_end_time: Constants.DISPLAY.SHOW_END_TIME,
-  show_month: Constants.DISPLAY.SHOW_MONTH,
-  show_location: Constants.DISPLAY.SHOW_LOCATION,
-  remove_location_country: Constants.DISPLAY.REMOVE_LOCATION_COUNTRY,
-  title: Constants.DISPLAY.TITLE,
+  // Header
+  title: '',
+  title_font_size: '',
+  title_color: '',
 
   // Layout and spacing
-  background_color: Constants.LAYOUT.BACKGROUND_COLOR,
-  row_spacing: Constants.LAYOUT.ROW_SPACING,
-  additional_card_spacing: Constants.LAYOUT.ADDITIONAL_CARD_SPACING,
-  vertical_line_width: Constants.LAYOUT.VERTICAL_LINE_WIDTH,
-  vertical_line_color: Constants.LAYOUT.VERTICAL_LINE_COLOR,
-  horizontal_line_width: Constants.LAYOUT.HORIZONTAL_LINE_WIDTH,
-  horizontal_line_color: Constants.LAYOUT.HORIZONTAL_LINE_COLOR,
+  background_color: 'var(--ha-card-background)',
+  day_spacing: '5px',
+  event_spacing: '4px',
+  additional_card_spacing: '0px',
+  max_height: 'none',
+  vertical_line_width: '2px',
+  vertical_line_color: '#03a9f4',
+  horizontal_line_width: '0px',
+  horizontal_line_color: 'var(--secondary-text-color)',
 
-  // Font sizes
-  title_font_size: Constants.FONTS.TITLE_FONT_SIZE,
-  weekday_font_size: Constants.FONTS.WEEKDAY_FONT_SIZE,
-  day_font_size: Constants.FONTS.DAY_FONT_SIZE,
-  month_font_size: Constants.FONTS.MONTH_FONT_SIZE,
-  event_font_size: Constants.FONTS.EVENT_FONT_SIZE,
-  time_font_size: Constants.FONTS.TIME_FONT_SIZE,
-  location_font_size: Constants.FONTS.LOCATION_FONT_SIZE,
-  time_location_icon_size: Constants.FONTS.TIME_LOCATION_ICON_SIZE,
+  // Date column
+  date_vertical_alignment: 'middle',
+  weekday_font_size: '14px',
+  weekday_color: 'var(--primary-text-color)',
+  day_font_size: '26px',
+  day_color: 'var(--primary-text-color)',
+  show_month: true,
+  month_font_size: '12px',
+  month_color: 'var(--primary-text-color)',
 
-  // Colors
-  title_color: Constants.COLORS.TITLE_COLOR,
-  weekday_color: Constants.COLORS.WEEKDAY_COLOR,
-  day_color: Constants.COLORS.DAY_COLOR,
-  month_color: Constants.COLORS.MONTH_COLOR,
-  event_color: Constants.COLORS.EVENT_COLOR,
-  time_color: Constants.COLORS.TIME_COLOR,
-  location_color: Constants.COLORS.LOCATION_COLOR,
+  // Event column
+  event_background_opacity: 0,
+  show_past_events: false,
+  event_font_size: '14px',
+  event_color: 'var(--primary-text-color)',
+  show_time: true,
+  show_single_allday_time: true,
+  time_24h: true,
+  show_end_time: true,
+  time_font_size: '12px',
+  time_color: 'var(--secondary-text-color)',
+  time_icon_size: '14px',
+  show_location: true,
+  remove_location_country: true,
+  location_font_size: '12px',
+  location_color: 'var(--secondary-text-color)',
+  location_icon_size: '14px',
 
   // Actions
-  tap_action: Constants.ACTIONS.DEFAULT_TAP_ACTION,
-  hold_action: Constants.ACTIONS.DEFAULT_HOLD_ACTION,
+  tap_action: { action: 'none' },
+  hold_action: { action: 'none' },
 
   // Cache and refresh settings
   refresh_interval: Constants.CACHE.DEFAULT_DATA_REFRESH_MINUTES,
+  refresh_on_navigate: true,
 };
 
 //-----------------------------------------------------------------------------
@@ -74,7 +84,17 @@ export const DEFAULT_CONFIG: Types.Config = {
  * Normalizes entity configuration to ensure consistent format
  */
 export function normalizeEntities(
-  entities: Array<string | { entity: string; color?: string }>,
+  entities: Array<
+    | string
+    | {
+        entity: string;
+        label?: string;
+        color?: string;
+        accent_color?: string;
+        show_time?: boolean;
+        show_location?: boolean;
+      }
+  >,
 ): Array<Types.EntityConfig> {
   if (!Array.isArray(entities)) {
     return [];
@@ -85,13 +105,18 @@ export function normalizeEntities(
       if (typeof item === 'string') {
         return {
           entity: item,
-          color: Constants.COLORS.PRIMARY_TEXT,
+          color: 'var(--primary-text-color)',
+          accent_color: 'var(--calendar-card-line-color-vertical)',
         };
       }
       if (typeof item === 'object' && item.entity) {
         return {
           entity: item.entity,
-          color: item.color || Constants.COLORS.PRIMARY_TEXT,
+          label: item.label,
+          color: item.color || 'var(--primary-text-color)',
+          accent_color: item.accent_color || 'var(--calendar-card-line-color-vertical)',
+          show_time: item.show_time,
+          show_location: item.show_location,
         };
       }
       return null;
@@ -130,6 +155,7 @@ export function hasConfigChanged(
   const dataChanged =
     previousEntityIds !== currentEntityIds ||
     previous.days_to_show !== current.days_to_show ||
+    previous.start_date !== current.start_date ||
     previous.show_past_events !== current.show_past_events;
 
   if (dataChanged || refreshIntervalChanged) {
@@ -163,9 +189,9 @@ export function haveEntityColorsChanged(
   const prevColorMap = new Map<string, string>();
   prevEntities.forEach((entity) => {
     if (typeof entity === 'string') {
-      prevColorMap.set(entity, Constants.COLORS.PRIMARY_TEXT);
+      prevColorMap.set(entity, 'var(--primary-text-color)');
     } else {
-      prevColorMap.set(entity.entity, entity.color || Constants.COLORS.PRIMARY_TEXT);
+      prevColorMap.set(entity.entity, entity.color || 'var(--primary-text-color)');
     }
   });
 
@@ -174,8 +200,8 @@ export function haveEntityColorsChanged(
     const entityId = typeof entity === 'string' ? entity : entity.entity;
     const color =
       typeof entity === 'string'
-        ? Constants.COLORS.PRIMARY_TEXT
-        : entity.color || Constants.COLORS.PRIMARY_TEXT;
+        ? 'var(--primary-text-color)'
+        : entity.color || 'var(--primary-text-color)';
 
     if (!prevColorMap.has(entityId)) {
       // New entity, let other functions handle it
@@ -211,8 +237,8 @@ export function getStubConfig(hass: Record<string, { state: string }>): Record<s
   return {
     type: 'custom:calendar-card-pro-dev',
     entities: calendarEntity ? [calendarEntity] : [],
-    days_to_show: Constants.DEFAULTS.DAYS_TO_SHOW,
-    show_location: Constants.DISPLAY.SHOW_LOCATION,
+    days_to_show: 3,
+    show_location: true,
     _description: !calendarEntity
       ? 'A calendar card that displays events from multiple calendars with individual styling. Add a calendar integration to Home Assistant to use this card.'
       : undefined,

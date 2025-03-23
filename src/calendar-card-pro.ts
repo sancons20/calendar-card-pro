@@ -22,22 +22,23 @@
  * This package includes lit/LitElement (BSD-3-Clause License)
  */
 
+// Import Lit libraries
+import { LitElement, PropertyValues, TemplateResult, html } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+
 // Import all types via namespace for cleaner imports
 import * as Config from './config/config';
 import * as Constants from './config/constants';
 import * as Types from './config/types';
 import * as Localize from './translations/localize';
-import * as FormatUtils from './utils/format';
 import * as EventUtils from './utils/events';
-import * as Core from './interaction/core';
 import * as Actions from './interaction/actions';
 import * as Helpers from './utils/helpers';
-import * as StateUtils from './utils/state';
-import * as Render from './rendering/render';
-import * as DomUtils from './utils/dom';
 import * as Logger from './utils/logger';
 import * as Editor from './rendering/editor';
-import './interaction/ripple';
+import * as Styles from './rendering/styles';
+import * as Feedback from './interaction/feedback';
+import * as Render from './rendering/render';
 
 //-----------------------------------------------------------------------------
 // GLOBAL TYPE DECLARATIONS
@@ -46,27 +47,16 @@ import './interaction/ripple';
 // Ensure this file is treated as a module
 export {};
 
-// Add window interface extension for customCards
+// Add global type declarations
 declare global {
   interface Window {
     customCards: Array<Types.CustomCard>;
   }
 
-  // Add custom element interface
   interface HTMLElementTagNameMap {
     'calendar-card-pro-dev': CalendarCardPro;
     'calendar-card-pro-dev-editor': Editor.CalendarCardProEditor;
-  }
-
-  // Add improved DOM interfaces
-  interface HTMLElementEventMap {
-    'hass-more-info': Types.HassMoreInfoEvent;
-    'location-changed': Event;
-  }
-
-  // Add custom property for ripple handler
-  interface HTMLElement {
-    _rippleHandler?: (ev: PointerEvent) => void;
+    'ha-ripple': HTMLElement;
   }
 }
 
@@ -75,384 +65,415 @@ declare global {
 //-----------------------------------------------------------------------------
 
 /**
- * The main Calendar Card Pro component that extends HTMLElement
+ * The main Calendar Card Pro component that extends LitElement
  * This class orchestrates the different modules to create a complete
  * calendar card for Home Assistant
  */
-class CalendarCardPro extends HTMLElement implements Types.CalendarComponent {
+@customElement('calendar-card-pro-dev')
+class CalendarCardPro extends LitElement {
   //-----------------------------------------------------------------------------
-  // PROPERTIES AND STATE
-  //-----------------------------------------------------------------------------
-
-  // Change from private to public to match interface
-  public config!: Types.Config;
-  public events: Types.CalendarEventData[] = [];
-  public _hass: Types.Hass | null = null;
-  public isLoading = true;
-  public isExpanded = false;
-  public performanceMetrics: Types.PerformanceData = {
-    renderTime: [],
-    eventCount: 0,
-    lastUpdate: Date.now(),
-  };
-
-  private instanceId: string;
-
-  // These properties will be initialized in the constructor
-  public debouncedUpdate: () => void;
-  public memoizedFormatTime: (date: Date) => string & Types.MemoCache<string>;
-  public memoizedFormatLocation: (location: string) => string & Types.MemoCache<string>;
-  public cleanupInterval: number;
-  public renderTimeout?: number;
-  public performanceTracker: {
-    beginMeasurement: (eventCount: number) => Types.PerfMetrics;
-    endMeasurement: (metrics: Types.PerfMetrics, performanceData: Types.PerformanceData) => number;
-    getAverageRenderTime: (performanceData: Types.PerformanceData) => number;
-  };
-  public visibilityCleanup?: () => void;
-  public refreshTimer?: {
-    start: () => void;
-    stop: () => void;
-    restart: () => void;
-  };
-  public interactionManager: {
-    state: Types.InteractionState;
-    container: HTMLElement | null;
-    cleanup: (() => void) | null;
-  };
-
-  //-----------------------------------------------------------------------------
-  // STATIC PROPERTIES AND METHODS
+  // PROPERTIES
   //-----------------------------------------------------------------------------
 
-  static get DEFAULT_CONFIG(): Types.Config {
-    return Config.DEFAULT_CONFIG;
+  @property({ attribute: false }) hass?: Types.Hass;
+  @property({ attribute: false }) config: Types.Config = { ...Config.DEFAULT_CONFIG };
+  @property({ attribute: false }) events: Types.CalendarEventData[] = [];
+  @property({ attribute: false }) isLoading = true;
+  @property({ attribute: false }) isExpanded = false;
+
+  // Private, non-reactive properties
+  private _instanceId = Helpers.generateInstanceId();
+  private _language = '';
+  private _refreshTimerId?: number;
+  private _lastUpdateTime = Date.now();
+
+  // Interaction state
+  private _activePointerId: number | null = null;
+  private _holdTriggered = false;
+  private _holdTimer: number | null = null;
+  private _holdIndicator: HTMLElement | null = null;
+
+  //-----------------------------------------------------------------------------
+  // COMPUTED GETTERS
+  //-----------------------------------------------------------------------------
+
+  /**
+   * Safe accessor for hass - always returns hass object or null
+   */
+  get safeHass(): Types.Hass | null {
+    return this.hass || null;
   }
 
-  static get TRANSLATIONS(): Readonly<Record<string, Types.Translations>> {
-    return Localize.TRANSLATIONS;
+  /**
+   * Get the effective language to use based on configuration and HA locale
+   */
+  get effectiveLanguage(): string {
+    if (!this._language && this.hass) {
+      this._language = Localize.getEffectiveLanguage(this.config.language, this.hass.locale);
+    }
+    return this._language || 'en';
   }
 
-  static findCalendarEntity(hass: Types.Hass): string | null {
-    return Config.findCalendarEntity(hass.states);
-  }
-
-  static getStubConfig(hass: Types.Hass) {
-    return Config.getStubConfig(hass.states);
-  }
-
-  static get displayName() {
-    return 'Calendar Card Pro';
+  /**
+   * Get events grouped by day
+   */
+  get groupedEvents(): Types.EventsByDay[] {
+    return EventUtils.groupEventsByDay(
+      this.events,
+      this.config,
+      this.isExpanded,
+      this.effectiveLanguage,
+    );
   }
 
   //-----------------------------------------------------------------------------
-  // COMPONENT LIFECYCLE
+  // STATIC PROPERTIES
+  //-----------------------------------------------------------------------------
+
+  static get styles() {
+    return Styles.cardStyles;
+  }
+
+  //-----------------------------------------------------------------------------
+  // LIFECYCLE METHODS
   //-----------------------------------------------------------------------------
 
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
-    // Generate a temporary instance ID - this will be replaced with a deterministic one in setConfig
-    this.instanceId = Helpers.generateInstanceId();
-    // Initialize basic component state
-    const initialState = StateUtils.initializeState();
-    this.config = initialState.config;
-    this.events = initialState.events;
-    this._hass = initialState.hass;
-    this.isLoading = initialState.isLoading;
-    this.isExpanded = initialState.isExpanded;
-
-    // Set up lifecycle and controllers
-    const lifecycle = StateUtils.setupComponentLifecycle(this);
-
-    // Store lifecycle components
-    this.performanceTracker = lifecycle.performanceTracker;
-    this.visibilityCleanup = lifecycle.visibilityCleanup;
-    this.refreshTimer = lifecycle.refreshTimer;
-    this.cleanupInterval = lifecycle.cleanupInterval;
-    this.debouncedUpdate = lifecycle.debouncedUpdate;
-    this.memoizedFormatTime = lifecycle.memoizedFormatTime;
-    this.memoizedFormatLocation = lifecycle.memoizedFormatLocation;
-    this.interactionManager = lifecycle.interactionManager;
+    this._instanceId = Helpers.generateInstanceId();
+    Logger.initializeLogger(Constants.VERSION.CURRENT);
   }
 
   connectedCallback() {
-    StateUtils.handleConnectedCallback(this);
+    super.connectedCallback();
+    Logger.debug('Component connected');
+
+    // Set up refresh timer
+    this.startRefreshTimer();
+
+    // Load events on initial connection
+    this.updateEvents();
+
+    // Set up visibility listener
+    document.addEventListener('visibilitychange', this._handleVisibilityChange);
   }
 
   disconnectedCallback() {
-    StateUtils.cleanupComponent(this);
+    super.disconnectedCallback();
+
+    // Clean up timers
+    if (this._refreshTimerId) {
+      clearTimeout(this._refreshTimerId);
+    }
+
+    if (this._holdTimer) {
+      clearTimeout(this._holdTimer);
+      this._holdTimer = null;
+    }
+
+    // Clean up hold indicator if it exists
+    if (this._holdIndicator) {
+      Feedback.removeHoldIndicator(this._holdIndicator);
+      this._holdIndicator = null;
+    }
+
+    // Remove listeners
+    document.removeEventListener('visibilitychange', this._handleVisibilityChange);
+
+    Logger.debug('Component disconnected');
   }
 
-  //-----------------------------------------------------------------------------
-  // HOME ASSISTANT INTEGRATION
-  //-----------------------------------------------------------------------------
-
-  set hass(hass: Types.Hass) {
-    const previousHass = this._hass;
-    this._hass = hass;
-
-    const entitiesChanged = this.config.entities.some(
-      (entity) =>
-        !previousHass ||
-        previousHass.states[typeof entity === 'string' ? entity : entity.entity]?.state !==
-          hass.states[typeof entity === 'string' ? entity : entity.entity]?.state,
-    );
-
-    if (entitiesChanged) {
-      this.updateEvents();
+  updated(changedProps: PropertyValues) {
+    // Update language if locale or config language changed
+    if (
+      (changedProps.has('hass') && this.hass?.locale) ||
+      (changedProps.has('config') && changedProps.get('config')?.language !== this.config.language)
+    ) {
+      this._language = Localize.getEffectiveLanguage(this.config.language, this.hass?.locale);
     }
   }
 
+  //-----------------------------------------------------------------------------
+  // PRIVATE METHODS
+  //-----------------------------------------------------------------------------
+
+  /**
+   * Generate style properties from configuration
+   * Returns a style object for use with styleMap
+   */
+  private getCustomStyles(): Record<string, string> {
+    // Convert CSS custom properties to a style object
+    return Styles.generateCustomPropertiesObject(this.config);
+  }
+
+  /**
+   * Handle visibility changes to refresh data when returning to the page
+   */
+  private _handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      const now = Date.now();
+      // Only refresh if it's been a while
+      if (now - this._lastUpdateTime > Constants.TIMING.VISIBILITY_REFRESH_THRESHOLD) {
+        Logger.debug('Visibility changed to visible, updating events');
+        this.updateEvents();
+      }
+    }
+  };
+
+  /**
+   * Start the refresh timer
+   */
+  private startRefreshTimer() {
+    if (this._refreshTimerId) {
+      clearTimeout(this._refreshTimerId);
+    }
+
+    const refreshMinutes =
+      this.config.refresh_interval || Constants.CACHE.DEFAULT_DATA_REFRESH_MINUTES;
+    const refreshMs = refreshMinutes * 60 * 1000;
+
+    this._refreshTimerId = window.setTimeout(() => {
+      this.updateEvents();
+      this.startRefreshTimer();
+    }, refreshMs);
+
+    Logger.debug(`Scheduled next refresh in ${refreshMinutes} minutes`);
+  }
+
+  /**
+   * Handle pointer down events for hold detection
+   */
+  private _handlePointerDown(ev: PointerEvent) {
+    // Store this pointer ID to track if it's the same pointer throughout
+    this._activePointerId = ev.pointerId;
+    this._holdTriggered = false;
+
+    // Only set up hold timer if hold action is configured
+    if (this.config.hold_action?.action !== 'none') {
+      // Clear any existing timer
+      if (this._holdTimer) {
+        clearTimeout(this._holdTimer);
+      }
+
+      // Start a new hold timer
+      this._holdTimer = window.setTimeout(() => {
+        if (this._activePointerId === ev.pointerId) {
+          this._holdTriggered = true;
+
+          // Create hold indicator for visual feedback
+          this._holdIndicator = Feedback.createHoldIndicator(ev, this.config);
+        }
+      }, Constants.TIMING.HOLD_THRESHOLD);
+    }
+  }
+
+  /**
+   * Handle pointer up events to execute actions
+   */
+  private _handlePointerUp(ev: PointerEvent) {
+    // Only process if this is the pointer we've been tracking
+    if (ev.pointerId !== this._activePointerId) return;
+
+    // Clear hold timer
+    if (this._holdTimer) {
+      clearTimeout(this._holdTimer);
+      this._holdTimer = null;
+    }
+
+    // Execute the appropriate action based on whether hold was triggered
+    if (this._holdTriggered && this.config.hold_action) {
+      Logger.debug('Executing hold action');
+      const entityId = Actions.getPrimaryEntityId(this.config.entities);
+      Actions.handleAction(this.config.hold_action, this.safeHass, this, entityId, () =>
+        this.toggleExpanded(),
+      );
+    } else if (!this._holdTriggered && this.config.tap_action) {
+      Logger.debug('Executing tap action');
+      const entityId = Actions.getPrimaryEntityId(this.config.entities);
+      Actions.handleAction(this.config.tap_action, this.safeHass, this, entityId, () =>
+        this.toggleExpanded(),
+      );
+    }
+
+    // Reset state
+    this._activePointerId = null;
+    this._holdTriggered = false;
+
+    // Remove hold indicator if it exists
+    if (this._holdIndicator) {
+      Feedback.removeHoldIndicator(this._holdIndicator);
+      this._holdIndicator = null;
+    }
+  }
+
+  /**
+   * Handle pointer cancel/leave events to clean up
+   */
+  private _handlePointerCancel() {
+    // Clear hold timer
+    if (this._holdTimer) {
+      clearTimeout(this._holdTimer);
+      this._holdTimer = null;
+    }
+
+    // Reset state
+    this._activePointerId = null;
+    this._holdTriggered = false;
+
+    // Remove hold indicator if it exists
+    if (this._holdIndicator) {
+      Feedback.removeHoldIndicator(this._holdIndicator);
+      this._holdIndicator = null;
+    }
+  }
+
+  /**
+   * Handle keyboard navigation for accessibility
+   */
+  private _handleKeyDown(ev: KeyboardEvent) {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      const entityId = Actions.getPrimaryEntityId(this.config.entities);
+      Actions.handleAction(this.config.tap_action, this.safeHass, this, entityId, () =>
+        this.toggleExpanded(),
+      );
+    }
+  }
+
+  //-----------------------------------------------------------------------------
+  // PUBLIC METHODS
+  //-----------------------------------------------------------------------------
+
+  /**
+   * Handle configuration updates from Home Assistant
+   */
   setConfig(config: Partial<Types.Config>) {
     const previousConfig = this.config;
-    this.config = { ...CalendarCardPro.DEFAULT_CONFIG, ...config };
+    this.config = { ...Config.DEFAULT_CONFIG, ...config };
     this.config.entities = Config.normalizeEntities(this.config.entities);
 
-    // Generate deterministic instance ID based on data-affecting config
-    this.instanceId = Helpers.generateDeterministicId(
+    // Generate deterministic ID for caching
+    this._instanceId = Helpers.generateDeterministicId(
       this.config.entities,
       this.config.days_to_show,
       this.config.show_past_events,
+      this.config.start_date,
     );
 
-    // Check if data-affect configuration has changed
+    // Check if we need to reload data
     const configChanged = Config.hasConfigChanged(previousConfig, this.config);
-
-    // Check if only entity colors changed (requires re-render but not data refresh)
-    const colorChanged = Config.haveEntityColorsChanged(previousConfig, this.config);
-
     if (configChanged) {
       Logger.debug('Configuration changed, refreshing data');
-      this.updateEvents(true); // Force refresh
-    } else if (colorChanged) {
-      // If only entity colors changed, just re-render without data refresh
-      Logger.debug('Entity colors changed, re-rendering without data refresh');
-      this.renderCard();
-    } else {
-      // Re-render with new styling for other changes
-      this.renderCard();
+      this.updateEvents(true);
     }
 
-    // Restart the refresh timer with the new configuration
-    if (this.refreshTimer) {
-      this.refreshTimer.restart();
-    }
+    // Restart the timer with new config
+    this.startRefreshTimer();
   }
 
-  //-----------------------------------------------------------------------------
-  // DATA HANDLING
-  //-----------------------------------------------------------------------------
-
-  invalidateCache() {
-    const baseKey = EventUtils.getBaseCacheKey(
-      this.instanceId,
-      this.config.entities,
-      this.config.days_to_show,
-      this.config.show_past_events,
-    );
-    EventUtils.invalidateCache([baseKey]);
-  }
-
+  /**
+   * Update calendar events from API or cache
+   * Simplified for card-mod compatibility
+   */
   async updateEvents(force = false): Promise<void> {
-    await EventUtils.orchestrateEventUpdate({
-      hass: this._hass,
-      config: this.config,
-      instanceId: this.instanceId,
-      force,
-      currentEvents: this.events,
-      callbacks: {
-        setLoading: (loading) => {
-          this.isLoading = loading;
-        },
-        setEvents: (events) => {
-          this.events = events;
-        },
-        updateLastUpdate: () => {
-          this.performanceMetrics.lastUpdate = Date.now();
-        },
-        renderCallback: () => {
-          this.renderCard();
-        },
-        restartTimer: () => {
-          if (this.refreshTimer && this.refreshTimer.restart) {
-            Logger.debug('Restarting refresh timer after data fetch');
-            this.refreshTimer.restart();
-          }
-        },
-      },
-    });
+    Logger.debug(`Updating events (force=${force})`);
+
+    // Skip update if no Home Assistant connection or no entities
+    if (!this.safeHass || !this.config.entities.length) {
+      this.isLoading = false;
+      return;
+    }
+
+    try {
+      // Set loading state first (triggers render with stable DOM)
+      this.isLoading = true;
+
+      // Wait for loading render to complete
+      await this.updateComplete;
+
+      // Get event data (from cache or API) using modularized function
+      const eventData = await EventUtils.fetchEventData(
+        this.safeHass,
+        this.config,
+        this._instanceId,
+        force,
+      );
+
+      // Critical: Complete loading state before updating events
+      this.isLoading = false;
+      await this.updateComplete;
+
+      // Finally set events data
+      this.events = [...eventData];
+      this._lastUpdateTime = Date.now();
+
+      Logger.info('Event update completed successfully');
+    } catch (error) {
+      Logger.error('Failed to update events:', error);
+      this.isLoading = false;
+    }
+  }
+
+  /**
+   * Toggle expanded state for view modes with limited events
+   */
+  toggleExpanded(): void {
+    if (this.config.max_events_to_show) {
+      this.isExpanded = !this.isExpanded;
+    }
+  }
+
+  /**
+   * Handle user action
+   */
+  handleAction(actionConfig: Types.ActionConfig): void {
+    const entityId = Actions.getPrimaryEntityId(this.config.entities);
+    Actions.handleAction(actionConfig, this.safeHass, this, entityId, () => this.toggleExpanded());
   }
 
   //-----------------------------------------------------------------------------
   // RENDERING
   //-----------------------------------------------------------------------------
 
-  async renderCard() {
-    // Use the performance tracker
-    const metrics = this.performanceTracker.beginMeasurement(this.events.length);
+  /**
+   * Render method with consistent, stable DOM structure for card-mod
+   */
+  render() {
+    const customStyles = this.getCustomStyles();
 
-    if (!EventUtils.isValidState(this._hass, this.config.entities)) {
-      Render.renderErrorToDOM(this.shadowRoot!, 'error', this.config);
-      this.performanceTracker.endMeasurement(metrics, this.performanceMetrics);
-      return;
-    }
+    // Create event handlers object for the card
+    const handlers = {
+      keyDown: (ev: KeyboardEvent) => this._handleKeyDown(ev),
+      pointerDown: (ev: PointerEvent) => this._handlePointerDown(ev),
+      pointerUp: (ev: PointerEvent) => this._handlePointerUp(ev),
+      pointerCancel: () => this._handlePointerCancel(),
+      pointerLeave: () => this._handlePointerCancel(),
+    };
+
+    // Determine card content based on state
+    let content: TemplateResult;
 
     if (this.isLoading) {
-      Render.renderErrorToDOM(this.shadowRoot!, 'loading', this.config);
-      this.performanceTracker.endMeasurement(metrics, this.performanceMetrics);
-      return;
+      // Loading state
+      content = Render.renderCardContent('loading', this.effectiveLanguage);
+    } else if (!this.safeHass || !this.config.entities.length) {
+      // Error state - missing entities
+      content = Render.renderCardContent('error', this.effectiveLanguage);
+    } else if (this.events.length === 0) {
+      // Empty state - generate synthetic empty days
+      const emptyDays = EventUtils.generateEmptyStateEvents(this.config, this.effectiveLanguage);
+      content = html`${emptyDays.map((day) =>
+        Render.renderDay(day, this.config, this.effectiveLanguage),
+      )}`;
+    } else {
+      // Normal state with events
+      content = html`${this.groupedEvents.map((day) =>
+        Render.renderDay(day, this.config, this.effectiveLanguage),
+      )}`;
     }
 
-    // Get the effective language based on priority order
-    const effectiveLanguage = Localize.getEffectiveLanguage(
-      this.config.language,
-      this._hass?.locale,
-    );
-
-    const eventsByDay = EventUtils.groupEventsByDay(
-      this.events,
-      this.config,
-      this.isExpanded,
-      effectiveLanguage,
-    );
-
-    if (eventsByDay.length === 0) {
-      Render.renderErrorToDOM(this.shadowRoot!, 'empty', this.config);
-      this.performanceTracker.endMeasurement(metrics, this.performanceMetrics);
-      return;
-    }
-
-    try {
-      Logger.debug('Creating card structure');
-
-      // Get the calendar content using the render module
-      const { container: contentContainer, style } = await Render.renderCalendarCard(
-        this.config,
-        eventsByDay,
-        (event) => FormatUtils.formatEventTime(event, this.config, effectiveLanguage),
-        (location) => FormatUtils.formatLocation(location, this.config.remove_location_country),
-        Constants.PERFORMANCE.CHUNK_SIZE,
-        Constants.PERFORMANCE.RENDER_DELAY,
-      );
-
-      // Clean up any previous interaction handlers
-      if (this.interactionManager.cleanup) {
-        this.interactionManager.cleanup();
-        this.interactionManager.cleanup = null;
-      }
-
-      // Use DOM utilities to create card structure
-      const { container, ripple } = DomUtils.createCardStructure(contentContainer);
-
-      // Update shadow DOM with the new structure
-      DomUtils.updateCardInShadowDOM(this.shadowRoot!, container, style);
-
-      // Store container reference for later
-      this.interactionManager.container = container;
-
-      // Get primary entity ID for interactions
-      const entityId = Core.getPrimaryEntityId(this.config.entities);
-
-      // Set up interactions
-      this.interactionManager.cleanup = Core.setupInteractions(
-        this.config,
-        container,
-        this._hass,
-        entityId,
-        () => this.toggleExpanded(),
-        ripple,
-      );
-    } catch (error) {
-      Logger.error('Render error:', error);
-      Render.renderErrorToDOM(this.shadowRoot!, 'error', this.config);
-    }
-
-    this.performanceTracker.endMeasurement(metrics, this.performanceMetrics);
-  }
-
-  //-----------------------------------------------------------------------------
-  // USER INTERACTIONS
-  //-----------------------------------------------------------------------------
-
-  handleAction(actionConfig: Types.ActionConfig) {
-    // Get the primary entity ID
-    const entityId = Core.getPrimaryEntityId(this.config.entities);
-
-    // Call the action handler from the interaction module
-    Actions.handleAction(
-      actionConfig,
-      this._hass,
-      this,
-      entityId,
-      // Pass a callback to handle expand action
-      () => this.toggleExpanded(),
-    );
-  }
-
-  toggleExpanded() {
-    if (this.config.max_events_to_show) {
-      this.isExpanded = !this.isExpanded;
-
-      // Add delay to allow ripple animation to complete before re-rendering
-      setTimeout(() => this.renderCard(), Constants.TIMING.RIPPLE_ANIMATION);
-    }
-  }
-
-  //-----------------------------------------------------------------------------
-  // STATE MANAGEMENT
-  //-----------------------------------------------------------------------------
-
-  initializeState() {
-    const initialState = StateUtils.initializeState();
-    this.config = initialState.config;
-    this.events = initialState.events;
-    this._hass = initialState.hass;
-    this.isLoading = initialState.isLoading;
-    this.isExpanded = initialState.isExpanded;
-  }
-
-  cleanup() {
-    StateUtils.cleanup(
-      this.renderTimeout,
-      this.memoizedFormatTime as unknown as Types.MemoCache<string>,
-      this.memoizedFormatLocation as unknown as Types.MemoCache<string>,
-      this.interactionManager.state,
-    );
-  }
-
-  get translations() {
-    // Use the effective language based on priority order
-    const effectiveLanguage = Localize.getEffectiveLanguage(
-      this.config.language,
-      this._hass?.locale,
-    );
-    return Localize.getTranslations(effectiveLanguage);
-  }
-
-  //-----------------------------------------------------------------------------
-  // UTILITY METHODS
-  //-----------------------------------------------------------------------------
-
-  debounce<T extends (...args: unknown[]) => void>(
-    func: T,
-    wait: number,
-  ): (...args: Parameters<T>) => void {
-    return Helpers.debounce(func, wait);
-  }
-
-  memoize<T extends readonly unknown[], R>(
-    func: (...args: T) => R,
-  ): ((...args: T) => R) & Types.MemoCache<R> {
-    return Helpers.memoize(func, this);
-  }
-
-  //-----------------------------------------------------------------------------
-  // PERFORMANCE MONITORING
-  //-----------------------------------------------------------------------------
-
-  getAverageRenderTime() {
-    return this.performanceTracker.getAverageRenderTime(this.performanceMetrics);
+    // Render main card structure with content
+    return Render.renderMainCardStructure(customStyles, this.config.title, content, handlers);
   }
 }
 
@@ -460,15 +481,12 @@ class CalendarCardPro extends HTMLElement implements Types.CalendarComponent {
 // ELEMENT REGISTRATION
 //-----------------------------------------------------------------------------
 
-// Register the custom element
-customElements.define('calendar-card-pro-dev', CalendarCardPro);
+// Register the editor - main component registered by decorator
 customElements.define('calendar-card-pro-dev-editor', Editor.CalendarCardProEditor);
 
-// Card registration for HACS and Home Assistant
-(window as unknown as { customCards: Array<Types.CustomCard> }).customCards =
-  (window as unknown as { customCards: Array<Types.CustomCard> }).customCards || [];
-
-(window as unknown as { customCards: Array<Types.CustomCard> }).customCards.push({
+// Register with HACS
+window.customCards = window.customCards || [];
+window.customCards.push({
   type: 'calendar-card-pro-dev',
   name: 'Calendar Card Pro',
   preview: true,

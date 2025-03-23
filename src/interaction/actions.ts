@@ -14,6 +14,21 @@ import * as Logger from '../utils/logger';
 //-----------------------------------------------------------------------------
 
 /**
+ * Extract primary entity ID from configured entities
+ *
+ * @param entities - Entity configuration array
+ * @returns The primary entity ID or undefined if not available
+ */
+export function getPrimaryEntityId(
+  entities: Array<string | Types.EntityConfig>,
+): string | undefined {
+  if (!entities || !entities.length) return undefined;
+
+  const firstEntity = entities[0];
+  return typeof firstEntity === 'string' ? firstEntity : firstEntity.entity;
+}
+
+/**
  * Handle an action based on its configuration
  *
  * @param actionConfig - Action configuration object

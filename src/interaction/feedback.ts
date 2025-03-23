@@ -77,19 +77,3 @@ export function removeHoldIndicator(indicator: HTMLElement): void {
     }
   }, Constants.TIMING.HOLD_INDICATOR_FADEOUT);
 }
-
-/**
- * Clean up all hold indicators in the document
- * Safety mechanism to prevent orphaned indicators
- */
-export function cleanupAllHoldIndicators(): void {
-  const holdIndicators = document.querySelectorAll('div[style*="pointer-events: none"]');
-  if (holdIndicators.length > 0) {
-    Logger.debug(`Cleaning up ${holdIndicators.length} orphaned hold indicators`);
-    holdIndicators.forEach((indicator) => {
-      if (indicator.parentNode) {
-        indicator.parentNode.removeChild(indicator);
-      }
-    });
-  }
-}

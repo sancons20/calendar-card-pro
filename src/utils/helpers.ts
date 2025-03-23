@@ -1,4 +1,3 @@
-/* eslint-disable import/order */
 /**
  * Helper utilities for Calendar Card Pro
  *
@@ -6,66 +5,57 @@
  * performance monitoring, and other common tasks.
  */
 
-import * as Constants from '../config/constants';
-import * as Types from '../config/types';
-import * as Logger from './logger';
-
 //-----------------------------------------------------------------------------
-// CORE UTILITY FUNCTIONS
+// COLOR UTILITIES
 //-----------------------------------------------------------------------------
 
 /**
- * Debounce helper to limit function call frequency
+ * Convert any color format to RGBA with specific opacity
  *
- * Creates a function that delays invoking the provided function until after
- * the specified wait time has elapsed since the last time it was invoked.
- * Useful for limiting API calls and expensive operations.
- *
- * @param func - Function to debounce
- * @param wait - Wait time in milliseconds
- * @returns Debounced function
+ * @param color - Color in any valid CSS format
+ * @param opacity - Opacity value (0-100)
+ * @returns RGBA color string
  */
-export function debounce<T extends (...args: unknown[]) => void>(
-  func: T,
-  wait: number,
-): (...args: Parameters<T>) => void {
-  let timeout: number;
-  return (...args: Parameters<T>): void => {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = window.setTimeout(later, wait);
-  };
-}
+export function convertToRGBA(color: string, opacity: number): string {
+  // If color is a CSS variable, we need to handle it specially
+  if (color.startsWith('var(')) {
+    // Create a temporary CSS variable with opacity
+    return `rgba(var(--calendar-color-rgb, 3, 169, 244), ${opacity / 100})`;
+  }
 
-/**
- * Memoize helper for caching function results
- *
- * Creates a function that memoizes the result of func. If the function is called
- * with the same arguments, the cached result is returned instead of re-executing
- * the function. This is particularly useful for expensive calculations.
- *
- * @param func - Function to memoize
- * @param context - Function context (this reference)
- * @returns Memoized function with cache
- */
-export function memoize<T extends readonly unknown[], R>(
-  func: (...args: T) => R,
-  context?: unknown,
-): ((...args: T) => R) & Types.MemoCache<R> {
-  const cache = new Map<string, R>();
-  const memoizedFunc = (...args: T): R => {
-    const key = JSON.stringify(args);
-    if (cache.has(key)) return cache.get(key)!;
+  if (color === 'transparent') {
+    return color;
+  }
 
-    const result = context ? func.call(context, ...args) : func(...args);
+  // Create temporary element to compute the color
+  const tempElement = document.createElement('div');
+  tempElement.style.display = 'none';
+  tempElement.style.color = color;
+  document.body.appendChild(tempElement);
 
-    cache.set(key, result);
-    return result;
-  };
-  return Object.assign(memoizedFunc, { cache, clear: () => cache.clear() });
+  // Get computed color in RGB format
+  const computedColor = getComputedStyle(tempElement).color;
+  document.body.removeChild(tempElement);
+
+  // If computation failed, return original color
+  if (!computedColor) return color;
+
+  // Handle RGB format (rgb(r, g, b))
+  const rgbMatch = computedColor.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+  if (rgbMatch) {
+    const [, r, g, b] = rgbMatch;
+    return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
+  }
+
+  // If already RGBA, replace the alpha component
+  const rgbaMatch = computedColor.match(/^rgba\((\d+),\s*(\d+),\s*(\d+),\s*[\d.]+\)$/);
+  if (rgbaMatch) {
+    const [, r, g, b] = rgbaMatch;
+    return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
+  }
+
+  // Fallback to original color if parsing fails
+  return color;
 }
 
 //-----------------------------------------------------------------------------
@@ -89,12 +79,14 @@ export function generateInstanceId(): string {
  * @param entities Array of calendar entities
  * @param daysToShow Number of days to display
  * @param showPastEvents Whether to show past events
+ * @param startDate Optional custom start date
  * @returns Deterministic ID string based on input parameters
  */
 export function generateDeterministicId(
   entities: Array<string | { entity: string; color?: string }>,
   daysToShow: number,
   showPastEvents: boolean,
+  startDate?: string,
 ): string {
   // Extract just the entity IDs, normalized for comparison
   const entityIds = entities
@@ -102,8 +94,26 @@ export function generateDeterministicId(
     .sort()
     .join('_');
 
+  // Normalize ISO date format to YYYY-MM-DD for caching
+  let normalizedStartDate = '';
+  if (startDate) {
+    try {
+      if (startDate.includes('T')) {
+        // It's an ISO date, extract just the date part
+        normalizedStartDate = startDate.split('T')[0];
+      } else {
+        normalizedStartDate = startDate;
+      }
+    } catch {
+      normalizedStartDate = startDate; // Fallback to original
+    }
+  }
+
+  // Include the normalized startDate in the ID
+  const startDatePart = normalizedStartDate ? `_${normalizedStartDate}` : '';
+
   // Create a base string with all data-affecting parameters
-  const baseString = `calendar_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}`;
+  const baseString = `calendar_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}${startDatePart}`;
 
   // Hash it for a compact, consistent ID
   return hashString(baseString);
@@ -125,103 +135,4 @@ export function hashString(str: string): string {
   }
   // Convert to alphanumeric string
   return Math.abs(hash).toString(36);
-}
-
-//-----------------------------------------------------------------------------
-// PERFORMANCE MEASUREMENT FUNCTIONS
-//-----------------------------------------------------------------------------
-
-/**
- * Creates a performance tracker for monitoring render performance
- *
- * @returns Object with performance tracking methods
- */
-export function createPerformanceTracker(): {
-  beginMeasurement: (eventCount: number) => Types.PerfMetrics;
-  endMeasurement: (
-    metrics: Types.PerfMetrics,
-    performanceData: Types.PerformanceData,
-    renderTimeThreshold?: number,
-  ) => number;
-  getAverageRenderTime: (performanceData: Types.PerformanceData) => number;
-} {
-  return {
-    beginMeasurement: beginPerfMetrics,
-
-    // Use a wrapper function to handle the missing parameter with a default value
-    endMeasurement: (
-      metrics: Types.PerfMetrics,
-      performanceData: Types.PerformanceData,
-      renderTimeThreshold?: number,
-    ) => {
-      return endPerfMetrics(
-        metrics,
-        performanceData,
-        renderTimeThreshold || Constants.PERFORMANCE.RENDER_TIME_THRESHOLD,
-      );
-    },
-
-    getAverageRenderTime,
-  };
-}
-
-/**
- * Begin performance measurement
- *
- * @param eventCount - Number of events being processed
- * @returns Metrics object for tracking performance
- */
-export function beginPerfMetrics(eventCount: number): Types.PerfMetrics {
-  return {
-    startTime: performance.now(),
-    eventCount: eventCount,
-  };
-}
-
-/**
- * End performance measurement and process results
- *
- * @param metrics - Metrics object from beginPerfMetrics
- * @param performanceData - Performance data store for tracking over time
- * @param renderTimeThreshold - Threshold for warning about poor performance
- * @returns Duration in milliseconds
- */
-export function endPerfMetrics(
-  metrics: Types.PerfMetrics,
-  performanceData: Types.PerformanceData,
-  renderTimeThreshold: number,
-): number {
-  const duration = performance.now() - metrics.startTime;
-
-  // Treat performance data as mutable internally for value tracking
-  const mutablePerformanceData = performanceData as { renderTime: number[] };
-  mutablePerformanceData.renderTime.push(duration);
-
-  // Replace hardcoded max measurements
-  if (mutablePerformanceData.renderTime.length > Constants.PERFORMANCE.MAX_MEASUREMENTS) {
-    mutablePerformanceData.renderTime.shift();
-  }
-
-  // Log if performance is poor
-  const avgRenderTime = getAverageRenderTime(performanceData);
-  if (avgRenderTime > renderTimeThreshold) {
-    Logger.warn('Poor rendering performance detected', {
-      averageRenderTime: avgRenderTime,
-      eventCount: metrics.eventCount,
-    });
-  }
-
-  return duration;
-}
-
-/**
- * Calculate average render time from performance metrics
- *
- * @param performanceData - Performance data with render time history
- * @returns Average render time in milliseconds
- */
-export function getAverageRenderTime(performanceData: Types.PerformanceData): number {
-  if (!performanceData.renderTime.length) return 0;
-  const sum = performanceData.renderTime.reduce((a, b) => a + b, 0);
-  return sum / performanceData.renderTime.length;
 }

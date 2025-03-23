@@ -13,139 +13,145 @@ src/
 │   └── types.ts                  # TypeScript interface definitions
 ├── interaction/                  # User interaction handling
 │   ├── actions.ts                # Action execution (tap, hold, etc.)
-│   ├── core.ts                   # Interaction setup and management
-│   ├── feedback.ts               # Visual feedback components (indicators)
-│   └── ripple.ts                 # Custom ripple effect component
+│   └── feedback.ts               # Visual feedback (ripple, hold indicators)
 ├── rendering/                    # UI rendering code
 │   ├── editor.ts                 # Card editor component
-│   ├── render.ts                 # HTML generation & progressive rendering
-│   └── styles.ts                 # Dynamic CSS generation
+│   ├── render.ts                 # Component rendering functions
+│   └── styles.ts                 # CSS styles and dynamic styling
 ├── translations/                 # Localization support
-│   ├── localize.ts               # Translation functions and management
-│   └── languages/                # Translation files
+│   ├── localize.ts               # Translation functions
+│   └── languages/                # Translation files (24 supported languages)
 │       ├── en.json               # English translations
-│       └── de.json               # German translations
+│       ├── de.json               # German translations
+│       └── ...                   # Other language files
 └── utils/                        # Utility functions
-    ├── dom.ts                    # DOM creation and manipulation
     ├── events.ts                 # Calendar event fetching and processing
     ├── format.ts                 # Date and text formatting
-    ├── helpers.ts                # Generic utilities (debounce, memoize)
-    ├── logger.ts                 # Logging system with levels
-    └── state.ts                  # Component lifecycle management
+    ├── helpers.ts                # Generic utilities (color, ID generation)
+    └── logger.ts                 # Logging system
 ```
 
 ## Module Responsibilities
 
 ### Main Component (`calendar-card-pro.ts`)
 
-- **Primary Role**: Entry point and orchestrator for the card
-- **Responsibilities**:
-  - Web component lifecycle management
-  - Home Assistant integration and data binding
-  - Event handling and state management
-  - Rendering coordination
-  - Registering custom elements with the browser
-  - Performance measurement and optimization
+The main entry point serves as the orchestrator for the entire card:
+
+- **Web Component Registration**: Defines the custom element using `@customElement` decorator
+- **Lifecycle Management**: Handles component connection, disconnection, and updates
+- **Property Definition**: Defines reactive properties via LitElement's `@property` decorator
+- **State Management**: Manages loading state, expanded state, and events data
+- **Event Handling**: Sets up user interaction handling (tap, hold, keyboard)
+- **Configuration Processing**: Handles config updates from Home Assistant
+- **Rendering Coordination**: Builds the component's DOM structure
+
+Key design patterns:
+
+- Uses [LitElement](https://lit.dev/) for efficient DOM updates and property management
+- Follows Home Assistant's component conventions for seamless integration
+- Implements computed properties via getters for derived state
 
 ### Configuration (`config/`)
 
-- **Primary Role**: Manage configuration data and types
-- **Key Files**:
-  - `config.ts`:
-    - Default configuration values
-    - Entity normalization
-    - Configuration change detection
-    - Stub configuration generation
-  - `constants.ts`:
-    - Application-wide constants
-    - Default values for all settings
-    - Timing, cache, and UI constants
-  - `types.ts`:
-    - TypeScript interfaces for all components
-    - Calendar event data structures
-    - Configuration interface
-    - Home Assistant interfaces
+Manages all configuration aspects of the card:
+
+- **config.ts**:
+
+  - Defines default configuration (`DEFAULT_CONFIG`)
+  - Provides helper functions for normalizing entity configurations
+  - Detects configuration changes that require data refresh
+  - Generates stub configurations for the card editor
+
+- **constants.ts**:
+
+  - Defines global constants organized by category
+  - Sets default values and timing parameters
+  - Centralizes cache-related settings
+
+- **types.ts**:
+  - Defines TypeScript interfaces for all component parts
+  - Documents config properties and their purposes
+  - Provides type safety throughout the application
 
 ### Interaction (`interaction/`)
 
-- **Primary Role**: Handle user interactions with the card
-- **Key Files**:
-  - `actions.ts`:
-    - Action execution (tap, hold, etc.)
-    - Home Assistant service calls
-    - Navigation and URL handling
-  - `core.ts`:
-    - Interaction setup and event binding
-    - Primary entity identification
-    - Touch and keyboard interaction support
-  - `feedback.ts`:
-    - Visual feedback indicators
-    - Hold indicator creation and animation
-    - Visual feedback cleanup
-  - `ripple.ts`:
-    - Custom ripple effect component
-    - Touch feedback using LitElement
-    - Integration with Home Assistant ripple
+Handles all user interaction with the card:
+
+- **actions.ts**:
+
+  - Processes user actions (tap, hold, etc.)
+  - Dispatches Home Assistant events
+  - Handles navigation and service calls
+  - Manages toggle/expand actions
+
+- **feedback.ts**:
+  - Creates visual feedback for user interactions
+  - Manages hold indicators with proper timing
+  - Handles cleanup of temporary DOM elements
 
 ### Rendering (`rendering/`)
 
-- **Primary Role**: Generate HTML and CSS for the card
-- **Key Files**:
-  - `render.ts`:
-    - Card content generation
-    - Progressive rendering for performance
-    - Error and loading states
-    - Day and event rendering
-  - `styles.ts`:
-    - Dynamic CSS generation
-    - Custom property generation
-    - Error state styling
-  - `editor.ts`:
-    - Card configuration editor (placeholder/future)
+Generates the HTML and CSS for the card:
+
+- **render.ts**:
+
+  - Contains pure functions for rendering card elements
+  - Generates HTML templates for days, events, and states
+  - Uses the lit-html templating system
+  - Implements optimized rendering of event lists
+
+- **styles.ts**:
+
+  - Defines CSS styles as LitElement templates
+  - Generates dynamic style properties based on configuration
+  - Manages theme variable integration
+
+- **editor.ts**:
+  - Implements the card configuration editor
+  - Handles schema validation for the editor UI
 
 ### Translations (`translations/`)
 
-- **Primary Role**: Provide internationalization support
-- **Key Files**:
-  - `localize.ts`:
-    - Translation functions
-    - Language detection and fallback
-    - Date and time formatting
-    - Language management
-  - `languages/*.json`:
-    - Dictionary files for supported languages
-    - Day, month, and special string translations
+Provides internationalization support:
+
+- **localize.ts**:
+
+  - Manages language detection and selection
+  - Handles translation lookups with fallbacks
+  - Formats dates according to locale-specific patterns
+
+- **languages/\*.json**:
+  - Contains translation strings for each supported language
+  - Defines month names, day names, and UI strings
 
 ### Utilities (`utils/`)
 
-- **Primary Role**: Provide core functionality used across the card
-- **Key Files**:
-  - `dom.ts`:
-    - DOM element creation and manipulation
-    - Card structure generation
-    - Shadow DOM updates
-  - `events.ts`:
-    - Calendar event fetching from Home Assistant API
-    - Event caching and processing
-    - Event grouping and filtering
-    - Cache management
-  - `format.ts`:
-    - Date and time formatting
-    - Location formatting
-    - Event time display logic
-  - `helpers.ts`:
-    - Generic utilities like debounce and memoize
-    - Performance tracking
-    - ID generation
-  - `logger.ts`:
-    - Structured logging system
-    - Log level filtering
-    - Error handling and formatting
-  - `state.ts`:
-    - Component state initialization
-    - Lifecycle management
-    - Visibility and refresh management
-    - Resource cleanup
+Provides core functionality across the card:
+
+- **events.ts**:
+
+  - Fetches calendar events from Home Assistant API
+  - Implements caching system for calendar data
+  - Processes and filters events based on configuration
+  - Groups events by day for display
+
+- **format.ts**:
+
+  - Formats dates and times for display
+  - Handles all-day and multi-day events
+  - Processes location strings
+  - Manages time formatting (12/24 hour)
+
+- **helpers.ts**:
+
+  - Provides color manipulation utilities
+  - Generates deterministic IDs for caching
+  - Implements hash functions for cache keys
+
+- **logger.ts**:
+  - Provides tiered logging system
+  - Handles error, warning, info, and debug messages
+  - Includes version information in logs
 
 ## Module Interaction Flow
 
@@ -186,172 +192,147 @@ graph TD
     Logger --> Events
     Logger --> Render
     Logger --> Inter
-
-    %% Design notes
-    classDef core fill:#f9f,stroke:#333,stroke-width:2px
-    classDef util fill:#bbf,stroke:#333,stroke-width:1px
-    classDef interact fill:#fdb,stroke:#333,stroke-width:1px
-
-    class Main,Events,Render,State,Inter core
-    class Config,Constants,Types,Format,DOM,Styles,Localize util
-    class Actions,Ripple,Feedback interact
 ```
 
-## Data and Event Flow
+## Data Flow
 
-### Calendar Data Flow
+### Event Data Flow
 
 1. **Initial Load**:
+   - Component initializes and calls `updateEvents()`
+   - `events.ts` generates a cache key based on configured entities and settings
+   - Cache is checked first, API used only if needed
+   - Events are stored in local storage with configurable expiration
+2. **Data Processing**:
 
-   - Component initializes with empty event array
-   - `updateEvents()` is called during initialization
-   - `events.ts` orchestrates data loading through `orchestrateEventUpdate()`
-   - Cache is checked first, if valid data exists it's used immediately
-   - Otherwise, API calls fetch data from Home Assistant calendars
-   - Events are stored in localStorage cache with configurable expiration
-   - Component state is updated with retrieved events
-   - UI renders the calendar with the fetched events
-
-2. **Refresh Mechanisms**:
-
-   - **Regular Timer**: Events refresh every `refresh_interval` minutes (default: 30)
-   - **Entity Changes**: Events refresh when calendar entity state changes
-   - **Configuration Changes**: Events refresh when relevant configuration changes
-   - **Visibility Change**: Events refresh when returning to tab after 5+ minutes
-   - **Forced Refresh**: Methods can force bypass cache for immediate refresh
-
-3. **Data Processing**:
-   - Raw events are fetched from Home Assistant calendar API
-   - Entity ID is attached to each event for source identification
-   - Events are filtered based on configuration (show_past_events, etc.)
+   - Raw calendar events are filtered for relevant dates
    - Events are grouped by day using `groupEventsByDay()`
-   - Grouped events are then used for rendering
+   - Each event is enhanced with formatted time and location strings
+   - Entity-specific styling is applied to each event
 
-### Rendering Flow
+3. **Rendering Flow**:
 
-1. **Progressive Rendering**:
+   - Main component calls `render()` which uses the `Render` module
+   - Dynamic styles are generated based on configuration
+   - Days and events are rendered with proper CSS classes
+   - Loading, error, and empty states are handled appropriately
 
-   - `renderCard()` coordinates the rendering process
-   - Performance measurement begins with `performanceTracker`
-   - Error/empty/loading states are checked and rendered if needed
-   - Events are grouped by day and filtered based on configuration
-   - `renderCalendarCard()` generates the base structure
-   - Content is rendered progressively in chunks to avoid blocking the UI
-   - Each chunk renders after a small delay via promises
-   - Card structure is assembled with interaction support
-   - Performance metrics are collected throughout the process
-
-2. **DOM Updates**:
-   - Shadow DOM is cleared and updated with new content
-   - Style element with dynamic CSS is inserted
-   - Interaction handlers are set up with proper cleanup
-   - Ripple effect is attached to card container
+4. **Refresh Mechanisms**:
+   - Automatic refresh via `refresh_interval` configuration
+   - Manual refresh when page visibility changes
+   - Forced refresh when configuration changes
+   - Cache invalidation based on timing and parameters
 
 ### Interaction Flow
 
-1. **Touch/Mouse Interactions**:
-
-   - User interaction (touch/click) triggers event listeners
-   - Hold detection measures press duration
-   - Visual feedback is shown for hold actions
-   - Action is executed based on configuration (tap_action/hold_action)
-   - Ripple effect provides visual confirmation
-
+1. **User Input**:
+   - Pointer events (mouse/touch) captured in main component
+   - Hold detection with visual feedback
+   - Keyboard navigation support
 2. **Action Execution**:
-   - Actions are routed through `handleAction()` in actions.ts
-   - Different types of actions (navigate, more-info, toggle, etc.)
-   - Home Assistant services can be called
-   - Card expansion state can be toggled
-   - URL navigation or custom events can be triggered
+   - `actions.ts` handles tap/hold actions
+   - Expansion toggle, navigation, and service calls
+   - Home Assistant service integration
 
-## Key Design Principles
+## Optimizations
 
-### 1. Separation of Concerns
+### Performance Optimizations
 
-- Each module has well-defined responsibilities
-- Files are organized by functional area
-- Components communicate through clean interfaces
-- Minimal dependencies between modules
+1. **Smart Caching**:
 
-### 2. Progressive Enhancement
+   - Cached event data with configurable lifetime
+   - Deterministic cache keys based on configuration
+   - Selective cache invalidation
 
-- Card works in different environments and configurations
-- Fallbacks are provided for error states
-- Visual feedback adapts to device capabilities
+2. **Efficient Rendering**:
 
-### 3. Performance Optimization
+   - Pure rendering functions to improve performance
+   - Stable DOM structure for card-mod compatibility
+   - Efficient updates with lit-html
 
-- **Layered Caching**:
+3. **Resource Management**:
+   - Proper cleanup on disconnection
+   - Event listener management
+   - Timer cleanup
 
-  - LocalStorage caching of calendar events
-  - Memoization of expensive formatting operations
-  - Configurable cache duration for user control
+### UX Optimizations
 
-- **Efficient Rendering**:
+1. **Progressive Loading**:
+   - Clean loading states during data fetching
+   - Optimized transitions between states
+2. **Adaptive Display**:
 
-  - Progressive rendering to avoid UI blocking
-  - Chunked processing of large event sets
-  - DOM recycling when possible
-  - Performance measurement and logging
+   - Compact/expanded view modes
+   - Empty state handling
+   - Responsive sizing
 
-- **Resource Management**:
-  - Careful cleanup of event listeners and timers
-  - Memory leak prevention with explicit cleanup
-  - Cache expiration and cleanup
-
-### 4. Type Safety
-
-- Comprehensive TypeScript interfaces
-- Strong typing throughout the codebase
-- Clear data models for all component parts
-- Type guards for runtime safety
-
-### 5. Modular Architecture
-
-- Self-contained modules for maintainability
-- Explicit dependencies between modules
-- Clean interfaces for testing and reuse
-- Organized by functional domain
+3. **Visual Feedback**:
+   - Material ripple effects
+   - Hold indicators
+   - Focus states for keyboard navigation
 
 ## Advanced Features
 
+### Start Date Configuration
+
+The card supports a `start_date` configuration option that allows viewing calendar data from any specified date rather than just today:
+
+1. **Date Parsing**: Handles both YYYY-MM-DD format and ISO format
+2. **API Integration**: Uses the start date to fetch the appropriate time window from the API
+3. **Cache Integration**: Includes the start date in cache keys to ensure proper data refresh when changed
+
+### Multi-Calendar Styling
+
+Each calendar entity can have custom styling:
+
+1. **Per-Entity Colors**: Customize text color by calendar source
+2. **Accent Colors**: Vertical line colors for visual separation
+3. **Background Colors**: Optional semi-transparent backgrounds
+4. **Labels**: Entity-specific labels or emoji for visual differentiation
+
+### Smart Event Formatting
+
+Event display adapts based on event type:
+
+1. **All-Day Events**: Special handling for single and multi-day all-day events
+2. **Ongoing Events**: Shows "Ends today/tomorrow" for multi-day events
+3. **Past Event Styling**: Visual distinction for events that have ended
+4. **Location Processing**: Smart location string formatting with country removal
+
 ### Progressive Rendering
 
-The calendar card implements progressive rendering to maintain responsiveness even with many events:
+The calendar card implements efficient rendering to maintain responsiveness even with many events:
 
-1. Events are first sorted and grouped by day
-2. Rendering occurs in configurable chunks (default: 10 items per chunk)
-3. Small delays between chunks (default: 50ms) prevent blocking the main thread
-4. Performance metrics track rendering time and optimize future rendering
+1. **Pure Function Pattern**: Render functions are implemented as pure functions that generate TemplateResults
+2. **Stable DOM Structure**: The card maintains a consistent DOM structure for compatibility with card-mod
+3. **Efficient Updates**: Uses lit-html's efficient diffing algorithm to minimize DOM operations
 
 ```typescript
-// Progressive rendering example from render.ts
-export async function renderProgressively(
-  days: Types.EventsByDay[],
+// Example of pure function rendering approach
+export function renderEvent(
+  event: Types.CalendarEventData,
+  day: Types.EventsByDay,
+  index: number,
   config: Types.Config,
-  formatEventTime: (event: Types.CalendarEventData) => string,
-  formatLocation: (location: string) => string,
-  chunkSize = Constants.PERFORMANCE.CHUNK_SIZE,
-  renderDelay = Constants.PERFORMANCE.RENDER_DELAY,
-): Promise<DocumentFragment> {
-  // ... initialization ...
-
-  const renderChunk = async (startIdx: number): Promise<void> => {
-    const chunk = days.slice(startIdx, startIdx + chunkSize);
-    if (!chunk.length) return;
-
-    chunk.forEach((day: Types.EventsByDay) => {
-      // ... render day ...
-    });
-
-    if (startIdx + chunkSize < days.length) {
-      await new Promise((resolve) => setTimeout(resolve, renderDelay));
-      await renderChunk(startIdx + chunkSize);
-    }
+  language: string,
+): TemplateResult {
+  // Determine styles and classes based on event properties
+  const eventClasses = {
+    event: true,
+    'event-first': index === 0,
+    'event-last': index === day.events.length - 1,
+    'past-event': isPastEvent(event),
   };
 
-  await renderChunk(0);
-  return fragment;
+  // Return immutable template
+  return html`
+    <tr>
+      ${index === 0 ? html`<td class="date-column" rowspan="${day.events.length}">...</td>` : ''}
+      <td class=${classMap(eventClasses)} style=${styleMap(eventStyles)}>
+        <!-- Event content -->
+      </td>
+    </tr>
+  `;
 }
 ```
 
@@ -362,64 +343,47 @@ The card implements a multi-level caching strategy:
 1. **Event Data Caching**:
 
    - Calendar events are cached in localStorage
-   - Cache key is derived from entities, days to show, and past event settings
-   - Cache duration is configurable through `cache_duration` setting
-   - Automatic cache invalidation when configuration changes
+   - Cache key includes entities, days to show, past events setting, and start date
+   - Cache invalidation is automatic when configuration changes
+   - Cache duration is configurable through refresh_interval setting
 
-2. **Memory Caching**:
+2. **Deterministic IDs**:
 
-   - Expensive operations like time formatting use memoization
-   - Memoization caches are properly managed to prevent memory leaks
-   - Cache is cleaned up during component disconnection
+   - Each card instance generates a deterministic ID based on configuration
+   - The ID remains stable across page loads but changes when configuration changes
+   - This ensures proper cache handling when multiple calendar cards exist
 
-3. **Cache Cleanup**:
-   - Periodic cache cleanup prevents browser storage overflow
-   - Expired cache entries are automatically removed
-   - Cache multiplier determines when entries are eligible for cleanup
+3. **Intelligent Cache Refresh**:
+   - Cache is refreshed automatically based on configured interval
+   - Manual refreshes are rate-limited to prevent API abuse
+   - Reactive to page visibility changes and Home Assistant reconnection events
 
-### Internationalization
+## Design Principles
 
-The card supports multiple languages through a flexible localization system:
+The code follows these core principles:
 
-1. **Translation System**:
+1. **Separation of Concerns**:
 
-   - Dictionary-based translations in JSON format
-   - Easy to extend with new languages
-   - Automatic fallback to English for missing translations
-   - Runtime language switching
+   - Each module has a clear, focused responsibility
+   - Pure functions where possible for easier testing
+   - Clear interfaces between subsystems
 
-2. **Date and Time Formatting**:
+2. **Progressive Enhancement**:
 
-   - Language-aware date and time formatting
-   - Support for different date formats based on locale
-   - 12/24 hour time format support
-   - Smart formatting of multi-day and all-day events
+   - Works with minimal configuration
+   - Gracefully handles missing data or API errors
+   - Degrades elegantly in constrained environments
 
-3. **Location Formatting**:
-   - Optional country removal from location strings
-   - Smart handling of common country names
+3. **Type Safety**:
 
-### Interaction Patterns
+   - Comprehensive TypeScript interfaces
+   - Minimal use of `any` type
+   - Runtime type guards where needed
 
-The card implements modern interaction patterns for intuitive use:
-
-1. **Tap and Hold Actions**:
-
-   - Configurable tap and hold actions
-   - Visual feedback for interactions
-   - Hold threshold with visual indicator
-   - Touch and mouse support
-
-2. **Material Ripple Effect**:
-
-   - Custom ripple component for visual feedback
-   - Integrates with Home Assistant styling
-   - Configurable colors and opacity
-
-3. **Accessibility**:
-   - Keyboard navigation support
-   - ARIA attributes for screen readers
-   - High contrast visual design
+4. **Maintainability**:
+   - Consistent code style and patterns
+   - Detailed comments and documentation
+   - Clear function signatures and module organization
 
 ## Maintenance Guidelines
 
@@ -446,7 +410,7 @@ When modifying code:
 4. **Performance**:
 
    - Consider performance implications of new features
-   - Use progressive rendering for UI-heavy changes
+   - Use pure functions for rendering components
    - Implement appropriate caching for expensive operations
 
 5. **Cleanup**:
@@ -458,6 +422,6 @@ When modifying code:
 6. **Configuration**:
    - Make new features configurable when appropriate
    - Provide sensible defaults in constants.ts
-   - Document new configuration options
+   - Document new configuration options in README.md
 
-By following these architectural principles and guidelines, Calendar Card Pro maintains a clean, maintainable codebase that delivers excellent performance and user experience.
+By following these architectural principles, Calendar Card Pro maintains a clean, maintainable codebase that delivers excellent performance and user experience.
