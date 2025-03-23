@@ -161,6 +161,7 @@ show_location: true
 | ------------------------ | ------- | --------------------------------- | -------------------------------------------------------------------------------- |
 | **Core Settings**        |         |                                   |                                                                                  |
 | entities                 | array   | Required                          | List of calendar entities with optional styling (see Entity Configuration below) |
+| start_date               | string  | `''` (today)                      | Custom start date in YYYY-MM-DD format (e.g., '2025-07-01')                      |
 | days_to_show             | number  | `3`                               | Number of days to display                                                        |
 | max_events_to_show       | number  | -                                 | Maximum number of events to show in compact mode                                 |
 | show_empty_days          | boolean | `false`                           | Whether to show days with no events (with "No events" message)                   |
@@ -448,6 +449,7 @@ entities:
     color: '#ffdaea'
   - entity: calendar.work
     color: '#b3ffd9'
+start_date: '2025-07-01'
 days_to_show: 10
 max_events_to_show: 10
 language: en

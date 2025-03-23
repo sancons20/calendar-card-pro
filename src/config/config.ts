@@ -17,6 +17,7 @@ import * as Logger from '../utils/logger';
 export const DEFAULT_CONFIG: Types.Config = {
   // Core settings
   entities: [],
+  start_date: '',
   days_to_show: 3,
   max_events_to_show: undefined,
   show_empty_days: false,
@@ -154,6 +155,7 @@ export function hasConfigChanged(
   const dataChanged =
     previousEntityIds !== currentEntityIds ||
     previous.days_to_show !== current.days_to_show ||
+    previous.start_date !== current.start_date ||
     previous.show_past_events !== current.show_past_events;
 
   if (dataChanged || refreshIntervalChanged) {

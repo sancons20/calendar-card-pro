@@ -79,12 +79,14 @@ export function generateInstanceId(): string {
  * @param entities Array of calendar entities
  * @param daysToShow Number of days to display
  * @param showPastEvents Whether to show past events
+ * @param startDate Optional custom start date
  * @returns Deterministic ID string based on input parameters
  */
 export function generateDeterministicId(
   entities: Array<string | { entity: string; color?: string }>,
   daysToShow: number,
   showPastEvents: boolean,
+  startDate?: string,
 ): string {
   // Extract just the entity IDs, normalized for comparison
   const entityIds = entities
@@ -92,8 +94,26 @@ export function generateDeterministicId(
     .sort()
     .join('_');
 
+  // Normalize ISO date format to YYYY-MM-DD for caching
+  let normalizedStartDate = '';
+  if (startDate) {
+    try {
+      if (startDate.includes('T')) {
+        // It's an ISO date, extract just the date part
+        normalizedStartDate = startDate.split('T')[0];
+      } else {
+        normalizedStartDate = startDate;
+      }
+    } catch (e) {
+      normalizedStartDate = startDate; // Fallback to original
+    }
+  }
+
+  // Include the normalized startDate in the ID
+  const startDatePart = normalizedStartDate ? `_${normalizedStartDate}` : '';
+
   // Create a base string with all data-affecting parameters
-  const baseString = `calendar_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}`;
+  const baseString = `calendar_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}${startDatePart}`;
 
   // Hash it for a compact, consistent ID
   return hashString(baseString);

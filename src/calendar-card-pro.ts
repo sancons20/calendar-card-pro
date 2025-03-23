@@ -357,6 +357,7 @@ class CalendarCardPro extends LitElement {
       this.config.entities,
       this.config.days_to_show,
       this.config.show_past_events,
+      this.config.start_date,
     );
 
     // Check if we need to reload data

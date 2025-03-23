@@ -32,12 +32,13 @@ export async function fetchEventData(
   instanceId: string,
   force = false,
 ): Promise<Types.CalendarEventData[]> {
-  // Generate cache key based on configuration
+  // Generate cache key based on configuration - include start_date in key
   const cacheKey = getBaseCacheKey(
     instanceId,
     config.entities,
     config.days_to_show,
     config.show_past_events,
+    config.start_date,
   );
 
   // Try cache first
@@ -56,7 +57,7 @@ export async function fetchEventData(
     typeof e === 'string' ? { entity: e, color: 'var(--primary-text-color)' } : e,
   );
 
-  const timeWindow = getTimeWindow(config.days_to_show);
+  const timeWindow = getTimeWindow(config.days_to_show, config.start_date);
   const fetchedEvents = await fetchEvents(hass, entities, timeWindow);
 
   // Create a mutable copy and cache the results
@@ -566,11 +567,61 @@ export async function fetchEvents(
  * Calculate time window for event fetching
  *
  * @param daysToShow - Number of days to show in the calendar
+ * @param startDate - Optional start date in YYYY-MM-DD format or ISO format
  * @returns Object containing start and end dates for the calendar window
  */
-export function getTimeWindow(daysToShow: number): { start: Date; end: Date } {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Start of today
+export function getTimeWindow(daysToShow: number, startDate?: string): { start: Date; end: Date } {
+  let start: Date;
+
+  // Parse custom start date if provided
+  if (startDate && startDate.trim() !== '') {
+    try {
+      // Check if it's an ISO date string (which HA converts to when saving)
+      if (startDate.includes('T')) {
+        // Handle ISO format (e.g. "2025-03-14T00:00:00.000Z")
+        start = new Date(startDate);
+
+        // Check if valid date
+        if (isNaN(start.getTime())) {
+          Logger.warn(`Invalid ISO date: ${startDate}, falling back to today`);
+          start = new Date();
+          start = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+        }
+      } else {
+        // Handle YYYY-MM-DD format
+        const [year, month, day] = startDate.split('-').map(Number);
+
+        // Validate date components (month is 1-indexed in input, but 0-indexed in Date constructor)
+        if (year && month && day && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+          start = new Date(year, month - 1, day);
+
+          // Double-check if date is valid (e.g., not Feb 30)
+          if (isNaN(start.getTime())) {
+            Logger.warn(`Invalid date: ${startDate}, falling back to today`);
+            start = new Date();
+            start = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+          }
+        } else {
+          Logger.warn(`Malformed date: ${startDate}, falling back to today`);
+          start = new Date();
+          start = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+        }
+      }
+    } catch (error) {
+      Logger.warn(`Error parsing date: ${startDate}, falling back to today`, error);
+      start = new Date();
+      start = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    }
+  } else {
+    // Default to today if no valid start date provided
+    start = new Date();
+    start = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  }
+
+  // Make sure time is set to 00:00:00
+  start.setHours(0, 0, 0, 0);
+
+  // Calculate end date based on start date
   const end = new Date(start);
   const days = parseInt(daysToShow.toString()) || 3;
   end.setDate(start.getDate() + days);
@@ -635,6 +686,7 @@ export function cacheEvents(key: string, events: Types.CalendarEventData[]): boo
  * @param entities - Calendar entities
  * @param daysToShow - Number of days to display
  * @param showPastEvents - Whether to show past events
+ * @param startDate - Optional start date in YYYY-MM-DD format or ISO format
  * @returns Base cache key
  */
 export function getBaseCacheKey(
@@ -642,13 +694,32 @@ export function getBaseCacheKey(
   entities: Array<string | { entity: string; color?: string }>,
   daysToShow: number,
   showPastEvents: boolean,
+  startDate?: string,
 ): string {
   const entityIds = entities
     .map((e) => (typeof e === 'string' ? e : e.entity))
     .sort()
     .join('_');
 
-  return `${Constants.CACHE.EVENT_CACHE_KEY_PREFIX}${instanceId}_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}`;
+  // Normalize ISO date format to YYYY-MM-DD for caching
+  let normalizedStartDate = '';
+  if (startDate) {
+    try {
+      if (startDate.includes('T')) {
+        // It's an ISO date, extract just the date part
+        normalizedStartDate = startDate.split('T')[0];
+      } else {
+        normalizedStartDate = startDate;
+      }
+    } catch (e) {
+      normalizedStartDate = startDate; // Fallback to original
+    }
+  }
+
+  // Include the normalized startDate in the cache key
+  const startDatePart = normalizedStartDate ? `_${normalizedStartDate}` : '';
+
+  return `${Constants.CACHE.EVENT_CACHE_KEY_PREFIX}${instanceId}_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}${startDatePart}`;
 }
 
 /**
