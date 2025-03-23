@@ -73,7 +73,7 @@ export const DEFAULT_CONFIG: Types.Config = {
 
   // Cache and refresh settings
   refresh_interval: Constants.CACHE.DEFAULT_DATA_REFRESH_MINUTES,
-  refresh_on_navigate: false,
+  refresh_on_navigate: true,
 };
 
 //-----------------------------------------------------------------------------

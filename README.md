@@ -129,7 +129,7 @@ Reduce API calls with navigation-aware caching:
 refresh_on_navigate: false # Keep cache when navigating between views
 ```
 
-By default, your calendar data is now preserved when you switch between dashboard views. You can restore the previous behavior to refresh on page reload and when navigating dashboard views by setting this option to `true`.
+By default, your calendar refreshes on page reloads and when navigating dashboard views. You can now change this behavior to preserve your calendar data when you switch between dashboard views by setting this option to `false`.
 
 ### 🛠 Breaking Changes
 
@@ -420,7 +420,7 @@ show_location: true
 | hold_action              | object  | `none`                            | Action when holding the card                                                       |
 | **Cache and Refresh**    |         |                                   |                                                                                    |
 | refresh_interval         | number  | `30`                              | Time in minutes between data refreshes                                             |
-| refresh_on_navigate      | boolean | `false`                           | 🆕 **NEW!** Whether to force refresh data when navigating between dashboard views  |
+| refresh_on_navigate      | boolean | `true`                            | 🆕 **NEW!** Whether to force refresh data when navigating between dashboard views  |
 
 ### 🗂️ Entity Configuration
 
@@ -577,7 +577,7 @@ tap_action:
 - **Minimized API Polling** – Fetches new data **only when necessary**.
 - **Automatic Refresh** – Updates **every `refresh_interval` minutes** (default: `30`).
 - **Smart Caching** – Stores events locally with cache lifetime equal to the refresh interval.
-- **Navigation-Aware Caching** – By default, preserves the cache when navigating between dashboard views to reduce API calls. Set `refresh_on_navigate: true` to always refresh when returning to a view.
+- **Navigation-Aware Caching** – By default, always refresh when returning to a view. Set `refresh_on_navigate: false` to preserves the cache when navigating between dashboard views to reduce API calls.
 - **Rate-Limited Refresh** – When manually refreshing the page, new data is fetched only if at least 5 seconds have passed since the last update, preventing excessive API calls.
 - **Reactive Updates** – Events update when:
   - A **calendar entity changes**.
