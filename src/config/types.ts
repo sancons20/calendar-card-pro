@@ -64,6 +64,16 @@ export interface Config {
   location_color: string;
   location_icon_size: string;
 
+  // Week numbers and separators
+  first_day_of_week: 'sunday' | 'monday' | 'system';
+  show_week_numbers: null | 'iso' | 'simple';
+  week_number_color: string;
+  week_number_background_color: string;
+  horizontal_line_week_width: string;
+  horizontal_line_week_color: string;
+  horizontal_line_month_width: string;
+  horizontal_line_month_color: string;
+
   // Actions
   tap_action: ActionConfig;
   hold_action: ActionConfig;
@@ -113,6 +123,10 @@ export interface EventsByDay {
   month: string;
   timestamp: number;
   events: CalendarEventData[];
+  weekNumber?: number | null; // Changed from number | undefined to number | null
+  isFirstDayOfWeek?: boolean;
+  isFirstDayOfMonth?: boolean;
+  monthNumber?: number;
 }
 
 /**

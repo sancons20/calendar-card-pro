@@ -42,6 +42,14 @@ export function generateCustomPropertiesObject(config: Types.Config): Record<str
     '--ha-ripple-hover-color': config.vertical_line_color,
     '--ha-ripple-pressed-opacity': '0.12',
     '--ha-ripple-pressed-color': config.vertical_line_color,
+
+    // Week and month separator properties
+    '--calendar-card-line-width-week': config.horizontal_line_week_width,
+    '--calendar-card-line-color-week': config.horizontal_line_week_color,
+    '--calendar-card-line-width-month': config.horizontal_line_month_width,
+    '--calendar-card-line-color-month': config.horizontal_line_month_color,
+    '--calendar-card-week-number-color': config.week_number_color,
+    '--calendar-card-week-number-bg-color': config.week_number_background_color,
   };
 
   // Optional properties
@@ -156,6 +164,27 @@ export const cardStyles = css`
     -webkit-font-smoothing: var(--paper-font-headline_-_-webkit-font-smoothing);
     text-rendering: var(--paper-font-common-expensive-kerning_-_text-rendering);
     opacity: var(--dark-primary-opacity);
+  }
+
+  /* ===== WEEK NUMBER & SEPARATOR STYLES ===== */
+
+  /* Week numbers */
+  .week-number {
+    display: inline-block;
+    font-size: 0.85em;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin: 4px 0;
+    font-weight: 500;
+    text-align: center;
+    color: var(--calendar-card-week-number-color);
+    background-color: var(--calendar-card-week-number-bg-color);
+  }
+
+  /* Custom separators */
+  .separator {
+    width: 100%;
+    line-height: 0;
   }
 
   /* ===== DAY TABLE STYLES ===== */

@@ -106,12 +106,14 @@ export function renderCardContent(state: 'loading' | 'error', language: string):
  * @param day - Day data containing events
  * @param config - Card configuration
  * @param language - Language code for translations
+ * @param prevDay - Previous day data for determining separators
  * @returns TemplateResult for the day
  */
 export function renderDay(
   day: Types.EventsByDay,
   config: Types.Config,
   language: string,
+  prevDay?: Types.EventsByDay,
 ): TemplateResult {
   // Check if this day is today
   const now = new Date();
@@ -119,7 +121,56 @@ export function renderDay(
   const dayDate = new Date(day.timestamp);
   const isToday = dayDate.toDateString() === todayStart.toDateString();
 
+  // Check if we need to show a week number
+  const showWeekNumber =
+    config.show_week_numbers !== null &&
+    day.weekNumber !== null &&
+    // Either it's the first day we're showing or it's the first day of a new week
+    (!prevDay || day.weekNumber !== prevDay.weekNumber);
+
+  // Determine which type of separator to use (month > week > day)
+  let separatorStyle: Record<string, string> | null = null;
+
+  // Only add separator if this is not the first day (we don't want a separator at the top)
+  if (prevDay) {
+    if (day.monthNumber !== prevDay.monthNumber && config.horizontal_line_month_width !== '0px') {
+      // Month separator takes priority
+      separatorStyle = {
+        borderTopWidth: config.horizontal_line_month_width,
+        borderTopColor: config.horizontal_line_month_color,
+        borderTopStyle: 'solid',
+        marginTop: '8px', // Add more space for month separators
+        marginBottom: '8px',
+      };
+    } else if (day.isFirstDayOfWeek && config.horizontal_line_week_width !== '0px') {
+      // Week separator
+      separatorStyle = {
+        borderTopWidth: config.horizontal_line_week_width,
+        borderTopColor: config.horizontal_line_week_color,
+        borderTopStyle: 'solid',
+        marginTop: '6px', // Slightly more space for week separators
+        marginBottom: '6px',
+      };
+    } else if (config.horizontal_line_width !== '0px') {
+      // Day separator (already handled in base styles, only included for completeness)
+      // We don't need to do anything special here as the table already has these styles
+    }
+  }
+
   return html`
+    ${showWeekNumber
+      ? html`
+          <div
+            class="week-number"
+            style="color: ${config.week_number_color}; 
+                  background-color: ${config.week_number_background_color};"
+          >
+            W${day.weekNumber}
+          </div>
+        `
+      : ''}
+    ${separatorStyle ? html`<div class="separator" style=${styleMap(separatorStyle)}></div>` : ''}
+
     <table class="day-table ${isToday ? 'today' : 'future-day'}">
       ${repeat(
         day.events,
@@ -127,6 +178,19 @@ export function renderDay(
         (event, index) => renderEvent(event, day, index, config, language),
       )}
     </table>
+  `;
+}
+
+// Modify main rendering function to pass previous day to renderDay
+export function renderGroupedEvents(
+  days: Types.EventsByDay[],
+  config: Types.Config,
+  language: string,
+): TemplateResult {
+  return html`
+    ${days.map((day, index) =>
+      renderDay(day, config, language, index > 0 ? days[index - 1] : undefined),
+    )}
   `;
 }
 

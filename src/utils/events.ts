@@ -209,6 +209,26 @@ export function groupEventsByDay(
     });
   });
 
+  // After creating eventsByDay, add week/month metadata
+  const firstDayOfWeek = FormatUtils.getFirstDayOfWeek(config.first_day_of_week, language);
+
+  // Add week and month metadata to each day
+  Object.values(eventsByDay).forEach((day) => {
+    const dayDate = new Date(day.timestamp);
+
+    // Calculate week number based on config
+    day.weekNumber = FormatUtils.getWeekNumber(dayDate, config.show_week_numbers, firstDayOfWeek);
+
+    // Store month number for boundary detection
+    day.monthNumber = dayDate.getMonth();
+
+    // Check if this is the first day of a month
+    day.isFirstDayOfMonth = dayDate.getDate() === 1;
+
+    // Check if this is the first day of a week
+    day.isFirstDayOfWeek = dayDate.getDay() === firstDayOfWeek;
+  });
+
   // Sort events within each day
   Object.values(eventsByDay).forEach((day) => {
     day.events.sort((a, b) => {
@@ -263,7 +283,7 @@ export function groupEventsByDay(
         allDays.push(eventsByDay[dateKey]);
       } else {
         // Otherwise create an empty day with a "fake" event that can use the regular rendering path
-        allDays.push({
+        const dayObj: Types.EventsByDay = {
           weekday: translations.daysOfWeek[currentDate.getDay()],
           day: currentDate.getDate(),
           month: translations.months[currentDate.getMonth()],
@@ -273,12 +293,23 @@ export function groupEventsByDay(
               summary: translations.noEvents,
               start: { date: FormatUtils.getLocalDateKey(currentDate) },
               end: { date: FormatUtils.getLocalDateKey(currentDate) },
-              _entityId: '_empty_day_', // This allows accent color and background to work
-              _isEmptyDay: true, // Keep this flag for max_events_to_show handling
-              location: '', // Empty location
+              _entityId: '_empty_day_',
+              _isEmptyDay: true,
+              location: '',
             },
           ],
-        });
+          // Add week and month metadata
+          weekNumber: FormatUtils.getWeekNumber(
+            currentDate,
+            config.show_week_numbers,
+            firstDayOfWeek,
+          ),
+          monthNumber: currentDate.getMonth(),
+          isFirstDayOfMonth: currentDate.getDate() === 1,
+          isFirstDayOfWeek: currentDate.getDay() === firstDayOfWeek,
+        };
+
+        allDays.push(dayObj);
       }
     }
 

@@ -465,14 +465,11 @@ class CalendarCardPro extends LitElement {
     } else if (this.events.length === 0) {
       // Empty state - generate synthetic empty days
       const emptyDays = EventUtils.generateEmptyStateEvents(this.config, this.effectiveLanguage);
-      content = html`${emptyDays.map((day) =>
-        Render.renderDay(day, this.config, this.effectiveLanguage),
-      )}`;
+      // Use renderGroupedEvents to handle week numbers and separators
+      content = Render.renderGroupedEvents(emptyDays, this.config, this.effectiveLanguage);
     } else {
-      // Normal state with events
-      content = html`${this.groupedEvents.map((day) =>
-        Render.renderDay(day, this.config, this.effectiveLanguage),
-      )}`;
+      // Normal state with events - use renderGroupedEvents to handle week numbers and separators
+      content = Render.renderGroupedEvents(this.groupedEvents, this.config, this.effectiveLanguage);
     }
 
     // Render main card structure with content

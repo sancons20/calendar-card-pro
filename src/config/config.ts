@@ -67,6 +67,16 @@ export const DEFAULT_CONFIG: Types.Config = {
   location_color: 'var(--secondary-text-color)',
   location_icon_size: '14px',
 
+  // Week numbers and separators
+  first_day_of_week: 'system',
+  show_week_numbers: null,
+  week_number_color: 'var(--secondary-text-color)',
+  week_number_background_color: 'var(--primary-background-color)',
+  horizontal_line_week_width: '0px',
+  horizontal_line_week_color: 'var(--secondary-text-color)',
+  horizontal_line_month_width: '0px',
+  horizontal_line_month_color: 'var(--primary-text-color)',
+
   // Actions
   tap_action: { action: 'none' },
   hold_action: { action: 'none' },
