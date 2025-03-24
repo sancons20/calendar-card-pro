@@ -245,15 +245,15 @@ export function groupEventsByDay(
   // Add empty days if configured
   if (config.show_empty_days) {
     const translations = Localize.getTranslations(language);
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // Use the reference date based on configuration instead of hardcoding today
+    const referenceDate = getStartDateReference(config);
 
     // Create an array of all days in the configured range
     const allDays: Types.EventsByDay[] = [];
 
     for (let i = 0; i < (config.days_to_show || 3); i++) {
-      const currentDate = new Date(todayStart);
-      currentDate.setDate(todayStart.getDate() + i);
+      const currentDate = new Date(referenceDate);
+      currentDate.setDate(referenceDate.getDate() + i);
 
       // Create date key for this day
       const dateKey = FormatUtils.getLocalDateKey(currentDate);
@@ -343,16 +343,16 @@ export function generateEmptyStateEvents(
   language: string,
 ): Types.EventsByDay[] {
   const translations = Localize.getTranslations(language);
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  // Use the reference date based on configuration instead of hardcoding today
+  const referenceDate = getStartDateReference(config);
   const days: Types.EventsByDay[] = [];
 
   // Generate either just today (if show_empty_days is false) or all configured days
   const daysToGenerate = config.show_empty_days ? config.days_to_show : 1;
 
   for (let i = 0; i < daysToGenerate; i++) {
-    const currentDate = new Date(todayStart);
-    currentDate.setDate(todayStart.getDate() + i);
+    const currentDate = new Date(referenceDate);
+    currentDate.setDate(referenceDate.getDate() + i);
 
     days.push({
       weekday: translations.daysOfWeek[currentDate.getDay()],
@@ -781,4 +781,28 @@ export function getValidCacheEntry(
  */
 export function getCacheDuration(config?: Types.Config): number {
   return (config?.refresh_interval || Constants.CACHE.DEFAULT_DATA_REFRESH_MINUTES) * 60 * 1000;
+}
+
+//-----------------------------------------------------------------------------
+// DATE HANDLING HELPERS
+//-----------------------------------------------------------------------------
+
+/**
+ * Get the reference start date based on configuration or today
+ * Used for both empty days generation and time window calculations
+ *
+ * @param config - Card configuration with optional start_date
+ * @returns Date object representing the starting reference date
+ */
+function getStartDateReference(config: Types.Config): Date {
+  // If start_date is configured, use it
+  if (config.start_date && config.start_date.trim() !== '') {
+    // Reuse existing getTimeWindow function which already has date parsing logic
+    const timeWindow = getTimeWindow(config.days_to_show, config.start_date);
+    return timeWindow.start;
+  }
+
+  // Otherwise use today as fallback
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }

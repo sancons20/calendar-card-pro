@@ -99,26 +99,36 @@ export const cardStyles = css`
     width: 100%;
   }
 
-  /* Add scrolling to content container */
+  /* Content container - Default state (no scrolling) */
   .content-container {
     max-height: var(--calendar-card-max-height, none);
+    overflow-y: visible;
+  }
+
+  /* Only apply scrolling styles when max-height is explicitly set */
+  ha-card.max-height-set .content-container {
     overflow-y: auto;
     scrollbar-width: thin; /* Firefox */
     scrollbar-color: var(--secondary-text-color) transparent; /* Firefox */
   }
 
-  /* Webkit scrollbar styling */
-  .content-container::-webkit-scrollbar {
+  /* Webkit scrollbar styling - only applied when max-height is set */
+  ha-card.max-height-set .content-container::-webkit-scrollbar {
     width: 6px;
   }
 
-  .content-container::-webkit-scrollbar-thumb {
+  ha-card.max-height-set .content-container::-webkit-scrollbar-thumb {
     background-color: var(--secondary-text-color);
     border-radius: 3px;
   }
 
-  .content-container::-webkit-scrollbar-track {
+  ha-card.max-height-set .content-container::-webkit-scrollbar-track {
     background: transparent;
+  }
+
+  /* Remove default webkit scrollbars when max-height is not set */
+  .content-container::-webkit-scrollbar {
+    display: none;
   }
 
   .card-header-placeholder {

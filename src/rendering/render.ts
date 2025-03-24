@@ -29,6 +29,7 @@ import * as EventUtils from '../utils/events';
  * @param title Card title from configuration
  * @param content Main card content (events or status)
  * @param handlers Event handler functions
+ * @param maxHeightSet Flag to add max-height-set class
  * @returns TemplateResult for the complete card
  */
 export function renderMainCardStructure(
@@ -42,10 +43,11 @@ export function renderMainCardStructure(
     pointerCancel: (ev: Event) => void;
     pointerLeave: (ev: Event) => void;
   },
+  maxHeightSet: boolean = false,
 ): TemplateResult {
   return html`
     <ha-card
-      class="calendar-card-pro"
+      class="calendar-card-pro ${maxHeightSet ? 'max-height-set' : ''}"
       style=${styleMap(customStyles)}
       tabindex="0"
       @keydown=${handlers.keyDown}

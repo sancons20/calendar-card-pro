@@ -441,6 +441,9 @@ class CalendarCardPro extends LitElement {
   render() {
     const customStyles = this.getCustomStyles();
 
+    // Detect if a max-height is explicitly set
+    const maxHeightSet = this.config.max_height !== 'none';
+
     // Create event handlers object for the card
     const handlers = {
       keyDown: (ev: KeyboardEvent) => this._handleKeyDown(ev),
@@ -473,7 +476,13 @@ class CalendarCardPro extends LitElement {
     }
 
     // Render main card structure with content
-    return Render.renderMainCardStructure(customStyles, this.config.title, content, handlers);
+    return Render.renderMainCardStructure(
+      customStyles,
+      this.config.title,
+      content,
+      handlers,
+      maxHeightSet,
+    );
   }
 }
 
@@ -483,6 +492,17 @@ class CalendarCardPro extends LitElement {
 
 // Register the editor - main component registered by decorator
 customElements.define('calendar-card-pro-dev-editor', Editor.CalendarCardProEditor);
+
+// Create interface extending CustomElementConstructor to allow getStubConfig property
+interface CalendarCardConstructor extends CustomElementConstructor {
+  getStubConfig?: typeof Config.getStubConfig;
+}
+
+// Expose getStubConfig for Home Assistant card picker preview
+const element = customElements.get('calendar-card-pro-dev');
+if (element) {
+  (element as CalendarCardConstructor).getStubConfig = Config.getStubConfig;
+}
 
 // Register with HACS
 window.customCards = window.customCards || [];
