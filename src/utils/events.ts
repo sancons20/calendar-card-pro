@@ -286,7 +286,72 @@ export function groupEventsByDay(
     days = allDays;
   }
 
-  // Apply max_events_to_show limit if configured and not expanded
+  // Apply entity-specific event limits first (pre-filtering)
+  // This happens before the global max_events_to_show limit is applied
+  if (!isExpanded) {
+    // Create a map to track how many events we've seen from each entity
+    const entityEventCounts = new Map<string, number>();
+
+    // Process each day
+    for (const day of days) {
+      // Create a new array to hold the filtered events for this day
+      const filteredEvents: Types.CalendarEventData[] = [];
+
+      // Process each event in the day
+      for (const event of day.events) {
+        // Skip empty day placeholders - always include these
+        if (event._isEmptyDay) {
+          filteredEvents.push(event);
+          continue;
+        }
+
+        // Get the entity ID for this event
+        const entityId = event._entityId;
+        if (!entityId) {
+          // If no entity ID (shouldn't happen), include the event
+          filteredEvents.push(event);
+          continue;
+        }
+
+        // Find the entity config for this event's source
+        const entityConfig = config.entities.find((e) =>
+          typeof e === 'string' ? e === entityId : e.entity === entityId,
+        );
+
+        // Skip if no config found (shouldn't happen)
+        if (!entityConfig) {
+          filteredEvents.push(event);
+          continue;
+        }
+
+        // Get entity-specific max_events_to_show (if set)
+        const entityMaxEvents =
+          typeof entityConfig === 'object' ? entityConfig.max_events_to_show : undefined;
+
+        // If no entity-specific limit, include the event
+        if (entityMaxEvents === undefined) {
+          filteredEvents.push(event);
+          continue;
+        }
+
+        // Get current count for this entity
+        const currentCount = entityEventCounts.get(entityId) || 0;
+
+        // Check if we've reached the limit for this entity
+        if (currentCount < entityMaxEvents) {
+          // Include the event and increment the counter
+          filteredEvents.push(event);
+          entityEventCounts.set(entityId, currentCount + 1);
+        }
+        // If we've hit the limit, skip this event
+      }
+
+      // Replace the day's events with our filtered list
+      day.events = filteredEvents;
+    }
+  }
+
+  // Apply max_events_to_show limit if configured and not expanded (global limit)
   if (config.max_events_to_show && !isExpanded) {
     let eventsShown = 0;
     const maxEvents = config.max_events_to_show ?? 0;

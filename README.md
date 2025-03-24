@@ -235,6 +235,73 @@ card_mod:
 
 ---
 
+## 🆕 What's New in v2.1
+
+Calendar Card Pro v2.1 introduces a powerful new feature to give you even more control over your calendars.
+
+### 🎉 New Features
+
+#### Per-Calendar Event Limits
+
+Control how many events are shown from each calendar independently:
+
+```yaml
+entities:
+  - entity: calendar.family
+    # Show all events from family calendar (no limit)
+  - entity: calendar.work
+    max_events_to_show: 2
+    # Only show 2 most important work events
+  - entity: calendar.holidays
+    max_events_to_show: 1
+    # Just show the next upcoming holiday
+```
+
+This feature provides several benefits:
+
+- **Prioritize important calendars**: Give more space to your most important calendars
+- **Prevent one calendar from overwhelming the view**: Ideal for busy calendars like school schedules
+- **Control information density**: Show all family events but only the next work meeting
+
+##### How It Works
+
+- **Entity limits are applied first**: Each calendar is limited to its specific `max_events_to_show` value
+- **Global limit is applied second**: The card-level `max_events_to_show` still controls the total number of events
+- **Chronological order is maintained**: Events are still displayed in date/time order
+
+##### Behavior in Different Modes
+
+- **In normal (collapsed) view**: Both entity limits and global limit apply
+- **In expanded view**: Entity limits still apply, but the global limit is removed
+
+##### Example Configuration
+
+```yaml
+type: custom:calendar-card-pro
+title: 'My Calendars'
+entities:
+  - entity: calendar.family
+    accent_color: '#ff6c92'
+    # Show all events from family calendar (no limit)
+  - entity: calendar.school
+    accent_color: '#1e88e5'
+    max_events_to_show: 1
+    # Only show 1 event from school calendar
+  - entity: calendar.work
+    accent_color: '#43a047'
+    max_events_to_show: 2
+    # Show at most 2 events from work calendar
+max_events_to_show: 5
+# Show at most 5 events total in collapsed view
+tap_action:
+  action: expand
+# Tap to see more events (respecting per-calendar limits)
+```
+
+<p align="right"><a href="#top">⬆️ back to top</a></p>
+
+---
+
 <p>&nbsp;</p>
 
 ## 1️⃣ Overview
@@ -444,14 +511,15 @@ The `entities` array accepts either:
 
 #### Available Properties for Entity Configuration Objects:
 
-| Property      | Type    | Description                                                                                                           |
-| ------------- | ------- | --------------------------------------------------------------------------------------------------------------------- |
-| entity        | string  | **Required.** The calendar entity ID                                                                                  |
-| label         | string  | 🆕 **NEW!** Optional label displayed before event titles from this calendar, for instance a calendar name or an emoji |
-| color         | string  | Custom color for event titles from this calendar                                                                      |
-| accent_color  | string  | 🆕 **NEW!** Custom color for the vertical line and event background (when event_background_opacity is >0)             |
-| show_time     | boolean | 🆕 **NEW!** Whether to show event times for this calendar (overrides global show_time setting)                        |
-| show_location | boolean | 🆕 **NEW!** Whether to show event locations for this calendar (overrides global show_location setting)                |
+| Property           | Type    | Description                                                                                                           |
+| ------------------ | ------- | --------------------------------------------------------------------------------------------------------------------- |
+| entity             | string  | **Required.** The calendar entity ID                                                                                  |
+| label              | string  | 🆕 **NEW!** Optional label displayed before event titles from this calendar, for instance a calendar name or an emoji |
+| color              | string  | Custom color for event titles from this calendar                                                                      |
+| accent_color       | string  | 🆕 **NEW!** Custom color for the vertical line and event background (when event_background_opacity is >0)             |
+| show_time          | boolean | 🆕 **NEW!** Whether to show event times for this calendar (overrides global show_time setting)                        |
+| show_location      | boolean | 🆕 **NEW!** Whether to show event locations for this calendar (overrides global show_location setting)                |
+| max_events_to_show | number  | 🆕 **NEW v2.1!** Maximum number of events to show from this calendar (works with global max_events_to_show)           |
 
 #### Example:
 

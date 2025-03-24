@@ -83,6 +83,7 @@ export interface EntityConfig {
   accent_color?: string;
   show_time?: boolean;
   show_location?: boolean;
+  max_events_to_show?: number;
 }
 
 // -----------------------------------------------------------------------------
