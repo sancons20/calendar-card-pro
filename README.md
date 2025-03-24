@@ -1,8 +1,19 @@
+<a name="top"></a>
+
 # Calendar Card Pro for Home Assistant
 
 [![hacs][hacs-img]][hacs-url] [![GitHub Release][github-release-img]][github-release-url] [![Downloads][github-downloads-img]][github-release-url]
 
 <img src="https://raw.githubusercontent.com/alexpfau/calendar-card-pro/main/.github/img/header.png" alt="Calendar Card Pro Preview" width="100%">
+
+## ☕ Support This Project
+
+If you find **Calendar Card Pro** useful, consider supporting its development:
+
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/yourusername)
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor%20on%20GitHub-30363d?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sponsors/alexpfau)
+
+<p>&nbsp;</p>
 
 ## Table of Contents
 
@@ -220,6 +231,8 @@ card_mod:
     }
 ```
 
+<p align="right"><a href="#top">⬆️ back to top</a></p>
+
 ---
 
 <p>&nbsp;</p>
@@ -251,7 +264,7 @@ Built with **performance in mind**, the card leverages **intelligent refresh mec
 
 ⚠️ **Important:** Ensure you have at least **one calendar integration set up** in Home Assistant before using this card.
 
-<p>&nbsp;</p>
+<p align="right"><a href="#top">⬆️ back to top</a></p>
 
 ## 2️⃣ Installation
 
@@ -296,7 +309,7 @@ The easiest way to install **Calendar Card Pro** is via **[HACS (Home Assistant 
 
 </details>
 
-<p>&nbsp;</p>
+<p align="right"><a href="#top">⬆️ back to top</a></p>
 
 ## 3️⃣ Usage
 
@@ -360,7 +373,7 @@ show_location: true
 - Check out the [💡 Examples](#5️⃣-examples) section for **pre-configured setups**.
 - Get involved! Check out the [Contributing & Roadmap](#6️⃣-contributing--roadmap) section to learn **how to contribute** and see **upcoming features**.
 
-<p>&nbsp;</p>
+<p align="right"><a href="#top">⬆️ back to top</a></p>
 
 ## 4️⃣ Configuration Guide
 
@@ -592,7 +605,7 @@ To maintain performance, **Calendar Card Pro** progressively renders events:
 - **Prevents browser freezing** with optimized rendering.
 - **Ensures smooth interactions** even for large event lists.
 
-<p>&nbsp;</p>
+<p align="right"><a href="#top">⬆️ back to top</a></p>
 
 ## 5️⃣ Examples
 
@@ -713,7 +726,7 @@ hold_action:
 refresh_interval: 15 # Auto-refresh events every 15 minutes
 ```
 
-<p>&nbsp;</p>
+<p align="right"><a href="#top">⬆️ back to top</a></p>
 
 ## 6️⃣ Contributing & Roadmap
 
