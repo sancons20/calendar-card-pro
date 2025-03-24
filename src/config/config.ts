@@ -226,6 +226,21 @@ export function haveEntityColorsChanged(
  * Find a calendar entity in Home Assistant states
  */
 export function findCalendarEntity(hass: Record<string, { state: string }>): string | null {
+  // No valid hass object provided
+  if (!hass || typeof hass !== 'object') {
+    return null;
+  }
+
+  // Check for entities in the states property (standard Home Assistant structure)
+  if ('states' in hass && typeof hass.states === 'object') {
+    const stateKeys = Object.keys(hass.states);
+    const calendarInStates = stateKeys.find((key) => key.startsWith('calendar.'));
+    if (calendarInStates) {
+      return calendarInStates;
+    }
+  }
+
+  // Check for entities at the top level (alternative structure)
   return Object.keys(hass).find((entityId) => entityId.startsWith('calendar.')) || null;
 }
 
