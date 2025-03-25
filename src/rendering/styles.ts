@@ -26,9 +26,7 @@ export function generateCustomPropertiesObject(config: Types.Config): Record<str
     '--calendar-card-color-time': config.time_color,
     '--calendar-card-color-location': config.location_color,
     '--calendar-card-line-color-vertical': config.vertical_line_color,
-    '--calendar-card-line-color-horizontal': config.horizontal_line_color,
     '--calendar-card-line-width-vertical': config.vertical_line_width,
-    '--calendar-card-line-width-horizontal': config.horizontal_line_width,
     '--calendar-card-day-spacing': config.day_spacing,
     '--calendar-card-event-spacing': config.event_spacing,
     '--calendar-card-spacing-additional': config.additional_card_spacing,
@@ -42,6 +40,11 @@ export function generateCustomPropertiesObject(config: Types.Config): Record<str
     '--ha-ripple-hover-color': config.vertical_line_color,
     '--ha-ripple-pressed-opacity': '0.12',
     '--ha-ripple-pressed-color': config.vertical_line_color,
+
+    // Week and month separator properties
+    '--calendar-card-week-number-font-size': config.week_number_font_size,
+    '--calendar-card-week-number-color': config.week_number_color,
+    '--calendar-card-week-number-bg-color': config.week_number_background_color,
   };
 
   // Optional properties
@@ -158,6 +161,108 @@ export const cardStyles = css`
     opacity: var(--dark-primary-opacity);
   }
 
+  /* ===== WEEK NUMBER & SEPARATOR STYLES ===== */
+
+  /* Table structure for week number pills and their separator lines
+   * Creates consistent alignment with calendar data below */
+  /* Margins are applied dynamically in renderWeekRow */
+  .week-row-table {
+    height: calc(var(--calendar-card-week-number-font-size) * 1.2);
+    width: 100%;
+    table-layout: fixed;
+    border-spacing: 0;
+    border: none !important;
+  }
+
+  /* Make both cells take full height of the row */
+  .week-number-cell,
+  .separator-cell {
+    height: 100%;
+  }
+
+  /* Left cell containing the week number pill
+   * Sized to match date column width for proper alignment */
+  .week-number-cell {
+    width: var(--calendar-card-date-column-width);
+    text-align: center;
+    vertical-align: middle;
+    padding-right: 12px; /* Match date column padding */
+    border: none !important;
+  }
+
+  /* Week number pill display
+   * Rounded badge showing the current week number */
+  .week-number {
+    /* Change to flex from inline-block for better alignment */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--calendar-card-week-number-font-size);
+    font-weight: 500;
+    line-height: 1;
+    color: var(--calendar-card-week-number-color);
+    background-color: var(--calendar-card-week-number-bg-color);
+    border-radius: 999px;
+    /* More consistent padding with box-sizing */
+    box-sizing: border-box;
+    padding: calc(var(--calendar-card-week-number-font-size) * 0.3)
+      calc(var(--calendar-card-week-number-font-size) * 0.6);
+    /* Better text rendering */
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Safari-specific adjustment for iOS vertical alignment issues */
+  @supports (-webkit-touch-callout: none) {
+    .week-number {
+      /* Adjust padding to improve vertical alignment on iOS Safari */
+      padding-top: calc(var(--calendar-card-week-number-font-size) * 0.4);
+      padding-bottom: calc(var(--calendar-card-week-number-font-size) * 0.2);
+    }
+  }
+
+  /* Right cell containing the horizontal separator line
+   * Takes up remaining width of the table */
+  .separator-cell {
+    min-height: calc(var(--calendar-card-week-number-font-size) * 1.2);
+    padding-left: 0;
+    vertical-align: middle;
+    position: relative;
+    display: flex;
+  }
+
+  .separator-line {
+    width: 100%;
+    height: var(--separator-border-width, 0);
+    background-color: var(--separator-border-color, transparent);
+    /* Only show when width > 0px */
+    display: var(--separator-display, none);
+    align-self: center;
+    flex-shrink: 0;
+  }
+
+  /* Day separator - Horizontal line between individual days
+   * Used when days aren't at week or month boundaries */
+  .separator {
+    width: 100%;
+  }
+
+  /* Week separator (full-width) - Used when show_week_numbers is null
+   * Creates a horizontal line at week boundaries without week number pill
+   * Margins are applied dynamically in createSeparatorStyle in render.ts */
+  .week-separator {
+    width: 100%;
+    border-top-style: solid; /* Ensure line is visible */
+  }
+
+  /* Month separator - Used at month boundaries
+   * Creates a horizontal line between months, has priority over week separators
+   * Margins are applied dynamically in createSeparatorStyle in render.ts */
+  .month-separator {
+    width: 100%;
+    border-top-style: solid; /* Ensure line is visible */
+  }
+
   /* ===== DAY TABLE STYLES ===== */
 
   table {
@@ -165,18 +270,20 @@ export const cardStyles = css`
     width: 100%;
     table-layout: fixed;
     border-spacing: 0;
+    border-collapse: separate;
 
     /* Borders & Spacing */
     margin-bottom: var(--calendar-card-day-spacing);
-    padding-bottom: var(--calendar-card-day-spacing);
-    border-bottom: var(--calendar-card-line-width-horizontal) solid
-      var(--calendar-card-line-color-horizontal, var(--secondary-text-color));
+  }
+
+  .day-table {
+    /* Override the default table border-bottom for day tables */
+    border: none !important;
   }
 
   table:last-of-type {
     margin-bottom: 0;
     border-bottom: 0;
-    padding-bottom: 0;
   }
 
   /* ===== DATE COLUMN STYLES ===== */

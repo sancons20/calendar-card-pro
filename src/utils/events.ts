@@ -209,6 +209,26 @@ export function groupEventsByDay(
     });
   });
 
+  // After creating eventsByDay, add week/month metadata
+  const firstDayOfWeek = FormatUtils.getFirstDayOfWeek(config.first_day_of_week, language);
+
+  // Add week and month metadata to each day
+  Object.values(eventsByDay).forEach((day) => {
+    const dayDate = new Date(day.timestamp);
+
+    // Use helper function to calculate week number with majority rule
+    day.weekNumber = calculateWeekNumberWithMajorityRule(dayDate, config, firstDayOfWeek);
+
+    // Store month number for boundary detection
+    day.monthNumber = dayDate.getMonth();
+
+    // Check if this is the first day of a month
+    day.isFirstDayOfMonth = dayDate.getDate() === 1;
+
+    // Check if this is the first day of a week
+    day.isFirstDayOfWeek = dayDate.getDay() === firstDayOfWeek;
+  });
+
   // Sort events within each day
   Object.values(eventsByDay).forEach((day) => {
     day.events.sort((a, b) => {
@@ -262,8 +282,11 @@ export function groupEventsByDay(
       if (eventsByDay[dateKey]) {
         allDays.push(eventsByDay[dateKey]);
       } else {
+        // Use helper function to calculate week number with majority rule
+        const weekNumber = calculateWeekNumberWithMajorityRule(currentDate, config, firstDayOfWeek);
+
         // Otherwise create an empty day with a "fake" event that can use the regular rendering path
-        allDays.push({
+        const dayObj: Types.EventsByDay = {
           weekday: translations.daysOfWeek[currentDate.getDay()],
           day: currentDate.getDate(),
           month: translations.months[currentDate.getMonth()],
@@ -273,12 +296,19 @@ export function groupEventsByDay(
               summary: translations.noEvents,
               start: { date: FormatUtils.getLocalDateKey(currentDate) },
               end: { date: FormatUtils.getLocalDateKey(currentDate) },
-              _entityId: '_empty_day_', // This allows accent color and background to work
-              _isEmptyDay: true, // Keep this flag for max_events_to_show handling
-              location: '', // Empty location
+              _entityId: '_empty_day_',
+              _isEmptyDay: true,
+              location: '',
             },
           ],
-        });
+          // Add week and month metadata with properly calculated week number
+          weekNumber,
+          monthNumber: currentDate.getMonth(),
+          isFirstDayOfMonth: currentDate.getDate() === 1,
+          isFirstDayOfWeek: currentDate.getDay() === firstDayOfWeek,
+        };
+
+        allDays.push(dayObj);
       }
     }
 
@@ -286,7 +316,72 @@ export function groupEventsByDay(
     days = allDays;
   }
 
-  // Apply max_events_to_show limit if configured and not expanded
+  // Apply entity-specific event limits first (pre-filtering)
+  // This happens before the global max_events_to_show limit is applied
+  if (!isExpanded) {
+    // Create a map to track how many events we've seen from each entity
+    const entityEventCounts = new Map<string, number>();
+
+    // Process each day
+    for (const day of days) {
+      // Create a new array to hold the filtered events for this day
+      const filteredEvents: Types.CalendarEventData[] = [];
+
+      // Process each event in the day
+      for (const event of day.events) {
+        // Skip empty day placeholders - always include these
+        if (event._isEmptyDay) {
+          filteredEvents.push(event);
+          continue;
+        }
+
+        // Get the entity ID for this event
+        const entityId = event._entityId;
+        if (!entityId) {
+          // If no entity ID (shouldn't happen), include the event
+          filteredEvents.push(event);
+          continue;
+        }
+
+        // Find the entity config for this event's source
+        const entityConfig = config.entities.find((e) =>
+          typeof e === 'string' ? e === entityId : e.entity === entityId,
+        );
+
+        // Skip if no config found (shouldn't happen)
+        if (!entityConfig) {
+          filteredEvents.push(event);
+          continue;
+        }
+
+        // Get entity-specific max_events_to_show (if set)
+        const entityMaxEvents =
+          typeof entityConfig === 'object' ? entityConfig.max_events_to_show : undefined;
+
+        // If no entity-specific limit, include the event
+        if (entityMaxEvents === undefined) {
+          filteredEvents.push(event);
+          continue;
+        }
+
+        // Get current count for this entity
+        const currentCount = entityEventCounts.get(entityId) || 0;
+
+        // Check if we've reached the limit for this entity
+        if (currentCount < entityMaxEvents) {
+          // Include the event and increment the counter
+          filteredEvents.push(event);
+          entityEventCounts.set(entityId, currentCount + 1);
+        }
+        // If we've hit the limit, skip this event
+      }
+
+      // Replace the day's events with our filtered list
+      day.events = filteredEvents;
+    }
+  }
+
+  // Apply max_events_to_show limit if configured and not expanded (global limit)
   if (config.max_events_to_show && !isExpanded) {
     let eventsShown = 0;
     const maxEvents = config.max_events_to_show ?? 0;
@@ -347,12 +442,18 @@ export function generateEmptyStateEvents(
   const referenceDate = getStartDateReference(config);
   const days: Types.EventsByDay[] = [];
 
+  // Get first day of week from config
+  const firstDayOfWeek = FormatUtils.getFirstDayOfWeek(config.first_day_of_week, language);
+
   // Generate either just today (if show_empty_days is false) or all configured days
   const daysToGenerate = config.show_empty_days ? config.days_to_show : 1;
 
   for (let i = 0; i < daysToGenerate; i++) {
     const currentDate = new Date(referenceDate);
     currentDate.setDate(referenceDate.getDate() + i);
+
+    // Use helper function to calculate week number with majority rule
+    const weekNumber = calculateWeekNumberWithMajorityRule(currentDate, config, firstDayOfWeek);
 
     days.push({
       weekday: translations.daysOfWeek[currentDate.getDay()],
@@ -369,6 +470,10 @@ export function generateEmptyStateEvents(
           location: '',
         },
       ],
+      weekNumber,
+      monthNumber: currentDate.getMonth(),
+      isFirstDayOfMonth: currentDate.getDate() === 1,
+      isFirstDayOfWeek: currentDate.getDay() === firstDayOfWeek,
     });
   }
 
@@ -805,4 +910,33 @@ function getStartDateReference(config: Types.Config): Date {
   // Otherwise use today as fallback
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+/**
+ * Calculate week number with majority rule adjustment applied
+ * Handles special case for ISO week numbers when Sunday is the first day of week
+ *
+ * @param date Date to calculate week number for
+ * @param config Card configuration
+ * @param firstDayOfWeek First day of week (0 = Sunday, 1 = Monday)
+ * @returns Calculated week number with majority rule applied
+ */
+export function calculateWeekNumberWithMajorityRule(
+  date: Date,
+  config: Types.Config,
+  firstDayOfWeek: number,
+): number | null {
+  // Basic week number calculation
+  let weekNumber = FormatUtils.getWeekNumber(date, config.show_week_numbers, firstDayOfWeek);
+
+  // Apply "majority rule" for ISO week numbers when first day is Sunday
+  if (config.show_week_numbers === 'iso' && firstDayOfWeek === 0 && date.getDay() === 0) {
+    // For Sunday with ISO week numbering, get the week number of the next day (Monday)
+    // This ensures we display the week number that applies to most days in the visible week
+    const nextDay = new Date(date);
+    nextDay.setDate(nextDay.getDate() + 1);
+    weekNumber = FormatUtils.getISOWeekNumber(nextDay);
+  }
+
+  return weekNumber;
 }

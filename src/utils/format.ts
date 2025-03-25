@@ -172,6 +172,116 @@ export function formatTime(date: Date, use24h = true): string {
   return `${hours}:${minutes.toString().padStart(2, '0')}`;
 }
 
+/**
+ * Calculate ISO week number for a date
+ * Week 1 is the week with the first Thursday of the year
+ *
+ * @param date Date to calculate week number for
+ * @returns ISO week number (1-53)
+ */
+export function getISOWeekNumber(date: Date): number {
+  // Create a copy of the date
+  const d = new Date(date);
+
+  // Set to nearest Thursday: current date + 4 - current day number
+  // Make Sunday's day number 7
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+
+  // Get first day of year
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+
+  // Calculate full weeks to nearest Thursday
+  const weekNumber = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+
+  return weekNumber;
+}
+
+/**
+ * Calculate simple week number (1st January = week 1)
+ *
+ * @param date Date to calculate week number for
+ * @param firstDayOfWeek First day of week (0 = Sunday, 1 = Monday)
+ * @returns Simple week number (1-53)
+ */
+export function getSimpleWeekNumber(date: Date, firstDayOfWeek: number = 0): number {
+  // Create a copy of the date
+  const d = new Date(date);
+
+  // Get the first day of the year
+  const startOfYear = new Date(d.getFullYear(), 0, 1);
+
+  // Calculate days since start of the year
+  const days = Math.floor((d.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+
+  // Calculate offset based on first day of the year and configured first day of week
+  // This adjustment aligns the week boundaries with the configured first day of week
+  const dayOfWeekOffset = (startOfYear.getDay() - firstDayOfWeek + 7) % 7;
+
+  // Calculate week number (adding 1 because we want weeks to start from 1)
+  const weekNumber = Math.ceil((days + dayOfWeekOffset + 1) / 7);
+
+  return weekNumber;
+}
+
+/**
+ * Get first day of week based on config and locale
+ *
+ * @param firstDayConfig Configuration setting for first day of week
+ * @param locale Current locale
+ * @returns Day number (0 = Sunday, 1 = Monday)
+ */
+export function getFirstDayOfWeek(
+  firstDayConfig: 'sunday' | 'monday' | 'system',
+  locale: string = 'en',
+): number {
+  // Explicit setting takes precedence
+  if (firstDayConfig === 'sunday') return 0;
+  if (firstDayConfig === 'monday') return 1;
+
+  // For system setting, try to detect from locale
+  try {
+    // Northern American locales typically use Sunday as first day
+    if (/^en-(US|CA)|es-US/.test(locale)) {
+      return 0; // Sunday
+    }
+
+    // Most other locales use Monday
+    return 1;
+  } catch {
+    // Default to Monday on error
+    return 1;
+  }
+}
+
+/**
+ * Get week number based on config settings
+ *
+ * @param date Date to get week number for
+ * @param method Week numbering method (iso or simple)
+ * @param firstDayOfWeek First day of week (0 = Sunday, 1 = Monday)
+ * @returns Calculated week number
+ */
+export function getWeekNumber(
+  date: Date,
+  method: 'iso' | 'simple' | null,
+  firstDayOfWeek: number,
+): number | null {
+  if (!method) return null;
+
+  if (method === 'iso') {
+    // ISO week numbers are defined by ISO 8601 standard and always use Monday as first day
+    // for calculation purposes, but we still display separator on the configured first day
+    return getISOWeekNumber(date);
+  }
+
+  if (method === 'simple') {
+    // Simple week numbers should respect the configured first day of week
+    return getSimpleWeekNumber(date, firstDayOfWeek);
+  }
+
+  return null;
+}
+
 //-----------------------------------------------------------------------------
 // SPECIALIZED EVENT FORMATTING HELPERS
 //-----------------------------------------------------------------------------

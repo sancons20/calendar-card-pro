@@ -80,6 +80,14 @@ export const TIMING = {
  * DOM and UI constants
  */
 export const UI = {
+  /** Week/month horizontal separator spacing multipliers */
+  SEPARATOR_SPACING: {
+    /** Multiplier for week separators (1x day_spacing) */
+    WEEK: 1,
+    /** Multiplier for month separators (2x day_spacing) */
+    MONTH: 1.5,
+  },
+
   /** Opacity for hold indicators */
   HOLD_INDICATOR_OPACITY: 0.2,
 

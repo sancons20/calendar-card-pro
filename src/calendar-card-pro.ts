@@ -23,7 +23,7 @@
  */
 
 // Import Lit libraries
-import { LitElement, PropertyValues, TemplateResult, html } from 'lit';
+import { LitElement, PropertyValues, TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
 // Import all types via namespace for cleaner imports
@@ -349,7 +349,28 @@ class CalendarCardPro extends LitElement {
    */
   setConfig(config: Partial<Types.Config>) {
     const previousConfig = this.config;
-    this.config = { ...Config.DEFAULT_CONFIG, ...config };
+
+    // First do the standard merging
+    let mergedConfig = { ...Config.DEFAULT_CONFIG, ...config };
+
+    //============================================================================
+    // DEPRECATED PARAMETERS HANDLING - WILL BE REMOVED IN v3.0
+    // The following code provides backwards compatibility for deprecated parameters
+    // horizontal_line_width -> day_separator_width
+    // horizontal_line_color -> day_separator_color
+    //============================================================================
+    if (!config.day_separator_width && config.horizontal_line_width) {
+      mergedConfig.day_separator_width = config.horizontal_line_width;
+    }
+
+    if (!config.day_separator_color && config.horizontal_line_color) {
+      mergedConfig.day_separator_color = config.horizontal_line_color;
+    }
+    //============================================================================
+    // END OF DEPRECATED PARAMETERS HANDLING
+    //============================================================================
+
+    this.config = mergedConfig;
     this.config.entities = Config.normalizeEntities(this.config.entities);
 
     // Generate deterministic ID for caching
@@ -465,14 +486,11 @@ class CalendarCardPro extends LitElement {
     } else if (this.events.length === 0) {
       // Empty state - generate synthetic empty days
       const emptyDays = EventUtils.generateEmptyStateEvents(this.config, this.effectiveLanguage);
-      content = html`${emptyDays.map((day) =>
-        Render.renderDay(day, this.config, this.effectiveLanguage),
-      )}`;
+      // Use renderGroupedEvents to handle week numbers and separators
+      content = Render.renderGroupedEvents(emptyDays, this.config, this.effectiveLanguage);
     } else {
-      // Normal state with events
-      content = html`${this.groupedEvents.map((day) =>
-        Render.renderDay(day, this.config, this.effectiveLanguage),
-      )}`;
+      // Normal state with events - use renderGroupedEvents to handle week numbers and separators
+      content = Render.renderGroupedEvents(this.groupedEvents, this.config, this.effectiveLanguage);
     }
 
     // Render main card structure with content
