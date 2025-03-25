@@ -200,9 +200,10 @@ export function getISOWeekNumber(date: Date): number {
  * Calculate simple week number (1st January = week 1)
  *
  * @param date Date to calculate week number for
+ * @param firstDayOfWeek First day of week (0 = Sunday, 1 = Monday)
  * @returns Simple week number (1-53)
  */
-export function getSimpleWeekNumber(date: Date): number {
+export function getSimpleWeekNumber(date: Date, firstDayOfWeek: number = 0): number {
   // Create a copy of the date
   const d = new Date(date);
 
@@ -212,8 +213,12 @@ export function getSimpleWeekNumber(date: Date): number {
   // Calculate days since start of the year
   const days = Math.floor((d.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
 
+  // Calculate offset based on first day of the year and configured first day of week
+  // This adjustment aligns the week boundaries with the configured first day of week
+  const dayOfWeekOffset = (startOfYear.getDay() - firstDayOfWeek + 7) % 7;
+
   // Calculate week number (adding 1 because we want weeks to start from 1)
-  const weekNumber = Math.ceil((days + startOfYear.getDay() + 1) / 7);
+  const weekNumber = Math.ceil((days + dayOfWeekOffset + 1) / 7);
 
   return weekNumber;
 }
@@ -242,7 +247,7 @@ export function getFirstDayOfWeek(
 
     // Most other locales use Monday
     return 1;
-  } catch (error) {
+  } catch {
     // Default to Monday on error
     return 1;
   }
@@ -264,15 +269,14 @@ export function getWeekNumber(
   if (!method) return null;
 
   if (method === 'iso') {
+    // ISO week numbers are defined by ISO 8601 standard and always use Monday as first day
+    // for calculation purposes, but we still display separator on the configured first day
     return getISOWeekNumber(date);
   }
 
   if (method === 'simple') {
-    // For simple week number, the first day of week can affect the calculation
-    // but our current implementation doesn't use it yet
-    // This prevents the unused parameter warning
-    const _ = firstDayOfWeek; // Acknowledge parameter is received but not used yet
-    return getSimpleWeekNumber(date);
+    // Simple week numbers should respect the configured first day of week
+    return getSimpleWeekNumber(date, firstDayOfWeek);
   }
 
   return null;

@@ -33,8 +33,25 @@ export interface Config {
   max_height: string;
   vertical_line_width: string;
   vertical_line_color: string;
+
+  /** @deprecated Use day_separator_width instead. Will be removed in v3.0 */
   horizontal_line_width: string;
+  /** @deprecated Use day_separator_color instead. Will be removed in v3.0 */
   horizontal_line_color: string;
+
+  // Week numbers and horizontal separators
+  first_day_of_week: 'sunday' | 'monday' | 'system';
+  show_week_numbers: null | 'iso' | 'simple';
+  show_current_week_number: boolean;
+  week_number_font_size: string;
+  week_number_color: string;
+  week_number_background_color: string;
+  day_separator_width: string;
+  day_separator_color: string;
+  week_separator_width: string;
+  week_separator_color: string;
+  month_separator_width: string;
+  month_separator_color: string;
 
   // Date column
   date_vertical_alignment: string;
@@ -63,16 +80,6 @@ export interface Config {
   location_font_size: string;
   location_color: string;
   location_icon_size: string;
-
-  // Week numbers and separators
-  first_day_of_week: 'sunday' | 'monday' | 'system';
-  show_week_numbers: null | 'iso' | 'simple';
-  week_number_color: string;
-  week_number_background_color: string;
-  horizontal_line_week_width: string;
-  horizontal_line_week_color: string;
-  horizontal_line_month_width: string;
-  horizontal_line_month_color: string;
 
   // Actions
   tap_action: ActionConfig;

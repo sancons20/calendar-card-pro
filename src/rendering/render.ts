@@ -7,11 +7,11 @@
  * within the main component's render method.
  */
 
-import { TemplateResult, html } from 'lit';
+import { TemplateResult, html, nothing } from 'lit';
 import { classMap } from 'lit/directives/class-map.js';
 import { styleMap } from 'lit/directives/style-map.js';
 import { repeat } from 'lit/directives/repeat.js';
-
+import * as Constants from '../config/constants';
 import * as Types from '../config/types';
 import * as Localize from '../translations/localize';
 import * as FormatUtils from '../utils/format';
@@ -74,7 +74,7 @@ export function renderMainCardStructure(
 /**
  * Render card content based on state
  *
- * @param state Card state (loading, error)
+ * @param state Card state (loading, error)renderWeekRow
  * @param language Language code for translations
  * @returns Template result for card content
  */
@@ -97,6 +97,192 @@ export function renderCardContent(state: 'loading' | 'error', language: string):
 }
 
 //-----------------------------------------------------------------------------
+// SEPARATOR RENDERING HELPERS
+//-----------------------------------------------------------------------------
+
+/**
+ * Create consistent separator styles for any type of horizontal separator
+ * Properly calculates margins based on day_spacing to ensure vertical centering
+ * with appropriate multipliers for different separator types
+ *
+ * @param lineWidth - Border width for the separator
+ * @param lineColor - Border color for the separator
+ * @param config - Card configuration for spacing values
+ * @param separatorType - Type of separator (day, week, or month)
+ * @returns Style object for use with styleMap
+ */
+function createSeparatorStyle(
+  lineWidth: string,
+  lineColor: string,
+  config: Types.Config,
+  separatorType: 'day' | 'week' | 'month' = 'day',
+): Record<string, string> {
+  // Base spacing from configuration
+  const baseSpacing = parseFloat(config.day_spacing);
+
+  // Special handling for day separators to balance margins
+  if (separatorType === 'day') {
+    // For day separators, we want equal spacing above and below
+    return {
+      borderTopWidth: lineWidth,
+      borderTopColor: lineColor,
+      borderTopStyle: 'solid',
+      marginTop: '0px', // No additional margin needed on top (table already has margin)
+      marginBottom: `${baseSpacing}px`, // Equal spacing below
+    };
+  }
+
+  // For week and month separators, determine the appropriate multiplier
+  let multiplier = Constants.UI.SEPARATOR_SPACING.WEEK; // Default to week multiplier
+  if (separatorType === 'month') {
+    multiplier = Constants.UI.SEPARATOR_SPACING.MONTH;
+  }
+
+  // Calculate the desired total spacing between elements (finalSpacing)
+  const finalSpacing = baseSpacing * multiplier;
+
+  return {
+    borderTopWidth: lineWidth,
+    borderTopColor: lineColor,
+    borderTopStyle: 'solid',
+    marginTop: `${finalSpacing}px`,
+    marginBottom: `${finalSpacing}px`,
+  };
+}
+
+/**
+ * Render a horizontal separator line with consistent styling
+ *
+ * @param lineWidth - Width of the separator line
+ * @param lineColor - Color of the separator line
+ * @param className - CSS class to apply (week-separator or month-separator)
+ * @param config - Card configuration
+ * @param isFirstWeek - Whether this is the first week in the view
+ * @returns TemplateResult or nothing
+ */
+function renderHorizontalSeparator(
+  lineWidth: string,
+  lineColor: string,
+  className: string,
+  config: Types.Config,
+  isFirstWeek: boolean = false,
+  separatorType: 'day' | 'week' | 'month' = 'day',
+): TemplateResult | typeof nothing {
+  // Don't render for zero width or first week
+  if (lineWidth === '0px' || isFirstWeek) {
+    return nothing;
+  }
+
+  const separatorStyle = createSeparatorStyle(lineWidth, lineColor, config, separatorType);
+
+  return html`<div class="${className}" style=${styleMap(separatorStyle)}></div>`;
+}
+
+/**
+ * Render a month separator line
+ *
+ * @param config - Card configuration
+ * @returns TemplateResult or nothing
+ */
+function renderMonthSeparator(config: Types.Config): TemplateResult | typeof nothing {
+  return renderHorizontalSeparator(
+    config.month_separator_width,
+    config.month_separator_color,
+    'month-separator',
+    config,
+    false,
+    'month',
+  );
+}
+
+/**
+ * Render a full-width week separator line (when show_week_numbers is null)
+ *
+ * @param config - Card configuration
+ * @param isFirstWeek - Whether this is the first week in the view
+ * @returns TemplateResult or nothing
+ */
+function renderWeekSeparator(
+  config: Types.Config,
+  isFirstWeek: boolean = false,
+): TemplateResult | typeof nothing {
+  return renderHorizontalSeparator(
+    config.week_separator_width,
+    config.week_separator_color,
+    'week-separator',
+    config,
+    isFirstWeek,
+    'week',
+  );
+}
+
+/**
+ * Render a week row with a week number pill and a separator line
+ * Uses table structure to align perfectly with day tables
+ *
+ * @param weekNumber - Week number to display
+ * @param isMonthBoundary - Whether this is also a month boundary
+ * @param config - Card configuration
+ * @param isFirstWeek - Whether this is the first week in the view
+ * @returns TemplateResult or nothing
+ */
+function renderWeekRow(
+  weekNumber: number | null,
+  isMonthBoundary: boolean,
+  config: Types.Config,
+  isFirstWeek: boolean = false,
+): TemplateResult | typeof nothing {
+  if (weekNumber === null) {
+    return nothing;
+  }
+
+  // Use the appropriate multiplier for week separator spacing
+  const baseSpacing = parseFloat(config.day_spacing);
+  const multiplier = isMonthBoundary
+    ? Constants.UI.SEPARATOR_SPACING.MONTH
+    : Constants.UI.SEPARATOR_SPACING.WEEK;
+  const finalSpacing = (baseSpacing * multiplier) / 2;
+  const marginTop = finalSpacing - baseSpacing;
+
+  const rowStyle = {
+    marginTop: `${marginTop}px`, // Adjusted margin that accounts for existing table margin
+    marginBottom: `${finalSpacing}px`, // Half of the desired spacing below
+  };
+
+  // Modified line style generation
+  const lineStyle: Record<string, string> = {};
+
+  if (!isFirstWeek) {
+    if (isMonthBoundary && config.month_separator_width !== '0px') {
+      lineStyle['--separator-border-width'] = config.month_separator_width;
+      lineStyle['--separator-border-color'] = config.month_separator_color;
+      lineStyle['--separator-display'] = 'block';
+    } else if (config.week_separator_width !== '0px') {
+      lineStyle['--separator-border-width'] = config.week_separator_width;
+      lineStyle['--separator-border-color'] = config.week_separator_color;
+      lineStyle['--separator-display'] = 'block';
+    } else {
+      lineStyle['--separator-display'] = 'none';
+    }
+  } else {
+    lineStyle['--separator-display'] = 'none';
+  }
+
+  return html`
+    <table class="week-row-table" style=${styleMap(rowStyle)}>
+      <tr>
+        <td class="week-number-cell">
+          <div class="week-number">W${weekNumber}</div>
+        </td>
+        <td class="separator-cell" style=${styleMap(lineStyle)}>
+          <div class="separator-line"></div>
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
+//-----------------------------------------------------------------------------
 // CONTENT GENERATION FUNCTIONS
 //-----------------------------------------------------------------------------
 
@@ -107,6 +293,7 @@ export function renderCardContent(state: 'loading' | 'error', language: string):
  * @param config - Card configuration
  * @param language - Language code for translations
  * @param prevDay - Previous day data for determining separators
+ * @param boundaryInfo - Information about week and month boundaries
  * @returns TemplateResult for the day
  */
 export function renderDay(
@@ -114,6 +301,7 @@ export function renderDay(
   config: Types.Config,
   language: string,
   prevDay?: Types.EventsByDay,
+  boundaryInfo?: { isNewWeek: boolean; isNewMonth: boolean },
 ): TemplateResult {
   // Check if this day is today
   const now = new Date();
@@ -121,56 +309,42 @@ export function renderDay(
   const dayDate = new Date(day.timestamp);
   const isToday = dayDate.toDateString() === todayStart.toDateString();
 
-  // Check if we need to show a week number
-  const showWeekNumber =
-    config.show_week_numbers !== null &&
-    day.weekNumber !== null &&
-    // Either it's the first day we're showing or it's the first day of a new week
-    (!prevDay || day.weekNumber !== prevDay.weekNumber);
+  // Separator precedence hierarchy (highest to lowest):
+  // 1. Month boundaries (with month separator enabled)
+  // 2. Week boundaries (with week separator or week numbers enabled)
+  // 3. Regular day boundaries (with regular horizontal line enabled)
+  // Only render the highest precedence separator that applies
 
-  // Determine which type of separator to use (month > week > day)
-  let separatorStyle: Record<string, string> | null = null;
+  let daySeparator: TemplateResult | typeof nothing = nothing;
 
-  // Only add separator if this is not the first day (we don't want a separator at the top)
-  if (prevDay) {
-    if (day.monthNumber !== prevDay.monthNumber && config.horizontal_line_month_width !== '0px') {
-      // Month separator takes priority
-      separatorStyle = {
-        borderTopWidth: config.horizontal_line_month_width,
-        borderTopColor: config.horizontal_line_month_color,
-        borderTopStyle: 'solid',
-        marginTop: '8px', // Add more space for month separators
-        marginBottom: '8px',
-      };
-    } else if (day.isFirstDayOfWeek && config.horizontal_line_week_width !== '0px') {
-      // Week separator
-      separatorStyle = {
-        borderTopWidth: config.horizontal_line_week_width,
-        borderTopColor: config.horizontal_line_week_color,
-        borderTopStyle: 'solid',
-        marginTop: '6px', // Slightly more space for week separators
-        marginBottom: '6px',
-      };
-    } else if (config.horizontal_line_width !== '0px') {
-      // Day separator (already handled in base styles, only included for completeness)
-      // We don't need to do anything special here as the table already has these styles
-    }
+  // Only add a regular horizontal line separator between days IF:
+  // 1. This is not the first day displayed (prevDay exists)
+  // 2. This is not a month boundary with month separators enabled
+  // 3. This is not a week boundary with week separators or week numbers enabled
+  // 4. Horizontal line width is not zero
+  const isMonthBoundary = boundaryInfo?.isNewMonth || false;
+  const isWeekBoundary = boundaryInfo?.isNewWeek || false;
+  const hasMonthSeparator = isMonthBoundary && config.month_separator_width !== '0px';
+  const hasWeekSeparator =
+    isWeekBoundary && (config.show_week_numbers !== null || config.week_separator_width !== '0px');
+
+  // Use day_separator_width with fallback to horizontal_line_width
+  const daySeparatorWidth = config.day_separator_width || config.horizontal_line_width;
+  const daySeparatorColor = config.day_separator_color || config.horizontal_line_color;
+
+  if (prevDay && daySeparatorWidth !== '0px' && !hasMonthSeparator && !hasWeekSeparator) {
+    const separatorStyle = createSeparatorStyle(
+      daySeparatorWidth,
+      daySeparatorColor,
+      config,
+      'day',
+    );
+
+    daySeparator = html`<div class="separator" style=${styleMap(separatorStyle)}></div>`;
   }
 
   return html`
-    ${showWeekNumber
-      ? html`
-          <div
-            class="week-number"
-            style="color: ${config.week_number_color}; 
-                  background-color: ${config.week_number_background_color};"
-          >
-            W${day.weekNumber}
-          </div>
-        `
-      : ''}
-    ${separatorStyle ? html`<div class="separator" style=${styleMap(separatorStyle)}></div>` : ''}
-
+    ${daySeparator}
     <table class="day-table ${isToday ? 'today' : 'future-day'}">
       ${repeat(
         day.events,
@@ -181,16 +355,71 @@ export function renderDay(
   `;
 }
 
-// Modify main rendering function to pass previous day to renderDay
+/**
+ * Render grouped events with week and month separators
+ * Uses a precedence system for different separator types
+ */
 export function renderGroupedEvents(
   days: Types.EventsByDay[],
   config: Types.Config,
   language: string,
 ): TemplateResult {
+  // Get the configured first day of week
+  const firstDayOfWeek = FormatUtils.getFirstDayOfWeek(config.first_day_of_week, language);
+
   return html`
-    ${days.map((day, index) =>
-      renderDay(day, config, language, index > 0 ? days[index - 1] : undefined),
-    )}
+    ${days.map((day, index) => {
+      const prevDay = index > 0 ? days[index - 1] : undefined;
+      const weekNumber = day.weekNumber ?? null;
+
+      // Consistently determine week boundaries based on first day of week configuration
+      // regardless of which week numbering system is used
+      let isNewWeek = false;
+
+      if (!prevDay) {
+        // First day is always a new week
+        isNewWeek = true;
+      } else {
+        // Always check if we've crossed a week boundary by comparing
+        // if the current day is the configured first day of the week
+        const dayDate = new Date(day.timestamp);
+        isNewWeek = dayDate.getDay() === firstDayOfWeek;
+      }
+
+      const isNewMonth = prevDay && day.monthNumber !== prevDay.monthNumber;
+      const isFirstWeek = index === 0;
+
+      // Pass boundary information to renderDay
+      const boundaryInfo = {
+        isNewWeek,
+        isNewMonth: Boolean(isNewMonth),
+      };
+
+      // Determine which separator to show based on precedence rules
+      let separator: TemplateResult | typeof nothing = nothing;
+
+      // Apply precedence: Month separator > Week separator
+      if (isNewMonth && (!isNewWeek || config.show_week_numbers === null)) {
+        // Month boundaries without week change get month separator
+        separator = renderMonthSeparator(config);
+      } else if (isNewWeek) {
+        // Check for first week + config setting
+        if (isFirstWeek && config.show_week_numbers !== null && !config.show_current_week_number) {
+          // Skip week number pill for first week if setting disabled, but keep month/week separators if needed
+          separator = isNewMonth
+            ? renderMonthSeparator(config)
+            : renderWeekSeparator(config, isFirstWeek);
+        } else {
+          // Normal rendering logic - week boundaries get either week number pill or week separator
+          separator =
+            config.show_week_numbers !== null
+              ? renderWeekRow(weekNumber, Boolean(isNewMonth), config, isFirstWeek)
+              : renderWeekSeparator(config, isFirstWeek);
+        }
+      }
+
+      return html` ${separator} ${renderDay(day, config, language, prevDay, boundaryInfo)} `;
+    })}
   `;
 }
 

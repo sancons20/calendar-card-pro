@@ -216,8 +216,8 @@ export function groupEventsByDay(
   Object.values(eventsByDay).forEach((day) => {
     const dayDate = new Date(day.timestamp);
 
-    // Calculate week number based on config
-    day.weekNumber = FormatUtils.getWeekNumber(dayDate, config.show_week_numbers, firstDayOfWeek);
+    // Use helper function to calculate week number with majority rule
+    day.weekNumber = calculateWeekNumberWithMajorityRule(dayDate, config, firstDayOfWeek);
 
     // Store month number for boundary detection
     day.monthNumber = dayDate.getMonth();
@@ -282,6 +282,9 @@ export function groupEventsByDay(
       if (eventsByDay[dateKey]) {
         allDays.push(eventsByDay[dateKey]);
       } else {
+        // Use helper function to calculate week number with majority rule
+        const weekNumber = calculateWeekNumberWithMajorityRule(currentDate, config, firstDayOfWeek);
+
         // Otherwise create an empty day with a "fake" event that can use the regular rendering path
         const dayObj: Types.EventsByDay = {
           weekday: translations.daysOfWeek[currentDate.getDay()],
@@ -298,12 +301,8 @@ export function groupEventsByDay(
               location: '',
             },
           ],
-          // Add week and month metadata
-          weekNumber: FormatUtils.getWeekNumber(
-            currentDate,
-            config.show_week_numbers,
-            firstDayOfWeek,
-          ),
+          // Add week and month metadata with properly calculated week number
+          weekNumber,
           monthNumber: currentDate.getMonth(),
           isFirstDayOfMonth: currentDate.getDate() === 1,
           isFirstDayOfWeek: currentDate.getDay() === firstDayOfWeek,
@@ -443,12 +442,18 @@ export function generateEmptyStateEvents(
   const referenceDate = getStartDateReference(config);
   const days: Types.EventsByDay[] = [];
 
+  // Get first day of week from config
+  const firstDayOfWeek = FormatUtils.getFirstDayOfWeek(config.first_day_of_week, language);
+
   // Generate either just today (if show_empty_days is false) or all configured days
   const daysToGenerate = config.show_empty_days ? config.days_to_show : 1;
 
   for (let i = 0; i < daysToGenerate; i++) {
     const currentDate = new Date(referenceDate);
     currentDate.setDate(referenceDate.getDate() + i);
+
+    // Use helper function to calculate week number with majority rule
+    const weekNumber = calculateWeekNumberWithMajorityRule(currentDate, config, firstDayOfWeek);
 
     days.push({
       weekday: translations.daysOfWeek[currentDate.getDay()],
@@ -465,6 +470,10 @@ export function generateEmptyStateEvents(
           location: '',
         },
       ],
+      weekNumber,
+      monthNumber: currentDate.getMonth(),
+      isFirstDayOfMonth: currentDate.getDate() === 1,
+      isFirstDayOfWeek: currentDate.getDay() === firstDayOfWeek,
     });
   }
 
@@ -901,4 +910,33 @@ function getStartDateReference(config: Types.Config): Date {
   // Otherwise use today as fallback
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+/**
+ * Calculate week number with majority rule adjustment applied
+ * Handles special case for ISO week numbers when Sunday is the first day of week
+ *
+ * @param date Date to calculate week number for
+ * @param config Card configuration
+ * @param firstDayOfWeek First day of week (0 = Sunday, 1 = Monday)
+ * @returns Calculated week number with majority rule applied
+ */
+export function calculateWeekNumberWithMajorityRule(
+  date: Date,
+  config: Types.Config,
+  firstDayOfWeek: number,
+): number | null {
+  // Basic week number calculation
+  let weekNumber = FormatUtils.getWeekNumber(date, config.show_week_numbers, firstDayOfWeek);
+
+  // Apply "majority rule" for ISO week numbers when first day is Sunday
+  if (config.show_week_numbers === 'iso' && firstDayOfWeek === 0 && date.getDay() === 0) {
+    // For Sunday with ISO week numbering, get the week number of the next day (Monday)
+    // This ensures we display the week number that applies to most days in the visible week
+    const nextDay = new Date(date);
+    nextDay.setDate(nextDay.getDate() + 1);
+    weekNumber = FormatUtils.getISOWeekNumber(nextDay);
+  }
+
+  return weekNumber;
 }

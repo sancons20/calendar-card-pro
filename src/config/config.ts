@@ -30,14 +30,31 @@ export const DEFAULT_CONFIG: Types.Config = {
 
   // Layout and spacing
   background_color: 'var(--ha-card-background)',
-  day_spacing: '5px',
+  day_spacing: '10px',
   event_spacing: '4px',
   additional_card_spacing: '0px',
   max_height: 'none',
   vertical_line_width: '2px',
   vertical_line_color: '#03a9f4',
+
+  /** @deprecated Use day_separator_width instead. Will be removed in v3.0 */
   horizontal_line_width: '0px',
+  /** @deprecated Use day_separator_color instead. Will be removed in v3.0 */
   horizontal_line_color: 'var(--secondary-text-color)',
+
+  // Week numbers and horizontal separators
+  first_day_of_week: 'system',
+  show_week_numbers: null,
+  show_current_week_number: true,
+  week_number_font_size: '14px',
+  week_number_color: 'var(--primary-text-color)',
+  week_number_background_color: '#03a9f450',
+  day_separator_width: '0px',
+  day_separator_color: 'var(--secondary-text-color)',
+  week_separator_width: '0px',
+  week_separator_color: '#03a9f450',
+  month_separator_width: '0px',
+  month_separator_color: 'var(--primary-text-color)',
 
   // Date column
   date_vertical_alignment: 'middle',
@@ -66,16 +83,6 @@ export const DEFAULT_CONFIG: Types.Config = {
   location_font_size: '12px',
   location_color: 'var(--secondary-text-color)',
   location_icon_size: '14px',
-
-  // Week numbers and separators
-  first_day_of_week: 'system',
-  show_week_numbers: null,
-  week_number_color: 'var(--secondary-text-color)',
-  week_number_background_color: 'var(--primary-background-color)',
-  horizontal_line_week_width: '0px',
-  horizontal_line_week_color: 'var(--secondary-text-color)',
-  horizontal_line_month_width: '0px',
-  horizontal_line_month_color: 'var(--primary-text-color)',
 
   // Actions
   tap_action: { action: 'none' },
