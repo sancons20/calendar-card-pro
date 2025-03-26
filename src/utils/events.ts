@@ -32,13 +32,14 @@ export async function fetchEventData(
   instanceId: string,
   force = false,
 ): Promise<Types.CalendarEventData[]> {
-  // Generate cache key based on configuration - include start_date in key
+  // Generate cache key based on configuration
   const cacheKey = getBaseCacheKey(
     instanceId,
     config.entities,
     config.days_to_show,
     config.show_past_events,
     config.start_date,
+    config.filter_duplicates, // Include filter_duplicates in cache key
   );
 
   // Try cache first
@@ -60,11 +61,18 @@ export async function fetchEventData(
   const timeWindow = getTimeWindow(config.days_to_show, config.start_date);
   const fetchedEvents = await fetchEvents(hass, entities, timeWindow);
 
-  // Create a mutable copy and cache the results
+  // Create a mutable copy of the events
   const eventData = Array.from(fetchedEvents);
-  cacheEvents(cacheKey, eventData);
 
-  return eventData;
+  // Apply duplicate filtering if enabled
+  const filteredEvents = config.filter_duplicates
+    ? filterDuplicateEvents(eventData, config)
+    : eventData;
+
+  // Cache the filtered results
+  cacheEvents(cacheKey, filteredEvents);
+
+  return filteredEvents;
 }
 
 /**
@@ -735,6 +743,84 @@ export function getTimeWindow(daysToShow: number, startDate?: string): { start: 
   return { start, end };
 }
 
+/**
+ * Filter duplicate events based on summary, start/end times, and location
+ * Prioritizes events from entities that appear earlier in the config
+ *
+ * @param events Array of events to filter
+ * @param config Card configuration
+ * @returns Filtered array with duplicates removed
+ */
+function filterDuplicateEvents(
+  events: Types.CalendarEventData[],
+  config: Types.Config,
+): Types.CalendarEventData[] {
+  // Skip filtering if not enabled or no events
+  if (!config.filter_duplicates || !events.length) return events;
+
+  // Create index map for entity priority based on config order
+  const entityIndexMap = new Map<string, number>();
+  config.entities.forEach((entity, index) => {
+    const entityId = typeof entity === 'string' ? entity : entity.entity;
+    entityIndexMap.set(entityId, index);
+  });
+
+  // Sort by entity priority
+  const sortedEvents = [...events].sort((a, b) => {
+    // Skip empty day events (they should never be duplicates)
+    if (a._isEmptyDay || b._isEmptyDay) return 0;
+
+    const aIndex = a._entityId ? (entityIndexMap.get(a._entityId) ?? Infinity) : Infinity;
+    const bIndex = b._entityId ? (entityIndexMap.get(b._entityId) ?? Infinity) : Infinity;
+    return aIndex - bIndex;
+  });
+
+  // Track seen event signatures
+  const seen = new Set<string>();
+
+  // Filter out duplicates
+  return sortedEvents.filter((event) => {
+    // Always keep empty day events
+    if (event._isEmptyDay) return true;
+
+    const signature = generateEventSignature(event);
+    if (seen.has(signature)) {
+      Logger.debug(`Filtered duplicate event: ${event.summary}`);
+      return false;
+    }
+
+    seen.add(signature);
+    return true;
+  });
+}
+
+/**
+ * Generate a unique signature for an event based on summary, time, and location
+ *
+ * @param event Calendar event to generate signature for
+ * @returns Unique string signature
+ */
+function generateEventSignature(event: Types.CalendarEventData): string {
+  const summary = event.summary || '';
+  const location = event.location || '';
+
+  // Different handling for all-day vs timed events
+  let timeSignature = '';
+
+  if (event.start.dateTime) {
+    // For timed events, use ISO string representation
+    const startTime = new Date(event.start.dateTime).getTime();
+    const endTime = event.end.dateTime ? new Date(event.end.dateTime).getTime() : 0;
+    timeSignature = `${startTime}|${endTime}`;
+  } else {
+    // For all-day events, use date strings directly
+    timeSignature = `${event.start.date || ''}|${event.end.date || ''}`;
+  }
+
+  // Combine summary, time signature, and location into a unique signature
+  return `${summary}|${timeSignature}|${location}`;
+}
+
 //-----------------------------------------------------------------------------
 // CACHE MANAGEMENT FUNCTIONS
 //-----------------------------------------------------------------------------
@@ -792,6 +878,7 @@ export function cacheEvents(key: string, events: Types.CalendarEventData[]): boo
  * @param daysToShow - Number of days to display
  * @param showPastEvents - Whether to show past events
  * @param startDate - Optional start date in YYYY-MM-DD format or ISO format
+ * @param filterDuplicates - Whether duplicate filtering is enabled
  * @returns Base cache key
  */
 export function getBaseCacheKey(
@@ -800,6 +887,7 @@ export function getBaseCacheKey(
   daysToShow: number,
   showPastEvents: boolean,
   startDate?: string,
+  filterDuplicates: boolean = false,
 ): string {
   const entityIds = entities
     .map((e) => (typeof e === 'string' ? e : e.entity))
@@ -824,7 +912,10 @@ export function getBaseCacheKey(
   // Include the normalized startDate in the cache key
   const startDatePart = normalizedStartDate ? `_${normalizedStartDate}` : '';
 
-  return `${Constants.CACHE.EVENT_CACHE_KEY_PREFIX}${instanceId}_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}${startDatePart}`;
+  // Include filter_duplicates state in the cache key
+  const filterPart = filterDuplicates ? '_filtered' : '';
+
+  return `${Constants.CACHE.EVENT_CACHE_KEY_PREFIX}${instanceId}_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}${startDatePart}${filterPart}`;
 }
 
 /**

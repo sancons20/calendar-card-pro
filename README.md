@@ -515,6 +515,7 @@ show_location: true
 | days_to_show                               | number  | `3`                               | Number of days to display                                                                                                 |
 | max_events_to_show                         | number  | -                                 | Maximum number of events to show in compact mode                                                                          |
 | show_empty_days                            | boolean | `false`                           | 🆕 **NEW!** Whether to show days with no events (with "No events" message)                                                |
+| filter_duplicates                          | boolean | `false`                           | 🆕 **NEW!** Remove duplicate events that appear in multiple calendars                                                     |
 | language                                   | string  | `System`, fallback `en`           | Interface language (auto-detects from HA)                                                                                 |
 | **Header**                                 |         |                                   |                                                                                                                           |
 | title                                      | string  | -                                 | Card title                                                                                                                |

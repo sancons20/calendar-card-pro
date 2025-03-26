@@ -14,16 +14,17 @@
 export interface Config {
   // Core settings
   entities: Array<string | EntityConfig>;
-  start_date: string;
+  start_date?: string;
   days_to_show: number;
   max_events_to_show?: number;
   show_empty_days: boolean;
-  language: string;
+  filter_duplicates: boolean;
+  language?: string;
 
   // Header
-  title: string;
-  title_font_size: string;
-  title_color: string;
+  title?: string;
+  title_font_size?: string;
+  title_color?: string;
 
   // Layout and spacing
   background_color: string;

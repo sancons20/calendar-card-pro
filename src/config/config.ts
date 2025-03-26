@@ -17,16 +17,17 @@ import * as Logger from '../utils/logger';
 export const DEFAULT_CONFIG: Types.Config = {
   // Core settings
   entities: [],
-  start_date: '',
+  start_date: undefined,
   days_to_show: 3,
   max_events_to_show: undefined,
   show_empty_days: false,
-  language: '',
+  filter_duplicates: false,
+  language: undefined,
 
   // Header
-  title: '',
-  title_font_size: '',
-  title_color: '',
+  title: undefined,
+  title_font_size: undefined,
+  title_color: undefined,
 
   // Layout and spacing
   background_color: 'var(--ha-card-background)',
@@ -177,7 +178,8 @@ export function hasConfigChanged(
     previousEntityIds !== currentEntityIds ||
     previous.days_to_show !== current.days_to_show ||
     previous.start_date !== current.start_date ||
-    previous.show_past_events !== current.show_past_events;
+    previous.show_past_events !== current.show_past_events ||
+    previous.filter_duplicates !== current.filter_duplicates;
 
   if (dataChanged || refreshIntervalChanged) {
     Logger.debug('Configuration change requires data refresh');
