@@ -167,7 +167,7 @@ export const cardStyles = css`
    * Creates consistent alignment with calendar data below */
   /* Margins are applied dynamically in renderWeekRow */
   .week-row-table {
-    height: calc(var(--calendar-card-week-number-font-size) * 1.2);
+    height: calc(var(--calendar-card-week-number-font-size) * 1.5);
     width: 100%;
     table-layout: fixed;
     border-spacing: 0;
@@ -184,30 +184,25 @@ export const cardStyles = css`
    * Sized to match date column width for proper alignment */
   .week-number-cell {
     width: var(--calendar-card-date-column-width);
+    position: relative;
     text-align: center;
     vertical-align: middle;
     padding-right: 12px; /* Match date column padding */
-    border: none !important;
   }
 
-  /* Week number pill display
-   * Rounded badge showing the current week number */
+  /* Week number pill - positioned absolutely and centered within its cell */
   .week-number {
-    /* Change to flex from inline-block for better alignment */
-    display: flex;
+    width: calc(var(--calendar-card-week-number-font-size) * 2.5);
+    height: calc(var(--calendar-card-week-number-font-size) * 1.5);
+    display: inline-flex; /* Centering */
     align-items: center;
     justify-content: center;
     font-size: var(--calendar-card-week-number-font-size);
     font-weight: 500;
-    line-height: 1;
     color: var(--calendar-card-week-number-color);
     background-color: var(--calendar-card-week-number-bg-color);
     border-radius: 999px;
-    /* More consistent padding with box-sizing */
     box-sizing: border-box;
-    padding: calc(var(--calendar-card-week-number-font-size) * 0.3)
-      calc(var(--calendar-card-week-number-font-size) * 0.6);
-    /* Better text rendering */
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -216,29 +211,23 @@ export const cardStyles = css`
   @supports (-webkit-touch-callout: none) {
     .week-number {
       /* Adjust padding to improve vertical alignment on iOS Safari */
-      padding-top: calc(var(--calendar-card-week-number-font-size) * 0.4);
-      padding-bottom: calc(var(--calendar-card-week-number-font-size) * 0.2);
+      padding-top: calc(var(--calendar-card-week-number-font-size) * 0.1);
     }
   }
 
   /* Right cell containing the horizontal separator line
    * Takes up remaining width of the table */
   .separator-cell {
-    min-height: calc(var(--calendar-card-week-number-font-size) * 1.2);
-    padding-left: 0;
     vertical-align: middle;
-    position: relative;
-    display: flex;
   }
 
+  /* The actual separator line */
   .separator-line {
     width: 100%;
     height: var(--separator-border-width, 0);
     background-color: var(--separator-border-color, transparent);
     /* Only show when width > 0px */
     display: var(--separator-display, none);
-    align-self: center;
-    flex-shrink: 0;
   }
 
   /* Day separator - Horizontal line between individual days

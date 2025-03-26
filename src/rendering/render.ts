@@ -272,7 +272,7 @@ function renderWeekRow(
     <table class="week-row-table" style=${styleMap(rowStyle)}>
       <tr>
         <td class="week-number-cell">
-          <div class="week-number">W${weekNumber}</div>
+          <div class="week-number">${weekNumber}</div>
         </td>
         <td class="separator-cell" style=${styleMap(lineStyle)}>
           <div class="separator-line"></div>
