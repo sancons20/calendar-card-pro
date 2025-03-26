@@ -372,18 +372,27 @@ export function renderGroupedEvents(
       const prevDay = index > 0 ? days[index - 1] : undefined;
       const weekNumber = day.weekNumber ?? null;
 
-      // Consistently determine week boundaries based on first day of week configuration
-      // regardless of which week numbering system is used
+      // Enhanced week boundary detection - compare week numbers instead of just day of week
       let isNewWeek = false;
 
       if (!prevDay) {
         // First day is always a new week
         isNewWeek = true;
       } else {
-        // Always check if we've crossed a week boundary by comparing
-        // if the current day is the configured first day of the week
-        const dayDate = new Date(day.timestamp);
-        isNewWeek = dayDate.getDay() === firstDayOfWeek;
+        // Compare week numbers to detect week boundaries
+        // This works even when days are missing (show_empty_days: false)
+        const currentWeekNumber = day.weekNumber;
+        const prevWeekNumber = prevDay.weekNumber;
+
+        // Week boundary if week numbers differ
+        isNewWeek = currentWeekNumber !== prevWeekNumber;
+
+        // As a fallback, still check the day of week
+        // This ensures we don't miss a week boundary if week numbers are null
+        if (!isNewWeek && currentWeekNumber === null) {
+          const dayDate = new Date(day.timestamp);
+          isNewWeek = dayDate.getDay() === firstDayOfWeek;
+        }
       }
 
       const isNewMonth = prevDay && day.monthNumber !== prevDay.monthNumber;
