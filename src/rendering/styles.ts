@@ -30,6 +30,7 @@ export function generateCustomPropertiesObject(config: Types.Config): Record<str
     '--calendar-card-day-spacing': config.day_spacing,
     '--calendar-card-event-spacing': config.event_spacing,
     '--calendar-card-spacing-additional': config.additional_card_spacing,
+    '--calendar-card-height': config.height || 'auto',
     '--calendar-card-max-height': config.max_height,
     '--calendar-card-icon-size-time': config.time_icon_size || '14px',
     '--calendar-card-icon-size-location': config.location_icon_size || '14px',
@@ -102,36 +103,23 @@ export const cardStyles = css`
     width: 100%;
   }
 
-  /* Content container - Default state (no scrolling) */
+  /* Content container with unified scrolling behavior */
   .content-container {
     max-height: var(--calendar-card-max-height, none);
-    overflow-y: visible;
+    height: var(--calendar-card-height, auto);
+    overflow-y: auto;
+    padding-bottom: 1px;
+
+    /* Hide scrollbars across browsers */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
   }
 
-  /* Only apply scrolling styles when max-height is explicitly set */
-  ha-card.max-height-set .content-container {
-    overflow-y: auto;
+  /* Show scrollbars on hover */
+  .content-container:hover {
     scrollbar-width: thin; /* Firefox */
     scrollbar-color: var(--secondary-text-color) transparent; /* Firefox */
-  }
-
-  /* Webkit scrollbar styling - only applied when max-height is set */
-  ha-card.max-height-set .content-container::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  ha-card.max-height-set .content-container::-webkit-scrollbar-thumb {
-    background-color: var(--secondary-text-color);
-    border-radius: 3px;
-  }
-
-  ha-card.max-height-set .content-container::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  /* Remove default webkit scrollbars when max-height is not set */
-  .content-container::-webkit-scrollbar {
-    display: none;
+    -ms-overflow-style: auto; /* IE/Edge */
   }
 
   .card-header-placeholder {
