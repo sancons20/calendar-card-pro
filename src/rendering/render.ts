@@ -242,7 +242,7 @@ function renderWeekRow(
     ? Constants.UI.SEPARATOR_SPACING.MONTH
     : Constants.UI.SEPARATOR_SPACING.WEEK;
   const finalSpacing = (baseSpacing * multiplier) / 2;
-  const marginTop = finalSpacing - baseSpacing;
+  const marginTop = isFirstWeek ? 0 : finalSpacing - baseSpacing;
 
   const rowStyle = {
     marginTop: `${marginTop}px`, // Adjusted margin that accounts for existing table margin

@@ -462,9 +462,6 @@ class CalendarCardPro extends LitElement {
   render() {
     const customStyles = this.getCustomStyles();
 
-    // Detect if a max-height is explicitly set
-    const maxHeightSet = this.config.max_height !== 'none';
-
     // Create event handlers object for the card
     const handlers = {
       keyDown: (ev: KeyboardEvent) => this._handleKeyDown(ev),
@@ -494,13 +491,7 @@ class CalendarCardPro extends LitElement {
     }
 
     // Render main card structure with content
-    return Render.renderMainCardStructure(
-      customStyles,
-      this.config.title,
-      content,
-      handlers,
-      maxHeightSet,
-    );
+    return Render.renderMainCardStructure(customStyles, this.config.title, content, handlers);
   }
 }
 

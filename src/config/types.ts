@@ -31,6 +31,7 @@ export interface Config {
   event_spacing: string;
   additional_card_spacing: string;
   max_height: string;
+  height: string;
   vertical_line_width: string;
   vertical_line_color: string;
 
