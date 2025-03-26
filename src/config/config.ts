@@ -46,7 +46,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   first_day_of_week: 'system',
   show_week_numbers: null,
   show_current_week_number: true,
-  week_number_font_size: '14px',
+  week_number_font_size: '12px',
   week_number_color: 'var(--primary-text-color)',
   week_number_background_color: '#03a9f450',
   day_separator_width: '0px',
