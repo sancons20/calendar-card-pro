@@ -328,96 +328,48 @@ function formatMultiDayTime(
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  // Case 1: Event ends today
+  // Format the end time part based on when the event ends
+  let endPart: string;
+
   if (endDate.toDateString() === today.toDateString()) {
+    // Event ends today
+    endPart = `${translations.endsToday} ${translations.at} ${formatTime(endDate, time24h)}`;
+  } else if (endDate.toDateString() === tomorrow.toDateString()) {
+    // Event ends tomorrow
+    endPart = `${translations.endsTomorrow} ${translations.at} ${formatTime(endDate, time24h)}`;
+  } else {
+    // Event ends beyond tomorrow
+    const endDay = endDate.getDate();
+    const endMonthName = translations.months[endDate.getMonth()];
+    const endWeekday = translations.fullDaysOfWeek[endDate.getDay()];
     const endTimeStr = formatTime(endDate, time24h);
-    return `${translations.endsToday} ${translations.at} ${endTimeStr}`;
-  }
+    const formatStyle = Localize.getDateFormatStyle(language);
 
-  // Case 2: Event ends tomorrow
-  if (endDate.toDateString() === tomorrow.toDateString()) {
-    const endTimeStr = formatTime(endDate, time24h);
-    return `${translations.endsTomorrow} ${translations.at} ${endTimeStr}`;
-  }
-
-  const endDay = endDate.getDate();
-  const endMonthName = translations.months[endDate.getMonth()];
-  const endWeekday = translations.fullDaysOfWeek[endDate.getDay()];
-  const endTimeStr = formatTime(endDate, time24h);
-  const formatStyle = Localize.getDateFormatStyle(language);
-
-  // Case 3: Today is after start date but before end date (middle day)
-  if (today.toDateString() !== startDate.toDateString() && today < endDate) {
-    // Create date format based on language style
+    // Format based on language style
     switch (formatStyle) {
       case 'day-dot-month':
-        return [
-          translations.multiDay,
-          endWeekday + ',',
-          `${endDay}.`,
-          endMonthName,
-          translations.at,
-          endTimeStr,
-        ].join(' ');
+        endPart = `${endWeekday}, ${endDay}. ${endMonthName} ${translations.at} ${endTimeStr}`;
+        break;
       case 'month-day':
-        return [
-          translations.multiDay,
-          endWeekday + ',',
-          endMonthName,
-          endDay,
-          translations.at,
-          endTimeStr,
-        ].join(' ');
+        endPart = `${endWeekday}, ${endMonthName} ${endDay} ${translations.at} ${endTimeStr}`;
+        break;
       case 'day-month':
       default:
-        return [
-          translations.multiDay,
-          endWeekday + ',',
-          endDay,
-          endMonthName,
-          translations.at,
-          endTimeStr,
-        ].join(' ');
+        endPart = `${endWeekday}, ${endDay} ${endMonthName} ${translations.at} ${endTimeStr}`;
+        break;
     }
   }
 
-  // Case 4: Default - Today is on start date (or before start)
-  const startTimeStr = formatTime(startDate, time24h);
-
-  // Use existing format with start time based on language style
-  switch (formatStyle) {
-    case 'day-dot-month':
-      return [
-        startTimeStr,
-        translations.multiDay,
-        endWeekday + ',',
-        `${endDay}.`,
-        endMonthName,
-        translations.at,
-        endTimeStr,
-      ].join(' ');
-    case 'month-day':
-      return [
-        startTimeStr,
-        translations.multiDay,
-        endWeekday + ',',
-        endMonthName,
-        endDay,
-        translations.at,
-        endTimeStr,
-      ].join(' ');
-    case 'day-month':
-    default:
-      return [
-        startTimeStr,
-        translations.multiDay,
-        endWeekday + ',',
-        endDay,
-        endMonthName,
-        translations.at,
-        endTimeStr,
-      ].join(' ');
+  // Check if today is on or before the start date
+  // If so, include the start time in the output
+  if (today.getTime() <= startDate.getTime()) {
+    const startTimeStr = formatTime(startDate, time24h);
+    return `${startTimeStr} ${translations.multiDay} ${endPart}`;
   }
+
+  // If today is after the start date but before the end date
+  // Only show the end part (omit the start time)
+  return `${translations.multiDay} ${endPart}`;
 }
 
 /**
