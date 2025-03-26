@@ -490,7 +490,9 @@ export function renderEvent(
   }
 
   // Get colors from config based on entity ID
-  const entityColor = EventUtils.getEntityColor(event._entityId, config);
+  const entityColor = isEmptyDay
+    ? 'var(--calendar-card-empty-day-color)'
+    : EventUtils.getEntityColor(event._entityId, config);
 
   // Get line color (solid) and background color (with opacity)
   const entityAccentColor = EventUtils.getEntityAccentColorWithOpacity(event._entityId, config);

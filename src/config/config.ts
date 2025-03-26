@@ -72,6 +72,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   show_past_events: false,
   event_font_size: '14px',
   event_color: 'var(--primary-text-color)',
+  empty_day_color: 'var(--primary-text-color)',
   show_time: true,
   show_single_allday_time: true,
   time_24h: true,

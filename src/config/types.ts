@@ -69,6 +69,7 @@ export interface Config {
   show_past_events: boolean;
   event_font_size: string;
   event_color: string;
+  empty_day_color: string;
   show_time: boolean;
   show_single_allday_time: boolean;
   time_24h: boolean;

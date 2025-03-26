@@ -4,6 +4,7 @@
  */
 
 import { css } from 'lit';
+import * as Config from '../config/config';
 import type * as Types from '../config/types';
 
 /**
@@ -46,6 +47,12 @@ export function generateCustomPropertiesObject(config: Types.Config): Record<str
     '--calendar-card-week-number-font-size': config.week_number_font_size,
     '--calendar-card-week-number-color': config.week_number_color,
     '--calendar-card-week-number-bg-color': config.week_number_background_color,
+
+    // Custom empty day color with opacity for default value
+    '--calendar-card-empty-day-color':
+      config.empty_day_color === Config.DEFAULT_CONFIG.empty_day_color
+        ? 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.6)'
+        : config.empty_day_color,
   };
 
   // Optional properties
@@ -309,13 +316,6 @@ export const cardStyles = css`
     border-radius: 0;
   }
 
-  /* Past event styling - subtle opacity reduction */
-  .past-event .event-title,
-  .past-event .time,
-  .past-event .location {
-    opacity: 0.6;
-  }
-
   /* Event positioning variations */
   .event-first.event-last {
     border-radius: 0 var(--calendar-card-event-border-radius)
@@ -348,9 +348,9 @@ export const cardStyles = css`
     padding-bottom: 2px;
   }
 
-  /* Empty day specific styling */
+  /* Empty day specific styling - no longer needs opacity here */
   .empty-day-title {
-    opacity: 0.6;
+    /* opacity property removed - now handled via CSS variable */
   }
 
   .calendar-label {
