@@ -365,11 +365,19 @@ function formatMultiDayTime(
   if (today.getTime() <= startDate.getTime()) {
     const startTimeStr = formatTime(startDate, time24h);
     return `${startTimeStr} ${translations.multiDay} ${endPart}`;
+  } else {
+    // Event has already started - check if it ends today or tomorrow
+    if (
+      endDate.toDateString() === today.toDateString() ||
+      endDate.toDateString() === tomorrow.toDateString()
+    ) {
+      // For "ends today" or "ends tomorrow", don't add "until" prefix
+      return endPart;
+    } else {
+      // For events ending beyond tomorrow, keep "until" prefix
+      return `${translations.multiDay} ${endPart}`;
+    }
   }
-
-  // If today is after the start date but before the end date
-  // Only show the end part (omit the start time)
-  return `${translations.multiDay} ${endPart}`;
 }
 
 /**
