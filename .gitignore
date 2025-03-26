@@ -1,6 +1,6 @@
 # Ignore dist/ and docs/ folder
 dist/*
-# docs/*
+docs/RELEASE_NOTES.md
 
 # Ignore system-specific and editor-related files
 .DS_Store
