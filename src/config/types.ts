@@ -79,7 +79,7 @@ export interface Config {
   time_color: string;
   time_icon_size: string;
   show_location: boolean;
-  remove_location_country: boolean;
+  remove_location_country: boolean | string;
   location_font_size: string;
   location_color: string;
   location_icon_size: string;

@@ -7,6 +7,7 @@
 
 import * as Types from '../config/types';
 import * as Localize from '../translations/localize';
+import * as Constants from '../config/constants';
 
 //-----------------------------------------------------------------------------
 // HIGH-LEVEL PUBLIC APIs
@@ -72,41 +73,24 @@ export function formatEventTime(
  * Format location string, optionally removing country code
  *
  * @param location - Location string to format
- * @param removeCountry - Whether to remove country code from location
+ * @param removeCountry - Boolean (true/false) or string pattern of countries to remove
  * @returns Formatted location string
  */
-export function formatLocation(location: string, removeCountry = true): string {
-  if (!location || !removeCountry) return location || '';
+export function formatLocation(location: string, removeCountry: boolean | string = true): string {
+  if (!location) return '';
+  if (removeCountry === false) return location;
 
   const locationText = location.trim();
 
-  // Get country names (this would be better from a proper static source)
-  // For now using a simplified approach
-  const countryNames = new Set([
-    'Germany',
-    'Deutschland',
-    'United States',
-    'USA',
-    'United States of America',
-    'United Kingdom',
-    'Great Britain',
-    'France',
-    'Italy',
-    'Italia',
-    'Spain',
-    'España',
-    'Netherlands',
-    'Nederland',
-    'Austria',
-    'Österreich',
-    'Switzerland',
-    'Schweiz',
-  ]);
+  // User-defined custom pattern (string)
+  if (typeof removeCountry === 'string' && removeCountry !== 'true') {
+    const pattern = new RegExp(`(${removeCountry})\\s*$`, 'i');
+    return locationText.replace(pattern, '').replace(/,?\s*$/, '');
+  }
 
-  // Check if location ends with any country name
-  for (const country of countryNames) {
+  // Default behavior (true) - Use built-in country list
+  for (const country of Constants.COUNTRY_NAMES) {
     if (locationText.endsWith(country)) {
-      // Remove the country and any trailing comma/space
       return locationText.slice(0, locationText.length - country.length).replace(/,?\s*$/, '');
     }
   }

@@ -82,7 +82,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   time_color: 'var(--secondary-text-color)',
   time_icon_size: '14px',
   show_location: true,
-  remove_location_country: true,
+  remove_location_country: false,
   location_font_size: '12px',
   location_color: 'var(--secondary-text-color)',
   location_icon_size: '14px',

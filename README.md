@@ -17,6 +17,7 @@ If you find **Calendar Card Pro** useful, consider supporting its development:
 
 ## Table of Contents
 
+- [🆕 What's New in v2.2](#-whats-new-in-v22)
 - [🆕 What's New in v2.1](#-whats-new-in-v21)
 - [🆕 What's New in v2](#-whats-new-in-v2)
 - [1️⃣ Overview](#1️⃣-overview)
@@ -27,6 +28,72 @@ If you find **Calendar Card Pro** useful, consider supporting its development:
 - [6️⃣ Contributing & Roadmap](#6️⃣-contributing--roadmap)
 
 <p>&nbsp;</p>
+
+---
+
+## 🆕 What's New in v2.2
+
+Calendar Card Pro v2.2 adds several powerful features for customization and organization of your calendar events.
+
+### 🎉 New Features
+
+#### Filter Duplicate Events
+
+When you subscribe to multiple calendars that might contain the same events (like family and personal), Calendar Card Pro can now detect and remove duplicates:
+
+```yaml
+type: custom:calendar-card-pro
+entities:
+  - calendar.personal # Events from this calendar are prioritized
+  - calendar.family # Duplicates from this calendar will be hidden
+filter_duplicates: true
+```
+
+This feature:
+
+- Compares event title, start/end times, and location
+- Prioritizes events from calendars listed first in your configuration
+- Works perfectly with shared household calendars to eliminate clutter
+
+#### Enhanced Country Removal in Locations
+
+Calendar Card Pro now gives you precise control over how location country names are handled in event displays:
+
+You have three ways to use the `remove_location_country` parameter:
+
+```yaml
+# Option 1: Disable country removal (new default)
+remove_location_country: false
+
+# Option 2: Use built-in country list (previous behavior)
+remove_location_country: true
+
+# Option 3: NEW! Specify exactly which countries to remove
+remove_location_country: "USA|United States"
+```
+
+The third option is particularly powerful for users who want to:
+
+- **Remove only their home country** from locations (since it's implied when no country is shown)
+- **Keep foreign country names visible** to easily identify international events
+- **Control exactly which variations** of country names to remove (like "USA", "U.S.A.", "United States")
+
+**⚠️ Important:** `remove_location_country` now defaults to `false` (previously `true`) for more predictable global behavior. To maintain previous behavior, explicitly set `remove_location_country: true`.
+
+#### Customizable "No Events" Font Color
+
+Control how empty days appear with the new `empty_day_color` parameter:
+
+```yaml
+empty_day_color: '#ff5722' # Use custom color
+```
+
+### 🔧 Bug Fixes
+
+- **Fixed multi-day event time display** - Events now correctly show start times when viewing before the event begins
+- **Improved location country detection** - Fixed issues with complex address formats like "City, State Country"
+
+<p align="right"><a href="#top">⬆️ back to top</a></p>
 
 ---
 
@@ -407,76 +474,8 @@ The easiest way to install **Calendar Card Pro** is via **[HACS (Home Assistant 
 
 1. Ensure **[HACS](https://hacs.xyz/docs/setup/download)** is installed in Home Assistant.
 2. Go to **HACS → Frontend → Custom Repositories**.
-3. Add this repository: `https://github.com/alexpfau/calendar-card-pro` as type `Dashboard`
-4. Install **Calendar Card Pro** from HACS.
-5. **Clear your browser cache** and reload Home Assistant.
 
-### 📂 Manual Installation
-
-<details>
-<summary>📖 Click to expand manual installation instructions</summary>
-
-#### Steps:
-
-1. **Download** the latest release:  
-   👉 [calendar-card-pro.js](https://github.com/alexpfau/calendar-card-pro/releases/latest)
-
-2. **Move the file** to your Home Assistant `www` folder:  
-   /config/www/
-
-3. **Navigate to:**
-   Home Assistant → Settings → Dashboards → Resources → Add Resource
-
-4. **Add the resource** to your Lovelace Dashboard:
-
-   ```yaml
-   url: /local/calendar-card-pro.js
-   type: module
-   ```
-
-5. **Clear cache & refresh** your browser to apply changes.
-
-</details>
-
-<p align="right"><a href="#top">⬆️ back to top</a></p>
-
-## 3️⃣ Usage
-
-Once **Calendar Card Pro** is installed, follow these steps to add and configure it in your Home Assistant dashboard.
-
-### 📌 Adding the Card to Your Dashboard
-
-1. **Ensure a Calendar Integration is Set Up**  
-   Calendar Card Pro requires at least one `calendar.*` entity in Home Assistant (e.g., **Google Calendar, CalDAV**).
-2. **Open Your Dashboard for Editing**
-
-   - Navigate to **Home Assistant → Dashboard**
-   - Click the three-dot menu (⋮) → **Edit Dashboard**
-
-3. **Add Calendar Card Pro**
-
-   - Click the ➕ **Add Card** button
-   - Search for `"Calendar"` or scroll to find `"Calendar Card Pro"`
-   - Select the card to add it to your dashboard
-
-4. **Initial Setup & Configuration**
-   - By default, the card will **automatically detect available calendars** and select the first one.
-   - Use the **YAML mode** for advanced customization.
-
-### ⚙️ Customizing the Card
-
-Calendar Card Pro offers a range of **customization options** to match your needs.
-
-- **Control which events are displayed**
-
-  - Set `days_to_show` to define how many days are visible.
-  - Use `max_events_to_show` to limit the number of events in compact mode.
-
-- **Customize colors, fonts, and layout**
-
-  - Apply different colors per calendar using the `color` option.
-  - Adjust font sizes for event details, dates, and other elements.
-  - Modify separators and spacing for a personalized look.
+- Modify separators and spacing for a personalized look.
 
 - **Modify tap/hold actions**
   - Set `tap_action` and `hold_action` to `expand`, `navigate`, or other HA-supported actions.
