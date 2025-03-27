@@ -103,18 +103,12 @@ export function formatLocation(location: string, removeCountry = true): string {
     'Schweiz',
   ]);
 
-  // Handle comma-separated format (e.g., "City, Country")
-  const parts = locationText.split(',').map((part) => part.trim());
-  if (parts.length > 0 && countryNames.has(parts[parts.length - 1])) {
-    parts.pop();
-    return parts.join(', ');
-  }
-
-  // Handle space-separated format (e.g., "City Country")
-  const words = locationText.split(/\s+/);
-  if (words.length > 0 && countryNames.has(words[words.length - 1])) {
-    words.pop();
-    return words.join(' ');
+  // Check if location ends with any country name
+  for (const country of countryNames) {
+    if (locationText.endsWith(country)) {
+      // Remove the country and any trailing comma/space
+      return locationText.slice(0, locationText.length - country.length).replace(/,?\s*$/, '');
+    }
   }
 
   return locationText;
