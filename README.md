@@ -86,7 +86,7 @@ month_separator_width: '1.5px' # Thicker line for month boundaries (creates visu
 month_separator_color: 'var(--secondary-text-color)' # Solid color for stronger emphasis
 ```
 
-With this configuration, your calendar will display week numbers in a pill at the beginning of each week, with a visual hierarchy of separator lines (thicker for month boundaries, medium for week boundaries, thin for day separators).
+With this configuration, your calendar will display week numbers in a pill at the beginning of each week, with a visual hierarchy of separator lines (thicker for month boundaries, medium for week boundaries, no day separators).
 
 #### Per-Calendar Event Limits
 
@@ -138,6 +138,7 @@ entities:
     accent_color: '#43a047'
     max_events_to_show: 2
     # Show at most 2 events from work calendar
+days_to_show: 5
 max_events_to_show: 5
 # Show at most 5 events total in collapsed view
 tap_action:
