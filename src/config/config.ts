@@ -114,6 +114,8 @@ export function normalizeEntities(
         show_time?: boolean;
         show_location?: boolean;
         max_events_to_show?: number;
+        blocklist?: string;
+        allowlist?: string;
       }
   >,
 ): Array<Types.EntityConfig> {
@@ -138,7 +140,9 @@ export function normalizeEntities(
           accent_color: item.accent_color || 'var(--calendar-card-line-color-vertical)',
           show_time: item.show_time,
           show_location: item.show_location,
-          max_events_to_show: item.max_events_to_show, // Include in normalization
+          max_events_to_show: item.max_events_to_show,
+          blocklist: item.blocklist,
+          allowlist: item.allowlist,
         };
       }
       return null;

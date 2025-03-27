@@ -64,12 +64,15 @@ export async function fetchEventData(
   // Create a mutable copy of the events
   const eventData = Array.from(fetchedEvents);
 
-  // Apply duplicate filtering if enabled
-  const filteredEvents = config.filter_duplicates
-    ? filterDuplicateEvents(eventData, config)
-    : eventData;
+  // Apply list filtering first (blocklist/allowlist)
+  const listFilteredEvents = filterEventsByLists(eventData, config);
 
-  // Cache the filtered results
+  // Then apply duplicate filtering if enabled
+  const filteredEvents = config.filter_duplicates
+    ? filterDuplicateEvents(listFilteredEvents, config)
+    : listFilteredEvents;
+
+  // Cache and return the filtered results
   cacheEvents(cacheKey, filteredEvents);
 
   return filteredEvents;
@@ -795,6 +798,61 @@ function filterDuplicateEvents(
 }
 
 /**
+ * Filter events based on blocklist and allowlist patterns
+ * Each calendar entity can have its own filtering rules
+ */
+function filterEventsByLists(
+  events: Types.CalendarEventData[],
+  config: Types.Config,
+): Types.CalendarEventData[] {
+  // Group events by their source entity
+  const eventsByEntity: Record<string, Types.CalendarEventData[]> = {};
+  events.forEach((event) => {
+    if (!event?._entityId) return;
+
+    if (!eventsByEntity[event._entityId]) {
+      eventsByEntity[event._entityId] = [];
+    }
+
+    eventsByEntity[event._entityId].push(event);
+  });
+
+  // Process each entity's events with its specific filters
+  const filteredEvents: Types.CalendarEventData[] = [];
+
+  config.entities.forEach((entityConfig) => {
+    const entityId = typeof entityConfig === 'string' ? entityConfig : entityConfig.entity;
+    const entityEvents = eventsByEntity[entityId] || [];
+
+    // Simple string entities have no filtering
+    if (typeof entityConfig === 'string') {
+      filteredEvents.push(...entityEvents);
+      return;
+    }
+
+    // Apply filters based on configuration
+    let filteredEntityEvents = [...entityEvents];
+
+    // Allowlist takes precedence over blocklist
+    if (entityConfig.allowlist) {
+      const allowPattern = new RegExp(entityConfig.allowlist, 'i');
+      filteredEntityEvents = filteredEntityEvents.filter(
+        (event) => event.summary && allowPattern.test(event.summary),
+      );
+    } else if (entityConfig.blocklist) {
+      const blockPattern = new RegExp(entityConfig.blocklist, 'i');
+      filteredEntityEvents = filteredEntityEvents.filter(
+        (event) => !(event.summary && blockPattern.test(event.summary)),
+      );
+    }
+
+    filteredEvents.push(...filteredEntityEvents);
+  });
+
+  return filteredEvents;
+}
+
+/**
  * Generate a unique signature for an event based on summary, time, and location
  *
  * @param event Calendar event to generate signature for
@@ -883,7 +941,7 @@ export function cacheEvents(key: string, events: Types.CalendarEventData[]): boo
  */
 export function getBaseCacheKey(
   instanceId: string,
-  entities: Array<string | { entity: string; color?: string }>,
+  entities: Array<string | Types.EntityConfig>,
   daysToShow: number,
   showPastEvents: boolean,
   startDate?: string,
@@ -915,7 +973,19 @@ export function getBaseCacheKey(
   // Include filter_duplicates state in the cache key
   const filterPart = filterDuplicates ? '_filtered' : '';
 
-  return `${Constants.CACHE.EVENT_CACHE_KEY_PREFIX}${instanceId}_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}${startDatePart}${filterPart}`;
+  // Include entity filter patterns in cache key
+  const filterPatterns: string[] = [];
+  entities.forEach((entity) => {
+    if (typeof entity !== 'string') {
+      if (entity.blocklist) filterPatterns.push(`b:${entity.entity}:${entity.blocklist}`);
+      if (entity.allowlist) filterPatterns.push(`a:${entity.entity}:${entity.allowlist}`);
+    }
+  });
+
+  const filterListPart =
+    filterPatterns.length > 0 ? `_filters:${encodeURIComponent(filterPatterns.join('|'))}` : '';
+
+  return `${Constants.CACHE.EVENT_CACHE_KEY_PREFIX}${instanceId}_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}${startDatePart}${filterPart}${filterListPart}`;
 }
 
 /**

@@ -17,15 +17,46 @@ If you find **Calendar Card Pro** useful, consider supporting its development:
 
 ## Table of Contents
 
+- [1️⃣ Overview](#1️⃣-overview)
 - [🆕 What's New in v2.2](#-whats-new-in-v22)
 - [🆕 What's New in v2.1](#-whats-new-in-v21)
 - [🆕 What's New in v2](#-whats-new-in-v2)
-- [1️⃣ Overview](#1️⃣-overview)
 - [2️⃣ Installation](#2️⃣-installation)
 - [3️⃣ Usage](#3️⃣-usage)
 - [4️⃣ Configuration Guide](#4️⃣-configuration-guide)
 - [5️⃣ Examples](#5️⃣-examples)
 - [6️⃣ Contributing & Roadmap](#6️⃣-contributing--roadmap)
+
+<p>&nbsp;</p>
+
+## 1️⃣ Overview
+
+### 🔍 About
+
+**Calendar Card Pro** was inspired by a beautiful [calendar design using button-card and Hass calendar add-on](https://community.home-assistant.io/t/calendar-add-on-some-calendar-designs/385790) shared in the Home Assistant community. While the original design was visually stunning, implementing it with **button-card** and **card-mod** led to **performance issues**.
+
+This motivated me to create a **dedicated calendar card** that excels in one thing: **displaying upcoming events beautifully and efficiently**.
+
+Built with **performance in mind**, the card leverages **intelligent refresh mechanisms** and **smart caching** to ensure a **smooth experience**, even when multiple calendars are in use.
+
+### ✨ Features
+
+- 🎨 **Sleek & Minimalist Design** – Clean, modern, and visually appealing layout.
+- ✅ **Multi-Calendar Support** – Display multiple calendars with unique styling.
+- 📅 **Compact & Expandable Views** – Adaptive views to suit different dashboard needs.
+- 🔧 **Highly Customizable** – Fine-tune layout, colors, event details, and behavior.
+- ⚡ **Optimized Performance** – Smart caching, progressive rendering, and minimal API calls.
+- 💡 **Deep Home Assistant Integration** – Theme-aware with native ripple effects.
+- 🌍 **Multi-Language Support** – [Available in 24 languages](#-adding-translations), community contributions welcome!
+- 🧩 **Modular & Extensible** – Designed for future enhancements and easy customization.
+
+### 🔗 Dependencies
+
+**Calendar Card Pro** requires at least **one calendar entity** in Home Assistant. It is compatible with any integration that generates `calendar.*` entities, with **CalDAV** and **Google Calendar** being the primary tested integrations.
+
+⚠️ **Important:** Ensure you have at least **one calendar integration set up** in Home Assistant before using this card.
+
+<p align="right"><a href="#top">⬆️ back to top</a></p>
 
 <p>&nbsp;</p>
 
@@ -36,6 +67,27 @@ If you find **Calendar Card Pro** useful, consider supporting its development:
 Calendar Card Pro v2.2 adds several powerful features for customization and organization of your calendar events.
 
 ### 🎉 New Features
+
+#### Event Filtering with Blocklist & Allowlist
+
+Control exactly which events appear on your calendar using powerful filtering options:
+
+```yaml
+entities:
+  - entity: calendar.work
+    blocklist: 'Private|Conference' # Hide these events
+  - entity: calendar.personal
+    allowlist: 'Birthday|Anniversary' # Only show these events
+```
+
+This feature gives you:
+
+- **Smart filtering** - Filter events based on title text using regular expressions
+- **Per-calendar rules** - Apply different filters to each calendar entity
+- **Include/exclude options** - Use blocklist to hide specific events or allowlist to show only certain events
+- **Priority control** - When both filters are defined, allowlist takes precedence for precise control
+
+Perfect for focusing on important events and reducing calendar clutter.
 
 #### Filter Duplicate Events
 
@@ -94,8 +146,6 @@ empty_day_color: '#ff5722' # Use custom color
 - **Improved location country detection** - Fixed issues with complex address formats like "City, State Country"
 
 <p align="right"><a href="#top">⬆️ back to top</a></p>
-
----
 
 ## 🆕 What's New in v2.1
 
@@ -222,8 +272,6 @@ In addition to the `max_height` setting introduced in v2.0, Calendar Card Pro no
 - **Improved Scrollbars**: Both height settings now feature consistent scrollbars that only appear during hover/scroll across all browsers
 
 <p align="right"><a href="#top">⬆️ back to top</a></p>
-
----
 
 ## 🆕 What's New in v2
 
@@ -433,35 +481,6 @@ card_mod:
 
 <p>&nbsp;</p>
 
-## 1️⃣ Overview
-
-### 🔍 About
-
-**Calendar Card Pro** was inspired by a beautiful [calendar design using button-card and Hass calendar add-on](https://community.home-assistant.io/t/calendar-add-on-some-calendar-designs/385790) shared in the Home Assistant community. While the original design was visually stunning, implementing it with **button-card** and **card-mod** led to **performance issues**.
-
-This motivated me to create a **dedicated calendar card** that excels in one thing: **displaying upcoming events beautifully and efficiently**.
-
-Built with **performance in mind**, the card leverages **intelligent refresh mechanisms** and **smart caching** to ensure a **smooth experience**, even when multiple calendars are in use.
-
-### ✨ Features
-
-- 🎨 **Sleek & Minimalist Design** – Clean, modern, and visually appealing layout.
-- ✅ **Multi-Calendar Support** – Display multiple calendars with unique styling.
-- 📅 **Compact & Expandable Views** – Adaptive views to suit different dashboard needs.
-- 🔧 **Highly Customizable** – Fine-tune layout, colors, event details, and behavior.
-- ⚡ **Optimized Performance** – Smart caching, progressive rendering, and minimal API calls.
-- 💡 **Deep Home Assistant Integration** – Theme-aware with native ripple effects.
-- 🌍 **Multi-Language Support** – [Available in 24 languages](#-adding-translations), community contributions welcome!
-- 🧩 **Modular & Extensible** – Designed for future enhancements and easy customization.
-
-### 🔗 Dependencies
-
-**Calendar Card Pro** requires at least **one calendar entity** in Home Assistant. It is compatible with any integration that generates `calendar.*` entities, with **CalDAV** and **Google Calendar** being the primary tested integrations.
-
-⚠️ **Important:** Ensure you have at least **one calendar integration set up** in Home Assistant before using this card.
-
-<p align="right"><a href="#top">⬆️ back to top</a></p>
-
 ## 2️⃣ Installation
 
 ### 📦 HACS Installation (Recommended)
@@ -666,6 +685,8 @@ The `entities` array accepts either:
 | show_time          | boolean | 🆕 **NEW!** Whether to show event times for this calendar (overrides global show_time setting)                        |
 | show_location      | boolean | 🆕 **NEW!** Whether to show event locations for this calendar (overrides global show_location setting)                |
 | max_events_to_show | number  | 🆕 **NEW v2.1!** Maximum number of events to show from this calendar (works with global max_events_to_show)           |
+| blocklist          | string  | 🆕 **NEW v2.2!** RegExp pattern to specify events to exclude (e.g., "Private\|Conference")                            |
+| allowlist          | string  | 🆕 **NEW v2.2!** RegExp pattern to specify events to include (e.g., "Birthday\|Anniversary")                          |
 
 #### Example:
 
@@ -676,11 +697,18 @@ entities:
     label: '💻'
     color: '#1e90ff'
     accent_color: '#ff6347'
+    max_events_to_show: 2
+    blocklist: 'Private|Conference'
   - entity: calendar.holidays
+    label: '🏝️'
+    accent_color: '#1e88e5'
     show_time: false # Hide times for holiday events
   - entity: calendar.birthdays
+    label: '🎁'
+    accent_color: '#43a047'
     show_time: false
     show_location: false # Hide both time and location for birthdays
+    max_events_to_show: 3
 ```
 
 This allows granular control over how information is displayed for different types of calendars.

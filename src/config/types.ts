@@ -104,6 +104,8 @@ export interface EntityConfig {
   show_time?: boolean;
   show_location?: boolean;
   max_events_to_show?: number;
+  blocklist?: string;
+  allowlist?: string;
 }
 
 // -----------------------------------------------------------------------------
