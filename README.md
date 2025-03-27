@@ -94,7 +94,6 @@ Perfect for focusing on important events and reducing calendar clutter.
 When you subscribe to multiple calendars that might contain the same events (like family and personal), Calendar Card Pro can now detect and remove duplicates:
 
 ```yaml
-type: custom:calendar-card-pro
 entities:
   - calendar.personal # Events from this calendar are prioritized
   - calendar.family # Duplicates from this calendar will be hidden
@@ -106,6 +105,27 @@ This feature:
 - Compares event title, start/end times, and location
 - Prioritizes events from calendars listed first in your configuration
 - Works perfectly with shared household calendars to eliminate clutter
+
+#### Enhanced Calendar Labels with Images & Icons
+
+Calendar labels now support three different formats:
+
+```yaml
+entities:
+  - entity: calendar.work
+    label: '💻' # Original emoji/text style
+  - entity: calendar.family
+    label: 'mdi:account-group' # NEW: Material Design Icon
+  - entity: calendar.holidays
+    label: '/local/icons/beach.png' # NEW: Local image from your HA's www folder
+```
+
+This enhancement allows you to:
+
+- **Use Material Design Icons** - Reference any MDI icon with the `mdi:` prefix
+- **Display Custom Images** - Show local images stored in your Home Assistant `/local/` directory
+- **Maintain Consistency** - All labels automatically scale to match your event title font size
+- **Mix and Match** - Use different label types for different calendars for better visual organization
 
 #### Enhanced Country Removal in Locations
 
@@ -210,6 +230,7 @@ With this configuration, your calendar will display week numbers in a pill at th
 Control how many events are shown from each calendar independently:
 
 ```yaml
+type: custom:calendar-card-pro
 entities:
   - entity: calendar.family
     # Show all events from family calendar (no limit)
@@ -676,17 +697,17 @@ The `entities` array accepts either:
 
 #### Available Properties for Entity Configuration Objects:
 
-| Property           | Type    | Description                                                                                                           |
-| ------------------ | ------- | --------------------------------------------------------------------------------------------------------------------- |
-| entity             | string  | **Required.** The calendar entity ID                                                                                  |
-| label              | string  | 🆕 **NEW!** Optional label displayed before event titles from this calendar, for instance a calendar name or an emoji |
-| color              | string  | Custom color for event titles from this calendar                                                                      |
-| accent_color       | string  | 🆕 **NEW!** Custom color for the vertical line and event background (when event_background_opacity is >0)             |
-| show_time          | boolean | 🆕 **NEW!** Whether to show event times for this calendar (overrides global show_time setting)                        |
-| show_location      | boolean | 🆕 **NEW!** Whether to show event locations for this calendar (overrides global show_location setting)                |
-| max_events_to_show | number  | 🆕 **NEW v2.1!** Maximum number of events to show from this calendar (works with global max_events_to_show)           |
-| blocklist          | string  | 🆕 **NEW v2.2!** RegExp pattern to specify events to exclude (e.g., "Private\|Conference")                            |
-| allowlist          | string  | 🆕 **NEW v2.2!** RegExp pattern to specify events to include (e.g., "Birthday\|Anniversary")                          |
+| Property           | Type    | Description                                                                                                                                |
+| ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| entity             | string  | **Required.** The calendar entity ID                                                                                                       |
+| label              | string  | 🆕 **NEW!** Calendar label displayed before event titles. Supports text/emoji, MDI icons (`mdi:icon-name`), or images (`/local/image.jpg`) |
+| color              | string  | Custom color for event titles from this calendar                                                                                           |
+| accent_color       | string  | 🆕 **NEW!** Custom color for the vertical line and event background (when event_background_opacity is >0)                                  |
+| show_time          | boolean | 🆕 **NEW!** Whether to show event times for this calendar (overrides global show_time setting)                                             |
+| show_location      | boolean | 🆕 **NEW!** Whether to show event locations for this calendar (overrides global show_location setting)                                     |
+| max_events_to_show | number  | 🆕 **NEW v2.1!** Maximum number of events to show from this calendar (works with global max_events_to_show)                                |
+| blocklist          | string  | 🆕 **NEW v2.2!** RegExp pattern to specify events to exclude (e.g., "Private\|Conference")                                                 |
+| allowlist          | string  | 🆕 **NEW v2.2!** RegExp pattern to specify events to include (e.g., "Birthday\|Anniversary")                                               |
 
 #### Example:
 
@@ -721,9 +742,9 @@ This allows granular control over how information is displayed for different typ
 
 The `label` property in entity configuration allows you to add a visual identifier before event titles from a specific calendar. This can be:
 
-- **Text**: A short identifying word (e.g., "Work:", "Personal:")
-- **Emoji**: A relevant emoji (e.g., "🏢", "🏠", "🎓")
-- **Icon**: A custom identifier that matches the calendar's purpose
+- **Text/Emoji**: A short identifying word or emoji (e.g., "Work:", "Personal:", "💼", "🏠")
+- **Material Design Icons**: Any MDI icon using the `mdi:` prefix (e.g., `mdi:calendar-check`, `mdi:briefcase`)
+- **Custom Images**: Local images from your `/local/` directory (e.g., `/local/images/work-logo.png`)
 
 Labels help distinguish events at a glance without relying solely on color, improving accessibility. They appear before the event title with proper spacing.
 

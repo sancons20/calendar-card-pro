@@ -283,6 +283,33 @@ function renderWeekRow(
 }
 
 //-----------------------------------------------------------------------------
+// EVENT CONTENT RENDERING HELPERS
+//-----------------------------------------------------------------------------
+
+/**
+ * Render calendar label with support for text, emojis, images, and icons
+ *
+ * @param label - Label content from entity configuration
+ * @returns TemplateResult for the appropriate label type
+ */
+function renderLabel(label: string | undefined): TemplateResult | typeof nothing {
+  if (!label) return nothing;
+
+  // Handle Material Design Icons (mdi:icon-name syntax)
+  if (label.startsWith('mdi:')) {
+    return html`<ha-icon icon="${label}" class="label-icon"> </ha-icon>`;
+  }
+
+  // Handle image paths (either /local/ path or image file extension)
+  if (label.startsWith('/local/') || /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(label)) {
+    return html`<img src="${label}" class="label-image"> </img>`;
+  }
+
+  // Default: text/emoji (original behavior)
+  return html`<span class="calendar-label">${label}</span>`;
+}
+
+//-----------------------------------------------------------------------------
 // CONTENT GENERATION FUNCTIONS
 //-----------------------------------------------------------------------------
 
@@ -575,9 +602,9 @@ export function renderEvent(
             class="event-title ${isEmptyDay ? 'empty-day-title' : ''}"
             style="color: ${entityColor}"
           >
-            ${event._entityLabel
-              ? html`<span class="calendar-label">${event._entityLabel}</span> `
-              : ''}${isEmptyDay ? `✓ ${event.summary}` : event.summary}
+            ${event._entityLabel ? renderLabel(event._entityLabel) : ''}${isEmptyDay
+              ? `✓ ${event.summary}`
+              : event.summary}
           </div>
           <div class="time-location">
             ${shouldShowTime

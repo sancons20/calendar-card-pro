@@ -353,8 +353,25 @@ export const cardStyles = css`
     /* opacity property removed - now handled via CSS variable */
   }
 
+  /* Text label styling */
   .calendar-label {
     display: inline;
+    margin-right: 4px;
+  }
+
+  /* MDI icon label styling */
+  .label-icon {
+    --mdc-icon-size: var(--calendar-card-font-size-event);
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+
+  /* Image label styling */
+  .label-image {
+    height: var(--calendar-card-font-size-event);
+    width: auto;
+    vertical-align: middle;
+    margin-right: 4px;
   }
 
   /* ===== TIME & LOCATION STYLES ===== */
