@@ -474,8 +474,77 @@ The easiest way to install **Calendar Card Pro** is via **[HACS (Home Assistant 
 
 1. Ensure **[HACS](https://hacs.xyz/docs/setup/download)** is installed in Home Assistant.
 2. Go to **HACS → Frontend → Custom Repositories**.
+3. Add this repository: `https://github.com/alexpfau/calendar-card-pro` as type `Dashboard`
+4. Install **Calendar Card Pro** from HACS.
+5. **Clear your browser cache** and reload Home Assistant.
 
-- Modify separators and spacing for a personalized look.
+### 📂 Manual Installation
+
+<details>
+<summary>📖 Click to expand manual installation instructions</summary>
+
+#### Steps:
+
+1. **Download** the latest release:  
+   👉 [calendar-card-pro.js](https://github.com/alexpfau/calendar-card-pro/releases/latest)
+
+2. **Move the file** to your Home Assistant `www` folder:  
+   /config/www/
+
+3. **Navigate to:**
+   Home Assistant → Settings → Dashboards → Resources → Add Resource
+
+4. **Add the resource** to your Lovelace Dashboard:
+
+```yaml
+url: /local/calendar-card-pro.js
+type: module
+```
+
+5. **Clear cache & refresh** your browser to apply changes.
+
+</details>
+
+<p align="right"><a href="#top">⬆️ back to top</a></p>
+
+## 3️⃣ Usage
+
+Once **Calendar Card Pro** is installed, follow these steps to add and configure it in your Home Assistant dashboard.
+
+### 📌 Adding the Card to Your Dashboard
+
+1. **Ensure a Calendar Integration is Set Up**  
+   Calendar Card Pro requires at least one `calendar.*` entity in Home Assistant (e.g., **Google Calendar, CalDAV**).
+2. **Open Your Dashboard for Editing**
+
+- Navigate to **Home Assistant → Dashboard**
+- Click the three-dot menu (⋮) → **Edit Dashboard**
+
+3. **Add Calendar Card Pro**
+
+- Click the ➕ **Add Card** button
+- Search for `"Calendar"` or scroll to find `"Calendar Card Pro"`
+- Select the card to add it to your dashboard
+
+4. **Initial Setup & Configuration**
+
+- By default, the card will **automatically detect available calendars** and select the first one.
+- Use the **YAML mode** for advanced customization.
+
+### ⚙️ Customizing the Card
+
+Calendar Card Pro offers a range of **customization options** to match your needs.
+
+- **Control which events are displayed**
+
+  - Set `days_to_show` to define how many days are visible.
+  - Use `max_events_to_show` to limit the number of events in compact mode.
+
+- **Customize colors, fonts, and layout**
+
+  - Apply different colors per calendar using the `color` option.
+  - Adjust font sizes for event details, dates, and other elements.
+  - Modify separators and spacing for a personalized look.
 
 - **Modify tap/hold actions**
   - Set `tap_action` and `hold_action` to `expand`, `navigate`, or other HA-supported actions.
@@ -557,9 +626,9 @@ show_location: true
 | **Event Column**                           |         |                                   |                                                                                                                           |
 | event_background_opacity                   | number  | `0`                               | 🆕 **NEW!** Background opacity (0-100) for events using entity accent color                                               |
 | show_past_events                           | boolean | `false`                           | Whether to show today's events that have already ended                                                                    |
+| empty_day_color                            | string  | `--primary-text-color`            | 🆕 **NEW!** Color for "No events" text on empty days                                                                      |
 | event_font_size                            | string  | `14px`                            | Event title font size                                                                                                     |
 | event_color                                | string  | `--primary-text-color`            | Event title font color                                                                                                    |
-| empty_day_color                            | string  | `--primary-text-color`            | 🆕 **NEW!** Color for "No events" text on empty days                                                                      |
 | show_time                                  | boolean | `true`                            | Whether to show event times                                                                                               |
 | show_single_allday_time                    | boolean | `true`                            | 🆕 **NEW!** Whether to show time display for all-day single-day events                                                    |
 | time_24h                                   | boolean | `true`                            | Whether to use 24-hour time format                                                                                        |
@@ -959,6 +1028,8 @@ To add a new language:
 - **Original design inspiration** from [Calendar Add-on & Calendar Designs](https://community.home-assistant.io/t/calendar-add-on-some-calendar-designs/385790) by **[@kdw2060](https://github.com/kdw2060)**.
 - **Interaction patterns** inspired by Home Assistant’s [Tile Card](https://github.com/home-assistant/frontend/blob/dev/src/panels/lovelace/cards/hui-tile-card.ts), which is licensed under the [Apache License 2.0](https://github.com/home-assistant/frontend/blob/dev/LICENSE.md).
 - **Material Design ripple interactions**, originally by Google, used under the [Apache License 2.0](https://github.com/material-components/material-components-web/blob/master/LICENSE).
+
+<p align="right"><a href="#top">⬆️ back to top</a></p>
 
  <!--Badges-->
 
