@@ -14,16 +14,17 @@
 export interface Config {
   // Core settings
   entities: Array<string | EntityConfig>;
-  start_date: string;
+  start_date?: string;
   days_to_show: number;
   max_events_to_show?: number;
   show_empty_days: boolean;
-  language: string;
+  filter_duplicates: boolean;
+  language?: string;
 
   // Header
-  title: string;
-  title_font_size: string;
-  title_color: string;
+  title?: string;
+  title_font_size?: string;
+  title_color?: string;
 
   // Layout and spacing
   background_color: string;
@@ -69,6 +70,7 @@ export interface Config {
   show_past_events: boolean;
   event_font_size: string;
   event_color: string;
+  empty_day_color: string;
   show_time: boolean;
   show_single_allday_time: boolean;
   time_24h: boolean;
@@ -77,7 +79,7 @@ export interface Config {
   time_color: string;
   time_icon_size: string;
   show_location: boolean;
-  remove_location_country: boolean;
+  remove_location_country: boolean | string;
   location_font_size: string;
   location_color: string;
   location_icon_size: string;
@@ -102,6 +104,8 @@ export interface EntityConfig {
   show_time?: boolean;
   show_location?: boolean;
   max_events_to_show?: number;
+  blocklist?: string;
+  allowlist?: string;
 }
 
 // -----------------------------------------------------------------------------

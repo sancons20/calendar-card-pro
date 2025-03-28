@@ -99,3 +99,28 @@ export const UI = {
     POINTER_SIZE: 50,
   },
 };
+
+/**
+ * Default list of country names to remove when remove_location_country is true
+ * These are commonly used country names across different calendars
+ */
+export const COUNTRY_NAMES: string[] = [
+  'Germany',
+  'Deutschland',
+  'United States',
+  'USA',
+  'United States of America',
+  'United Kingdom',
+  'Great Britain',
+  'France',
+  'Italy',
+  'Italia',
+  'Spain',
+  'España',
+  'Netherlands',
+  'Nederland',
+  'Austria',
+  'Österreich',
+  'Switzerland',
+  'Schweiz',
+];

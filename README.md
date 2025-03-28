@@ -17,352 +17,14 @@ If you find **Calendar Card Pro** useful, consider supporting its development:
 
 ## Table of Contents
 
-- [🆕 What's New in v2.1](#-whats-new-in-v21)
-- [🆕 What's New in v2](#-whats-new-in-v2)
 - [1️⃣ Overview](#1️⃣-overview)
-- [2️⃣ Installation](#2️⃣-installation)
-- [3️⃣ Usage](#3️⃣-usage)
-- [4️⃣ Configuration Guide](#4️⃣-configuration-guide)
-- [5️⃣ Examples](#5️⃣-examples)
-- [6️⃣ Contributing & Roadmap](#6️⃣-contributing--roadmap)
-
-<p>&nbsp;</p>
-
----
-
-## 🆕 What's New in v2.1
-
-Calendar Card Pro v2.1 introduces powerful new features to give you even more control over your calendars.
-
-### 🎉 New Features
-
-#### Week Numbers & Visual Separators
-
-Calendar Card Pro now provides a sophisticated system for displaying week numbers and visual separators that enhances your calendar's organization and readability.
-
-<img src="https://raw.githubusercontent.com/alexpfau/calendar-card-pro/main/.github/img/example_4_week_numbers.png" alt="Week Numbers" width="600"><br>
-
-**Key Features:**
-
-1. **Week Number Indicators** - Pill-shaped badges showing the current week number
-2. **Day, Week & Month Separators** - Distinct horizontal lines to visually organize your events
-3. **Visual Hierarchy** - Intelligent precedence system when multiple separators could appear
-4. **Customizable Styling** - Control colors, visibility, and sizes of all elements
-
-This feature helps you:
-
-- **Quickly identify which week events belong to** (using ISO or simple week numbering)
-- **Visually distinguish between days, weeks, and months** with customizable separators
-- **Create clearer visual organization** in calendars with many events
-
-**Example Configuration:**
-
-```yaml
-type: custom:calendar-card-pro
-entities:
-  - entity: calendar.family
-    accent_color: '#03a9f4'
-  - entity: calendar.work
-    accent_color: '#ff6c92'
-days_to_show: 5
-vertical_line_width: 5px
-event_spacing: 5px
-
-# === WEEK NUMBER CONFIGURATION ===
-show_week_numbers: 'iso'
-show_current_week_number: true # Default value - Show the week number for the very first week in view
-first_day_of_week: 'monday'
-
-# === VISUAL STYLING FOR WEEK NUMBER INDICATORS ===
-week_number_font_size: '12px' # Default value
-week_number_color: 'var(--primary-text-color)' # Default value
-week_number_background_color: '#03a9f450' # Default value - Semi-transparent accent color for the pill background
-
-# === SEPARATOR LINE STYLING ===
-day_separator_width: '0px' # Default value - Set to '0px' to disable day separators
-week_separator_width: '1px' # Thin line for week boundaries
-week_separator_color: '#03a9f450' # Default value - Semi-transparent accent color for subtlety
-month_separator_width: '1.5px' # Thicker line for month boundaries (creates visual hierarchy)
-month_separator_color: 'var(--secondary-text-color)' # Solid color for stronger emphasis
-```
-
-With this configuration, your calendar will display week numbers in a pill at the beginning of each week, with a visual hierarchy of separator lines (thicker for month boundaries, medium for week boundaries, no day separators).
-
-#### Per-Calendar Event Limits
-
-Control how many events are shown from each calendar independently:
-
-```yaml
-entities:
-  - entity: calendar.family
-    # Show all events from family calendar (no limit)
-  - entity: calendar.work
-    max_events_to_show: 2
-    # Only show 2 most important work events
-  - entity: calendar.holidays
-    max_events_to_show: 1
-    # Just show the next upcoming holiday
-```
-
-This feature provides several benefits:
-
-- **Prioritize important calendars**: Give more space to your most important calendars
-- **Prevent one calendar from overwhelming the view**: Ideal for busy calendars like school schedules
-- **Control information density**: Show all family events but only the next work meeting
-
-##### How It Works
-
-- **Entity limits are applied first**: Each calendar is limited to its specific `max_events_to_show` value
-- **Global limit is applied second**: The card-level `max_events_to_show` still controls the total number of events
-- **Chronological order is maintained**: Events are still displayed in date/time order
-
-##### Behavior in Different Modes
-
-- **In normal (collapsed) view**: Both entity limits and global limit apply
-- **In expanded view**: Entity limits still apply, but the global limit is removed
-
-##### Example Configuration
-
-```yaml
-type: custom:calendar-card-pro
-title: 'My Calendars'
-entities:
-  - entity: calendar.family
-    accent_color: '#ff6c92'
-    # Show all events from family calendar (no limit)
-  - entity: calendar.school
-    accent_color: '#1e88e5'
-    max_events_to_show: 1
-    # Only show 1 event from school calendar
-  - entity: calendar.work
-    accent_color: '#43a047'
-    max_events_to_show: 2
-    # Show at most 2 events from work calendar
-days_to_show: 5
-max_events_to_show: 5
-# Show at most 5 events total in collapsed view
-tap_action:
-  action: expand
-# Tap to see more events (respecting per-calendar limits)
-```
-
-#### Fixed Height Control
-
-In addition to the `max_height` setting introduced in v2.0, Calendar Card Pro now provides a new `height` parameter for even greater layout control:
-
-- **Fixed Height**: Set an **exact card height** regardless of content amount using the new `height` parameter
-- **Max Height**: Continue using `max_height` when you want the card to **grow up to a certain size**
-- **Improved Scrollbars**: Both height settings now feature consistent scrollbars that only appear during hover/scroll across all browsers
-
-<p align="right"><a href="#top">⬆️ back to top</a></p>
-
----
-
-## 🆕 What's New in v2
-
-Calendar Card Pro v2 brings major enhancements to make your calendar experience even better:
-
-### 🎉 New Features
-
-#### Custom Styling Per Calendar
-
-Transform your calendar with rich visual customization:
-
-- **Accent Colors**: Assign unique colors to the vertical line for each calendar entity
-- **Background Colors**: Enable semi-transparent backgrounds matching the accent color
-- **Smart Rounded Corners**: Events use rounded corners derived from your theme's card radius
-- **Visual Hierarchy**: Instantly identify events from different calendars at a glance
-
-<img src="https://raw.githubusercontent.com/alexpfau/calendar-card-pro/main/.github/img/example_3_custom_styling.png" alt="Custom Styling" width="600"><br>
-
-```yaml
-entities:
-  - entity: calendar.family
-    accent_color: '#ff6c92' # Line and background color
-  - entity: calendar.work
-    accent_color: '#1e88e5'
-  - entity: calendar.personal
-    accent_color: '#43a047'
-event_background_opacity: 15 # Enable semi-transparent backgrounds (0-100 scale)
-vertical_line_width: 5px # Slightly increase vertical line width
-event_spacing: 6px # Adjust vertical spacing between calendar events
-```
-
-#### Calendar Labels
-
-Add emoji or text before event titles to identify which calendar they belong to:
-
-```yaml
-entities:
-  - entity: calendar.work
-    label: '💼' # Work events
-  - entity: calendar.family
-    label: '👪' # Family events
-```
-
-#### Advanced Display Controls
-
-Choose what information to show, per calendar:
-
-```yaml
-# Global settings
-show_time: true # Generally show time, if not configured otherwise
-show_location: true # Generally show location, if not configured otherwise
-show_single_allday_time: false # Hides time row from all single-day all-day events
-
-# Per-calendar settings
-entities:
-  - entity: calendar.work
-  - entity: calendar.holidays
-    show_time: false # Hide time for all events in holiday calendar
-  - entity: calendar.birthdays
-    show_time: false
-    show_location: false # Hide both time and location for birthdays
-```
-
-#### Custom Start Date
-
-View calendars from any date, not just today:
-
-```yaml
-start_date: '2025-07-01' # Start your calendar from July 1st
-```
-
-#### Flexible Date Alignment
-
-Control the vertical alignment of your date column:
-
-```yaml
-date_vertical_alignment: top # Align dates to top (default: middle)
-```
-
-#### Empty Day Display
-
-Show placeholder for days with no events:
-
-```yaml
-show_empty_days: true # Display all days in range, even without events
-```
-
-This makes it easier to see where a new day starts, especially with many events.
-
-#### Enhanced Past Event Display
-
-When using `show_past_events: true`, past events are now visually distinct:
-
-- Past events appear with reduced opacity (60%)
-- Easy visual distinction between past and upcoming events
-
-#### Fixed Height with Scrolling
-
-Control card height with automatic scrolling:
-
-```yaml
-max_height: '300px' # Card will scroll when content exceeds this height
-```
-
-#### Smarter Caching
-
-Reduce API calls with navigation-aware caching:
-
-```yaml
-refresh_on_navigate: false # Keep cache when navigating between views
-```
-
-By default, your calendar refreshes on page reloads and when navigating dashboard views. You can now change this behavior to preserve your calendar data when you switch between dashboard views by setting this option to `false`.
-
-### 🛠 Breaking Changes
-
-V2 includes a few breaking changes to be aware of:
-
-1. **Parameter Renaming**:
-
-   - `row_spacing` is now `day_spacing` (for clarity)
-
-2. **Split Parameters**:
-
-   - `time_location_icon_size` has been split into:
-     ```yaml
-     time_icon_size: '14px'
-     location_icon_size: '14px'
-     ```
-
-3. **Card DOM Structure**: The card's internal DOM structure has been updated for better compatibility, which may affect existing card-mod customizations.
-
-### 🚀 Major Refactoring
-
-#### Enhanced Performance
-
-- **Complete Rewrite**: Entirely new rendering engine for better performance
-- **Smart Caching**: Intelligent caching reduces API calls and improves load times
-- **Progressive Rendering**: Efficiently renders events in small batches to maintain responsiveness
-- **Stable DOM Structure**: Consistent structure for better compatibility with other components
-
-#### Improved Theme & Card-Mod Compatibility
-
-The card now properly integrates with Home Assistant themes and card-mod styling:
-
-- **Native Theme Support**: Properly integrates with all Home Assistant themes
-- **Standard Card Structure**: Uses standard ha-card structure making card-mod work exactly like other cards
-
-**Examples:**
-
-- **Custom title styling with card-mod:**
-
-```yaml
-type: custom:calendar-card-pro
-title: Family Schedule
-card_mod:
-  style: |
-ha-card .header-container h1.card-header {
-      width: 100%;
-      text-align: center;
-      font-weight: bold;
-      border-bottom: 1px solid var(--primary-color);
-      float: none !important; /* Override the default float:left */
-    }
-```
-
-- **Highlight today's events with card-mod:**
-
-```yaml
-type: custom:calendar-card-pro
-card_mod:
-  style: |
-    /* Make today's events stand out */
-    .day-table.today .event-title {
-      font-size: 16px !important;     /* Larger text */
-      font-weight: bold !important;   /* Bold text */
-      color: var(--accent-color) !important; /* Use theme accent color */
-    }
-
-    /* Add subtle left border pulse animation */
-    .day-table.today .event {
-      border-left-width: 4px !important;
-      transition: border-left-color 1s ease-in-out;
-      animation: todayPulse 3s infinite alternate;
-    }
-
-    @keyframes todayPulse {
-      from { border-left-color: var(--accent-color); }
-      to { border-left-color: var(--primary-color); }
-    }
-```
-
-- **Remove card borders:**
-
-```yaml
-card_mod:
-  style: |
-    ha-card {
-      border-radius: 0;
-      border: none;
-    }
-```
-
-<p align="right"><a href="#top">⬆️ back to top</a></p>
-
----
+- [2️⃣ What's New](#2️⃣-whats-new)
+- [3️⃣ Installation](#3️⃣-installation)
+- [4️⃣ Usage](#4️⃣-usage)
+- [5️⃣ Features & Configuration](#5️⃣-features--configuration)
+- [6️⃣ Configuration Variables](#6️⃣-configuration-variables)
+- [7️⃣ Examples](#7️⃣-examples)
+- [8️⃣ Contributing & Roadmap](#8️⃣-contributing--roadmap)
 
 <p>&nbsp;</p>
 
@@ -395,7 +57,39 @@ Built with **performance in mind**, the card leverages **intelligent refresh mec
 
 <p align="right"><a href="#top">⬆️ back to top</a></p>
 
-## 2️⃣ Installation
+## 2️⃣ What's New
+
+### Latest Release: v2.2
+
+- ⚙️ **Advanced event filtering** - Include or exclude specific events with [`blocklist` and `allowlist` patterns](#filtering-by-event-name) per entity
+- 🔄 **Filter duplicate events** - [Remove redundant events](#filtering-duplicate-events) that appear in multiple calendars
+- 🌍 **Smart country filtering** - Precise control over [country name display in locations](#⏱️-time--location-information)
+- 🏷️ **Enhanced calendar labels** - In addition to emojis and text labels, you can now also use [Material Design icons and custom images](#🗂️-entity-configuration)
+- 🎨 **Customizable empty day styling** - Control how [empty days appear](#📅-calendar-events-display) with `empty_day_color`
+
+### New Features v2.1
+
+- 📅 **Week numbers & visual separators** - Better visual organization with [week number pills and customizable separators](#📅-week-numbers--visual-separators)
+- 📊 **Per-calendar event limits** - Control how many events appear from [each calendar separately](#managing-event-numbers)
+- 📏 **Fixed height control** - Set [exact card height](#📐-card-dimensions--scrolling) with improved scrolling behavior
+
+### New Features v2.0
+
+- 🌈 **Custom styling per calendar** - Add [accent colors for vertical lines](#🎨-visual-styling--colors) and opaque backgrounds to create visual hierarchy
+- 🏷️ **Calendar labels** - Add [emoji or text identifiers](#🗂️-entity-configuration) for each calendar source
+- 🔧 **Advanced display controls** - [Per-calendar time and location display settings](#⏱️-time--location-information)
+- 📆 **Custom start date** - View calendars from [any date](#core-settings), not just today
+- 📱 **Maximum height with scrolling** - Set a [maximum card size](#📐-card-dimensions--scrolling) with scrollable content
+
+<div style="background-color: rgba(3, 169, 244, 0.1); padding: 12px; margin: 20px 0;">
+  <h4 style="margin: 0; display: inline;">
+    ⬇️ <a href="#5️⃣-features--configuration">View Complete Features Documentation</a>
+  </h4>
+</div>
+
+<p align="right"><a href="#top">⬆️ back to top</a></p>
+
+## 3️⃣ Installation
 
 ### 📦 HACS Installation (Recommended)
 
@@ -429,10 +123,10 @@ The easiest way to install **Calendar Card Pro** is via **[HACS (Home Assistant 
 
 4. **Add the resource** to your Lovelace Dashboard:
 
-   ```yaml
-   url: /local/calendar-card-pro.js
-   type: module
-   ```
+```yaml
+url: /local/calendar-card-pro.js
+type: module
+```
 
 5. **Clear cache & refresh** your browser to apply changes.
 
@@ -440,7 +134,7 @@ The easiest way to install **Calendar Card Pro** is via **[HACS (Home Assistant 
 
 <p align="right"><a href="#top">⬆️ back to top</a></p>
 
-## 3️⃣ Usage
+## 4️⃣ Usage
 
 Once **Calendar Card Pro** is installed, follow these steps to add and configure it in your Home Assistant dashboard.
 
@@ -450,18 +144,19 @@ Once **Calendar Card Pro** is installed, follow these steps to add and configure
    Calendar Card Pro requires at least one `calendar.*` entity in Home Assistant (e.g., **Google Calendar, CalDAV**).
 2. **Open Your Dashboard for Editing**
 
-   - Navigate to **Home Assistant → Dashboard**
-   - Click the three-dot menu (⋮) → **Edit Dashboard**
+- Navigate to **Home Assistant → Dashboard**
+- Click the three-dot menu (⋮) → **Edit Dashboard**
 
 3. **Add Calendar Card Pro**
 
-   - Click the ➕ **Add Card** button
-   - Search for `"Calendar"` or scroll to find `"Calendar Card Pro"`
-   - Select the card to add it to your dashboard
+- Click the ➕ **Add Card** button
+- Search for `"Calendar"` or scroll to find `"Calendar Card Pro"`
+- Select the card to add it to your dashboard
 
 4. **Initial Setup & Configuration**
-   - By default, the card will **automatically detect available calendars** and select the first one.
-   - Use the **YAML mode** for advanced customization.
+
+- By default, the card will **automatically detect available calendars** and select the first one.
+- Use the **YAML mode** for advanced customization.
 
 ### ⚙️ Customizing the Card
 
@@ -498,15 +193,530 @@ show_location: true
 
 ### 🚀 Next Steps
 
-- Explore the [📚 Configuration Guide](#4️⃣-configuration-guide) for a **detailed list of options**.
-- Check out the [💡 Examples](#5️⃣-examples) section for **pre-configured setups**.
-- Get involved! Check out the [Contributing & Roadmap](#6️⃣-contributing--roadmap) section to learn **how to contribute** and see **upcoming features**.
+- Explore the [📚 Configuration Variables](#6️⃣-configuration-variables) for a **complete list of available options**.
+- Discover the [✨ Features & Configuration](#5️⃣-features--configuration) section to **learn about advanced capabilities**.
+- Check out the [💡 Examples](#7️⃣-examples) section for **pre-configured setups** to get inspired.
+- Get involved! Check out the [Contributing & Roadmap](#8️⃣-contributing--roadmap) section to learn **how to contribute** and see **upcoming features**.
 
 <p align="right"><a href="#top">⬆️ back to top</a></p>
 
-## 4️⃣ Configuration Guide
+## 5️⃣ Features & Configuration
 
-### ⚙️ Variables
+### Core Settings
+
+#### 🗂️ Entity Configuration
+
+Calendar Card Pro can display events from multiple calendar entities in Home Assistant. The `entities` array accepts either:
+
+1. **A simple entity ID** (default styling applies)
+2. **An advanced object configuration** (custom styling per entity)
+
+```yaml
+entities:
+  - calendar.family # Simple entity ID (default styling)
+  - entity: calendar.work
+    # Advanced object with custom styling (see options below)
+    color: '#1e90ff'
+    accent_color: '#ff6347'
+```
+
+##### Available Properties for Entity Configuration Objects:
+
+| Property           | Type    | Description                                                                                                                    |
+| ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| entity             | string  | **Required.** The calendar entity ID                                                                                           |
+| label              | string  | Calendar label displayed before event titles. Supports text/emoji, MDI icons (`mdi:icon-name`), or images (`/local/image.jpg`) |
+| color              | string  | Custom color for event titles from this calendar                                                                               |
+| accent_color       | string  | Custom color for the vertical line and event background (when event_background_opacity is >0)                                  |
+| show_time          | boolean | Whether to show event times for this calendar (overrides global show_time setting)                                             |
+| show_location      | boolean | Whether to show event locations for this calendar (overrides global show_location setting)                                     |
+| max_events_to_show | number  | Maximum number of events to show from this calendar (works with global max_events_to_show)                                     |
+| blocklist          | string  | RegExp pattern to specify events to exclude (e.g., "Private\|Conference")                                                      |
+| allowlist          | string  | RegExp pattern to specify events to include (e.g., "Birthday\|Anniversary")                                                    |
+
+This structure gives you granular control over how information from different calendars is displayed.
+
+#### 🔍 Event Filtering
+
+Calendar Card Pro provides powerful filtering capabilities to control exactly which events appear on your dashboard:
+
+##### Filtering by Event Name
+
+```yaml
+entities:
+  - entity: calendar.work
+    blocklist: 'Private|Conference' # Hide events with these words
+  - entity: calendar.personal
+    allowlist: 'Birthday|Anniversary' # Only show events with these words
+```
+
+These filters use regular expressions, allowing for flexible pattern matching:
+
+- **Blocklist**: Hide events that match specified patterns
+- **Allowlist**: Only show events that match specified patterns
+- **Priority**: When both are specified, allowlist takes precedence
+
+##### Filtering Duplicate Events
+
+When you subscribe to multiple calendars that might contain the same events (like shared family calendars), you can eliminate duplicates:
+
+```yaml
+entities:
+  - calendar.personal # Events from this calendar are prioritized
+  - calendar.family # Duplicates from this calendar will be hidden
+filter_duplicates: true
+```
+
+The duplicate detection compares:
+
+- Event title
+- Start and end times
+- Event location
+- Calendar order (calendars listed first have priority)
+
+This is especially useful for:
+
+- Shared household calendars
+- Work calendars with team events
+- Any scenario where you might see the same event in multiple calendars
+
+##### Advanced Filtering Techniques
+
+You can combine filtering features with labels and accent colors to create sophisticated displays. For example, to apply different styling to specific event types within the same calendar:
+
+```yaml
+entities:
+  - entity: calendar.family
+    allowlist: 'shopping|grocery' # Only show shopping-related events
+    label: '🛒' # Add shopping cart label to these events
+    accent_color: '#1e88e5' # Blue accent for shopping events
+  - entity: calendar.family
+    allowlist: 'birthday|anniversary' # Only show celebration events
+    label: '🎉' # Add celebration label to these events
+    accent_color: '#e91e63' # Pink accent for celebration events
+  - entity: calendar.family
+    blocklist: 'shopping|grocery|birthday|anniversary' # Show all other events
+    accent_color: '#607d8b' # Neutral accent for all other events
+    # No label for remaining events
+```
+
+This technique lets you:
+
+- Apply different labels and colors to different event types from the same calendar
+- Create category-based visual organization without needing multiple calendar sources
+- Use accent colors with backgrounds (when event_background_opacity > 0) for even more distinction
+- Avoid needing to create separate calendars for different event categories
+
+##### Managing Event Numbers
+
+Control how many events are displayed from each calendar independently:
+
+```yaml
+entities:
+  - entity: calendar.family
+    # Show all events from family calendar (no limit)
+  - entity: calendar.work
+    max_events_to_show: 2
+    # Only show 2 most important work events
+max_events_to_show: 5 # Global limit of 5 events total
+```
+
+This feature provides several important behaviors:
+
+- **Entity limits are applied first**: Each calendar is restricted to its specific maximum
+- **Global limit is applied second**: Total events across all calendars are then limited
+- **Chronological order is preserved**: Events remain sorted by date/time
+- **Different behavior in views**: In collapsed view, both entity and global limits apply; in expanded view, only entity limits apply (global limit is removed)
+
+The card maintains chronological order of events while respecting these limits, which allows you to:
+
+- **Prioritize important calendars**: Give more visual space to key calendars
+- **Prevent overwhelming views**: Limit verbose calendars (like school schedules)
+- **Create a balanced display**: Show just enough information from each source
+
+### Layout & Appearance
+
+#### 📐 Card Dimensions & Scrolling
+
+Calendar Card Pro offers flexible options for controlling the card's size and scroll behavior:
+
+```yaml
+# Fixed height - card always maintains exactly this height
+height: '300px'
+
+# Maximum height - card grows with content up to this height
+max_height: '300px'
+
+# Additional padding inside the card
+additional_card_spacing: '10px'
+```
+
+The card offers two distinct height control mechanisms:
+
+- **Fixed Height (`height`)**: Creates a card with exactly the specified height regardless of content amount. This is ideal when you need a card that perfectly fits a specific dashboard layout.
+
+- **Maximum Height (`max_height`)**: Allows the card to grow naturally up to the specified limit. This provides flexibility while still ensuring the card doesn't become too large.
+
+Both options provide:
+
+- Automatic scrolling when content exceeds the available space
+- Modern, clean scrollbars that only appear during hover/scrolling
+- Consistent behavior across desktop and mobile browsers
+
+#### 🎨 Visual Styling & Colors
+
+Customize the appearance of your calendar with various styling options:
+
+```yaml
+# Card background and title
+title: 'My Calendar'
+title_font_size: '20px'
+title_color: 'var(--primary-color)'
+background_color: 'var(--ha-card-background)'
+
+# Event appearance
+event_background_opacity: 15 # 0-100 scale for background color intensity
+vertical_line_width: '3px' # Width of the colored event indicator line
+```
+
+The `event_background_opacity` setting (ranging from 0-100) works together with each calendar's `accent_color` to create semi-transparent backgrounds for events. At 0 (default), events have no background color. Higher values create more intense backgrounds.
+
+When styling your calendar, you can use:
+
+- CSS color values (`#ff6c92`, `rgba(255,0,0,0.5)`)
+- Home Assistant theme variables (`var(--primary-color)`)
+- Named colors (`red`, `blue`)
+
+#### 📏 Spacing & Alignment
+
+Fine-tune the spacing and alignment of your calendar elements:
+
+```yaml
+# Spacing between elements
+day_spacing: '8px' # Space between different calendar days
+event_spacing: '6px' # Internal padding within each event
+
+# Date column alignment
+date_vertical_alignment: 'top' # Options: 'top', 'middle', 'bottom'
+```
+
+The `date_vertical_alignment` option controls how dates align with their events, which is especially noticeable when a day has many events. The default `middle` setting centers the date between its events, while `top` aligns it with the first event and `bottom` with the last event.
+
+#### 📅 Week Numbers & Visual Separators
+
+For improved organization with longer calendar views, you can enable week numbers and visual separators:
+
+```yaml
+# Week number configuration
+show_week_numbers: 'iso' # 'iso', 'simple', or null to disable
+show_current_week_number: true # Show week number for the first week
+first_day_of_week: 'monday' # 'monday', 'sunday', or 'system'
+
+# Week number styling
+week_number_font_size: '12px'
+week_number_color: 'var(--primary-text-color)'
+week_number_background_color: '#03a9f450'
+
+# Separator configuration
+day_separator_width: '1px' # Line between days
+day_separator_color: '#03a9f430'
+week_separator_width: '2px' # Line between weeks
+week_separator_color: '#03a9f480'
+month_separator_width: '3px' # Line between months
+month_separator_color: '#03a9f4'
+```
+
+<img src="https://raw.githubusercontent.com/alexpfau/calendar-card-pro/main/.github/img/example_4_week_numbers.png" alt="Week Numbers" width="600"><br>
+
+This feature creates a sophisticated visual hierarchy with:
+
+- **Week Number Indicators**: Pill-shaped badges showing the current week number
+- **Visual Separators**: Horizontal lines of varying thickness to distinguish between days, weeks, and months
+- **Smart Precedence**: When multiple separators could appear at once (like when a week also changes month), the most significant one (month) takes priority
+
+The separators follow an intelligent precedence system:
+
+- When multiple separators could appear simultaneously (e.g., a day that's both the start of a week and a month), the most significant one (month) takes visual priority
+- This creates a clean visual hierarchy: months > weeks > days
+
+Week numbers can be displayed using either:
+
+- **ISO Week Numbering**: Weeks start on Monday, and the first week of the year is the one containing the first Thursday (ISO 8601 standard)
+- **Simple Week Numbering**: Counts weeks starting from January 1st
+
+#### 📆 Date Column Customization
+
+Control the appearance of the date column for a personalized calendar view:
+
+```yaml
+# Weekday name (Mon, Tue, etc.)
+weekday_font_size: '14px'
+weekday_color: 'var(--primary-text-color)'
+
+# Day number (1, 2, 3, etc.)
+day_font_size: '26px'
+day_color: 'var(--primary-text-color)'
+
+# Month name display
+show_month: true
+month_font_size: '12px'
+month_color: 'var(--primary-text-color)'
+```
+
+The date column appears on the left side of each day's events and helps users quickly identify when events occur. By default, it shows:
+
+1. The weekday name (abbreviated to 3 letters)
+2. The day number (1-31)
+3. The month name (if the day is the first of a month or `show_month: true`)
+
+You can control the visibility of months with `show_month` - when set to `false`, months only appear on the first day of each month.
+
+### Event Content & Display
+
+#### 📅 Calendar Events Display
+
+Control how event information is presented on your calendar:
+
+```yaml
+# Event title appearance
+event_font_size: '14px'
+event_color: 'var(--primary-text-color)'
+
+# Empty days display
+show_empty_days: true # Show days with no events
+empty_day_color: 'var(--secondary-text-color)' # Color for "No events" text
+```
+
+When `show_empty_days` is set to `true`, days without events will display a "No events" message. This helps maintain visual consistency across your calendar, especially when showing longer date ranges.
+
+The new `empty_day_color` parameter lets you customize the color of this message to match your theme or stand out as needed.
+
+#### ⏱️ Time & Location Information
+
+Configure how event times and locations are displayed:
+
+```yaml
+# Time display options
+show_time: true # Show event start/end times
+show_single_allday_time: false # Hide time for single-day all-day events
+time_24h: false # Use 12-hour format (AM/PM)
+show_end_time: true # Show event end time
+time_font_size: '12px'
+time_color: 'var(--secondary-text-color)'
+time_icon_size: '14px'
+
+# Location display options
+show_location: true
+remove_location_country: true # Remove country names from addresses
+location_font_size: '12px'
+location_color: 'var(--secondary-text-color)'
+location_icon_size: '14px'
+```
+
+The `remove_location_country` parameter offers three modes:
+
+```yaml
+# Option 1: Don't remove any country information
+remove_location_country: false
+
+# Option 2: Use built-in country detection
+remove_location_country: true
+
+# Option 3: Specify exactly which countries to remove (perfect for international users)
+remove_location_country: "USA|United States|Canada"
+```
+
+These options provide significant flexibility:
+
+- **Option 1 (false)**: Show complete addresses with all country information (best for international users)
+- **Option 2 (true)**: Apply smart country detection to clean up addresses (good for most users)
+- **Option 3 (regex pattern)**: Precisely control which countries to remove while keeping others visible (perfect for displaying domestic addresses without country while preserving international location details)
+
+**Example scenario**: If you live in the USA but frequently have events in other countries, you could use:
+
+```yaml
+remove_location_country: 'USA|United States|U.S.A.|U.S.'
+```
+
+This would keep location details like "Paris, France" intact while simplifying domestic addresses to just city and state.
+
+#### 🕒 Past Events Display
+
+Control visibility of events that have already occurred:
+
+```yaml
+show_past_events: true # Show today's events that have already ended
+```
+
+When enabled, past events appear with reduced opacity (60%) to visually distinguish them from upcoming events.
+
+### Actions & Interactions
+
+#### 🔄 Expandable Calendar View
+
+One of Calendar Card Pro's most powerful features is the ability to toggle between compact and expanded views:
+
+```yaml
+# Limit events in compact view
+max_events_to_show: 5
+
+# Enable expand/collapse with tap
+tap_action:
+  action: expand
+```
+
+When a `max_events_to_show` limit is set, the card displays that number of events initially, adding a subtle indicator when more events are available. The `expand` action then allows users to toggle between this compact view and the full list of events.
+
+When using expansion with both global and per-calendar limits:
+
+- In compact view: Both global and per-calendar limits are enforced
+- In expanded view: Only per-calendar limits remain active, while the global limit is removed
+- Entity-specific limits are always respected in both views
+- The expand/collapse state persists until manually toggled or the page is reloaded
+
+**Example scenario**: If you have a configuration like this:
+
+```yaml
+entities:
+  - entity: calendar.family
+    # No limit for family calendar
+  - entity: calendar.work
+    max_events_to_show: 2
+    # Never show more than 2 work events
+  - entity: calendar.holidays
+    max_events_to_show: 1
+    # Only show 1 holiday event
+max_events_to_show: 4
+# Show at most 4 events total in compact mode
+
+tap_action:
+  action: expand
+```
+
+In compact mode, you'll see at most 4 events total, with work showing at most 2 and holidays showing at most 1.
+In expanded mode after tapping, the global limit of 4 is removed, but you'll still only see 2 work events and 1 holiday event, while all family events within your configured `days_to_show` range will be visible.
+
+#### 👆 Custom Tap & Hold Actions
+
+Calendar Card Pro supports all standard Home Assistant actions:
+
+```yaml
+# Navigate to another view on tap
+tap_action:
+  action: navigate
+  navigation_path: /lovelace/calendar
+
+# Open a URL on long press
+hold_action:
+  action: url
+  url_path: https://calendar.google.com
+```
+
+##### Available Actions:
+
+| Action Type    | Description                                   | Additional Parameters                                     |
+| -------------- | --------------------------------------------- | --------------------------------------------------------- |
+| `expand`       | Toggle between compact and full calendar view | None                                                      |
+| `more-info`    | Open the Home Assistant entity dialog         | None                                                      |
+| `navigate`     | Go to another Lovelace view                   | `navigation_path: /lovelace/view`                         |
+| `url`          | Open external URL or internal page            | `url_path: https://example.com`                           |
+| `call-service` | Call any Home Assistant service               | `service: domain.service`, `service_data: { key: value }` |
+| `none`         | Disable the action                            | None                                                      |
+
+All actions integrate seamlessly with Home Assistant's native ripple effect and haptic feedback for a polished user experience.
+
+### Performance & Theme Integration
+
+#### ⚡ Efficient Rendering & Caching
+
+Calendar Card Pro uses several techniques to ensure smooth performance:
+
+```yaml
+# Cache and refresh settings
+refresh_interval: 30 # Minutes between data refresh
+refresh_on_navigate: false # Keep cache when switching dashboard views
+```
+
+The card's advanced rendering engine:
+
+- Processes events in small batches (typically 5-10 at a time)
+- Uses requestAnimationFrame for smooth visual updates
+- Prioritizes visible content first
+- Prevents the browser's main thread from blocking during large calendar loads
+
+Smart caching minimizes API calls to your calendar integrations. By default, data refreshes every 30 minutes and when navigating between views, but you can adjust this behavior with `refresh_interval` and `refresh_on_navigate`.
+
+#### 🎨 Theme Integration & Card-Mod Support
+
+Calendar Card Pro seamlessly integrates with all Home Assistant themes and fully supports card-mod customization:
+
+- **Automatic Theme Detection**: Uses your active Home Assistant theme variables
+- **Standard Card Structure**: Follows HA conventions for consistent styling
+- **CSS Customization**: Accessible structure for easy card-mod targeting
+
+##### Customization Examples with Card-Mod:
+
+**Custom title styling:**
+
+```yaml
+type: custom:calendar-card-pro
+title: Family Schedule
+card_mod:
+  style: |
+    ha-card .header-container h1.card-header {
+      width: 100%;
+      text-align: center;
+      font-weight: bold;
+      border-bottom: 1px solid var(--primary-color);
+      float: none !important; /* Override the default float:left */
+    }
+```
+
+**Highlight today's events:**
+
+```yaml
+type: custom:calendar-card-pro
+card_mod:
+  style: |
+    /* Make today's events stand out */
+    .day-table.today .event-title {
+      font-size: 16px !important;     /* Larger text */
+      font-weight: bold !important;   /* Bold text */
+      color: var(--accent-color) !important; /* Use theme accent color */
+    }
+
+    /* Add subtle left border pulse animation */
+    .day-table.today .event {
+      border-left-width: 4px !important;
+      transition: border-left-color 1s ease-in-out;
+      animation: todayPulse 3s infinite alternate;
+    }
+
+    @keyframes todayPulse {
+      from { border-left-color: var(--accent-color); }
+      to { border-left-color: var(--primary-color); }
+    }
+```
+
+**Frameless calendar integration:**
+
+```yaml
+type: custom:calendar-card-pro
+card_mod:
+  style: |
+    ha-card {
+      border-radius: 0;
+      border: none;
+      box-shadow: none;
+      background: transparent;
+    }
+```
+
+These examples demonstrate how Calendar Card Pro can be customized to match any dashboard design using card-mod's powerful CSS customization capabilities.
+
+<p align="right"><a href="#top">⬆️ back to top</a></p>
+
+## 6️⃣ Configuration Variables
 
 | Variable                                   | Type    | Default                           | Description                                                                                                               |
 | ------------------------------------------ | ------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
@@ -516,6 +726,7 @@ show_location: true
 | days_to_show                               | number  | `3`                               | Number of days to display                                                                                                 |
 | max_events_to_show                         | number  | -                                 | Maximum number of events to show in compact mode                                                                          |
 | show_empty_days                            | boolean | `false`                           | 🆕 **NEW!** Whether to show days with no events (with "No events" message)                                                |
+| filter_duplicates                          | boolean | `false`                           | 🆕 **NEW!** Remove duplicate events that appear in multiple calendars                                                     |
 | language                                   | string  | `System`, fallback `en`           | Interface language (auto-detects from HA)                                                                                 |
 | **Header**                                 |         |                                   |                                                                                                                           |
 | title                                      | string  | -                                 | Card title                                                                                                                |
@@ -555,8 +766,9 @@ show_location: true
 | month_font_size                            | string  | `12px`                            | Month name font size                                                                                                      |
 | month_color                                | string  | `--primary-text-color`            | Month name font color                                                                                                     |
 | **Event Column**                           |         |                                   |                                                                                                                           |
-| show_past_events                           | boolean | `false`                           | Whether to show today's events that have already ended                                                                    |
 | event_background_opacity                   | number  | `0`                               | 🆕 **NEW!** Background opacity (0-100) for events using entity accent color                                               |
+| show_past_events                           | boolean | `false`                           | Whether to show today's events that have already ended                                                                    |
+| empty_day_color                            | string  | `--primary-text-color`            | 🆕 **NEW!** Color for "No events" text on empty days                                                                      |
 | event_font_size                            | string  | `14px`                            | Event title font size                                                                                                     |
 | event_color                                | string  | `--primary-text-color`            | Event title font color                                                                                                    |
 | show_time                                  | boolean | `true`                            | Whether to show event times                                                                                               |
@@ -578,184 +790,9 @@ show_location: true
 | refresh_interval                           | number  | `30`                              | Time in minutes between data refreshes                                                                                    |
 | refresh_on_navigate                        | boolean | `true`                            | 🆕 **NEW!** Whether to force refresh data when navigating between dashboard views                                         |
 
-### 🗂️ Entity Configuration
-
-The `entities` array accepts either:
-
-1. **A simple entity ID** (default styling applies)
-2. **An advanced object configuration** (custom styling per entity)
-
-#### Available Properties for Entity Configuration Objects:
-
-| Property           | Type    | Description                                                                                                           |
-| ------------------ | ------- | --------------------------------------------------------------------------------------------------------------------- |
-| entity             | string  | **Required.** The calendar entity ID                                                                                  |
-| label              | string  | 🆕 **NEW!** Optional label displayed before event titles from this calendar, for instance a calendar name or an emoji |
-| color              | string  | Custom color for event titles from this calendar                                                                      |
-| accent_color       | string  | 🆕 **NEW!** Custom color for the vertical line and event background (when event_background_opacity is >0)             |
-| show_time          | boolean | 🆕 **NEW!** Whether to show event times for this calendar (overrides global show_time setting)                        |
-| show_location      | boolean | 🆕 **NEW!** Whether to show event locations for this calendar (overrides global show_location setting)                |
-| max_events_to_show | number  | 🆕 **NEW v2.1!** Maximum number of events to show from this calendar (works with global max_events_to_show)           |
-
-#### Example:
-
-```yaml
-entities:
-  - calendar.family # Simple entity ID (default styling)
-  - entity: calendar.work
-    label: '💻'
-    color: '#1e90ff'
-    accent_color: '#ff6347'
-  - entity: calendar.holidays
-    show_time: false # Hide times for holiday events
-  - entity: calendar.birthdays
-    show_time: false
-    show_location: false # Hide both time and location for birthdays
-```
-
-This allows granular control over how information is displayed for different types of calendars.
-
-### 🎨 Event Styling Options
-
-**Calendar Card Pro** offers advanced styling options that allow you to create a visually distinct representation of your different calendars:
-
-#### Calendar Labels
-
-The `label` property in entity configuration allows you to add a visual identifier before event titles from a specific calendar. This can be:
-
-- **Text**: A short identifying word (e.g., "Work:", "Personal:")
-- **Emoji**: A relevant emoji (e.g., "🏢", "🏠", "🎓")
-- **Icon**: A custom identifier that matches the calendar's purpose
-
-Labels help distinguish events at a glance without relying solely on color, improving accessibility. They appear before the event title with proper spacing.
-
-#### Accent Colors and Backgrounds
-
-Each calendar entity can have a custom accent color that controls:
-
-1. **Vertical Line**: The colored line at the left of each event row
-2. **Background (Optional)**: A semi-transparent background for the event
-
-To enable colored backgrounds:
-
-- Set an `accent_color` for your calendar entities
-- Adjust the global `event_background_opacity` (0-100) to control transparency
-
-```yaml
-# Example: Different calendars with distinct styling
-entities:
-  - entity: calendar.work
-    color: '#ffffff'
-    accent_color: '#1e88e5'
-    label: '💻'
-  - entity: calendar.family
-    color: '#ffffff'
-    accent_color: '#e53935'
-    label: '🧑‍🧑‍🧒‍🧒'
-  - entity: calendar.personal
-    color: '#ffffff'
-    accent_color: '#43a047'
-    label: '🎉'
-
-# Enable subtle backgrounds for all calendars
-event_background_opacity: 15
-```
-
-This approach creates a clean, color-coded visual system with both accent lines and subtle background colors to distinguish your calendars.
-
-### 🏗️ Event Display & Compact Mode
-
-#### Default Behavior
-
-By default, **Calendar Card Pro** displays all events for the next **3 days** (including today). This means:
-
-- If there are **no events** in the next 3 days, the card will show an **empty state**.
-- If there are **many events**, all will be displayed, making the card **taller**.
-- The **card height adapts dynamically** based on content.
-- By default, **past events from today are hidden**, but you can set `show_past_events: true` to display them.
-
-#### Compact Mode
-
-To control **Calendar Card Pro's size**, enable **compact mode** by setting `max_events_to_show`. This:
-
-- Limits the number of events displayed at once.
-- Maintains a **consistent card height**.
-- Dynamically updates as new events appear.
-
-You can **toggle between compact and full views** by configuring `tap_action` or `hold_action`.
-
-### 🎛️ Actions
-
-Both `tap_action` and `hold_action` support the following options:
-
-| Action Type      | Description                                                               |
-| ---------------- | ------------------------------------------------------------------------- |
-| **expand**       | Toggles between compact and full view (when `max_events_to_show` is set). |
-| **more-info**    | Opens the **More Info** dialog in Home Assistant.                         |
-| **navigate**     | Navigates to a different **dashboard view**.                              |
-| **call-service** | Calls a **Home Assistant service**.                                       |
-| **url**          | Opens an **external URL**.                                                |
-
-**Additional Parameters:**
-
-- `navigation_path`: Path for **navigate** action.
-- `url_path`: URL for **url** action.
-- `service`: Home Assistant service for **call-service** action.
-- `service_data`: Service payload for **call-service** action.
-
-##### Example: Expand View on Tap
-
-```yaml
-tap_action:
-  action: expand
-```
-
-##### Example: Navigate to Calendar Dashboard
-
-```yaml
-tap_action:
-  action: navigate
-  navigation_path: /lovelace/calendar
-```
-
-### 🏗️ Material Design Interaction
-
-**Calendar Card Pro** integrates Home Assistant’s **native interaction patterns** for a seamless experience:
-
-### ⚡ Progressive Rendering
-
-To maintain performance, **Calendar Card Pro** progressively renders events:
-
-- **Renders events in small batches** to prevent UI lag.
-- **Prevents browser freezing** with optimized rendering.
-- **Ensures smooth interactions** even for large event lists.
-
-#### Fixed Height and Scrolling Options
-
-Calendar Card Pro offers two ways to control card height:
-
-```yaml
-# Fixed height - card always maintains this exact height
-height: '300px'
-
-# Maximum height - card grows up to this height
-max_height: '300px'
-```
-
-**Key differences:**
-
-- `height`: Creates a card with exactly the specified height, regardless of content
-- `max_height`: Allows the card to grow naturally up to the specified limit
-
-Both options provide:
-
-- Scrolling when content exceeds the available space
-- Invisible scrollbars that appear only on hover or during scrolling
-- Consistent behavior across all modern browsers
-
 <p align="right"><a href="#top">⬆️ back to top</a></p>
 
-## 5️⃣ Examples
+## 7️⃣ Examples
 
 This section provides different **configuration setups** to help you get started with **Calendar Card Pro**.
 
@@ -804,7 +841,53 @@ tap_action:
   action: expand # Tap to expand/collapse
 ```
 
-### 🎨 Complete Configuration with All Options
+### 🌈 Multiple Calendars with Custom Styling
+
+This example demonstrates how to use **accent colors** and **background opacity** to create visual distinction between different calendars. The accent colors are used for both the vertical line and a semi-transparent background.
+
+<img src="https://raw.githubusercontent.com/alexpfau/calendar-card-pro/main/.github/img/example_3_custom_styling.png" alt="Custom Styling" width="600">
+
+```yaml
+type: custom:calendar-card-pro
+entities:
+  - entity: calendar.family
+    accent_color: '#ff6c92'
+  - entity: calendar.work
+    accent_color: '#1e88e5'
+  - entity: calendar.personal
+    accent_color: '#43a047'
+days_to_show: 5
+max_events_to_show: 5
+event_background_opacity: 20
+vertical_line_width: 5px
+event_spacing: 6px
+```
+
+### 📆 Multiple Calendars with Week Numbers and Separators
+
+This configuration showcases the **week number display** and **visual separators** features. It creates a clear hierarchy with different separator widths for weeks and months.
+
+<img src="https://raw.githubusercontent.com/alexpfau/calendar-card-pro/main/.github/img/example_4_week_numbers.png" alt="Week Numbers and Separators" width="600">
+
+```yaml
+type: custom:calendar-card-pro
+entities:
+  - entity: calendar.personal
+    accent_color: '#03a9f4'
+  - entity: calendar.family
+    accent_color: '#ff6c92'
+days_to_show: 5
+max_events_to_show: 5
+vertical_line_width: 5px
+event_spacing: 5px
+show_week_numbers: iso
+week_separator_width: 1px
+week_separator_color: '#03a9f450'
+month_separator_width: 1.5px
+month_separator_color: var(--secondary-text-color)
+```
+
+### 🎨 Full Configuration
 
 A fully **customized** configuration demonstrating **all available options**, including **styling, layout, and interactions**. Though you could **go all out**—and I didn’t—and create a **completely different look** if you wanted. Screenshot using the beautiful **[Bubble Theme](https://github.com/Clooos/Bubble)**.
 
@@ -876,7 +959,7 @@ refresh_interval: 15 # Auto-refresh events every 15 minutes
 
 <p align="right"><a href="#top">⬆️ back to top</a></p>
 
-## 6️⃣ Contributing & Roadmap
+## 8️⃣ Contributing & Roadmap
 
 ### 🚀 How to Contribute
 
@@ -948,16 +1031,24 @@ For those interested in contributing code, I maintain detailed **[architecture d
 To add a new language:
 
 1. **Create a new file** in `src/translations/languages/[lang-code].json`
-2. **Update the localize file** in `src/translations/localize.ts`
-3. **Translate all strings** to your language.ations/localize.ts`
-4. **Submit a Pull Request** with your changes.
-5. **Submit a Pull Request** with your changes.
+2. **Copy the structure** from an existing language file (e.g., `en.json`)
+3. **Update the localize file** in `src/translations/localize.ts` to include your new language
+4. **Translate all strings** to your language
+5. **Submit a Pull Request** with your changes
+
+**Example**: To add German support, you would:
+
+1. Create `src/translations/languages/de.json`
+2. Copy the structure from `en.json` and translate all values (not keys)
+3. Add the import and mapping in `localize.ts`
 
 ### 🏆 Acknowledgements
 
 - **Original design inspiration** from [Calendar Add-on & Calendar Designs](https://community.home-assistant.io/t/calendar-add-on-some-calendar-designs/385790) by **[@kdw2060](https://github.com/kdw2060)**.
 - **Interaction patterns** inspired by Home Assistant’s [Tile Card](https://github.com/home-assistant/frontend/blob/dev/src/panels/lovelace/cards/hui-tile-card.ts), which is licensed under the [Apache License 2.0](https://github.com/home-assistant/frontend/blob/dev/LICENSE.md).
 - **Material Design ripple interactions**, originally by Google, used under the [Apache License 2.0](https://github.com/material-components/material-components-web/blob/master/LICENSE).
+
+<p align="right"><a href="#top">⬆️ back to top</a></p>
 
  <!--Badges-->
 

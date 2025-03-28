@@ -17,16 +17,17 @@ import * as Logger from '../utils/logger';
 export const DEFAULT_CONFIG: Types.Config = {
   // Core settings
   entities: [],
-  start_date: '',
+  start_date: undefined,
   days_to_show: 3,
   max_events_to_show: undefined,
   show_empty_days: false,
-  language: '',
+  filter_duplicates: false,
+  language: undefined,
 
   // Header
-  title: '',
-  title_font_size: '',
-  title_color: '',
+  title: undefined,
+  title_font_size: undefined,
+  title_color: undefined,
 
   // Layout and spacing
   background_color: 'var(--ha-card-background)',
@@ -72,6 +73,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   show_past_events: false,
   event_font_size: '14px',
   event_color: 'var(--primary-text-color)',
+  empty_day_color: 'var(--primary-text-color)',
   show_time: true,
   show_single_allday_time: true,
   time_24h: true,
@@ -80,7 +82,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   time_color: 'var(--secondary-text-color)',
   time_icon_size: '14px',
   show_location: true,
-  remove_location_country: true,
+  remove_location_country: false,
   location_font_size: '12px',
   location_color: 'var(--secondary-text-color)',
   location_icon_size: '14px',
@@ -112,6 +114,8 @@ export function normalizeEntities(
         show_time?: boolean;
         show_location?: boolean;
         max_events_to_show?: number;
+        blocklist?: string;
+        allowlist?: string;
       }
   >,
 ): Array<Types.EntityConfig> {
@@ -136,7 +140,9 @@ export function normalizeEntities(
           accent_color: item.accent_color || 'var(--calendar-card-line-color-vertical)',
           show_time: item.show_time,
           show_location: item.show_location,
-          max_events_to_show: item.max_events_to_show, // Include in normalization
+          max_events_to_show: item.max_events_to_show,
+          blocklist: item.blocklist,
+          allowlist: item.allowlist,
         };
       }
       return null;
@@ -176,7 +182,8 @@ export function hasConfigChanged(
     previousEntityIds !== currentEntityIds ||
     previous.days_to_show !== current.days_to_show ||
     previous.start_date !== current.start_date ||
-    previous.show_past_events !== current.show_past_events;
+    previous.show_past_events !== current.show_past_events ||
+    previous.filter_duplicates !== current.filter_duplicates;
 
   if (dataChanged || refreshIntervalChanged) {
     Logger.debug('Configuration change requires data refresh');

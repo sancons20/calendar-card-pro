@@ -7,6 +7,7 @@
 
 import * as Types from '../config/types';
 import * as Localize from '../translations/localize';
+import * as Constants from '../config/constants';
 
 //-----------------------------------------------------------------------------
 // HIGH-LEVEL PUBLIC APIs
@@ -72,49 +73,26 @@ export function formatEventTime(
  * Format location string, optionally removing country code
  *
  * @param location - Location string to format
- * @param removeCountry - Whether to remove country code from location
+ * @param removeCountry - Boolean (true/false) or string pattern of countries to remove
  * @returns Formatted location string
  */
-export function formatLocation(location: string, removeCountry = true): string {
-  if (!location || !removeCountry) return location || '';
+export function formatLocation(location: string, removeCountry: boolean | string = true): string {
+  if (!location) return '';
+  if (removeCountry === false) return location;
 
   const locationText = location.trim();
 
-  // Get country names (this would be better from a proper static source)
-  // For now using a simplified approach
-  const countryNames = new Set([
-    'Germany',
-    'Deutschland',
-    'United States',
-    'USA',
-    'United States of America',
-    'United Kingdom',
-    'Great Britain',
-    'France',
-    'Italy',
-    'Italia',
-    'Spain',
-    'España',
-    'Netherlands',
-    'Nederland',
-    'Austria',
-    'Österreich',
-    'Switzerland',
-    'Schweiz',
-  ]);
-
-  // Handle comma-separated format (e.g., "City, Country")
-  const parts = locationText.split(',').map((part) => part.trim());
-  if (parts.length > 0 && countryNames.has(parts[parts.length - 1])) {
-    parts.pop();
-    return parts.join(', ');
+  // User-defined custom pattern (string)
+  if (typeof removeCountry === 'string' && removeCountry !== 'true') {
+    const pattern = new RegExp(`(${removeCountry})\\s*$`, 'i');
+    return locationText.replace(pattern, '').replace(/,?\s*$/, '');
   }
 
-  // Handle space-separated format (e.g., "City Country")
-  const words = locationText.split(/\s+/);
-  if (words.length > 0 && countryNames.has(words[words.length - 1])) {
-    words.pop();
-    return words.join(' ');
+  // Default behavior (true) - Use built-in country list
+  for (const country of Constants.COUNTRY_NAMES) {
+    if (locationText.endsWith(country)) {
+      return locationText.slice(0, locationText.length - country.length).replace(/,?\s*$/, '');
+    }
   }
 
   return locationText;
@@ -328,95 +306,55 @@ function formatMultiDayTime(
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  // Case 1: Event ends today
+  // Format the end time part based on when the event ends
+  let endPart: string;
+
   if (endDate.toDateString() === today.toDateString()) {
+    // Event ends today
+    endPart = `${translations.endsToday} ${translations.at} ${formatTime(endDate, time24h)}`;
+  } else if (endDate.toDateString() === tomorrow.toDateString()) {
+    // Event ends tomorrow
+    endPart = `${translations.endsTomorrow} ${translations.at} ${formatTime(endDate, time24h)}`;
+  } else {
+    // Event ends beyond tomorrow
+    const endDay = endDate.getDate();
+    const endMonthName = translations.months[endDate.getMonth()];
+    const endWeekday = translations.fullDaysOfWeek[endDate.getDay()];
     const endTimeStr = formatTime(endDate, time24h);
-    return `${translations.endsToday} ${translations.at} ${endTimeStr}`;
-  }
+    const formatStyle = Localize.getDateFormatStyle(language);
 
-  // Case 2: Event ends tomorrow
-  if (endDate.toDateString() === tomorrow.toDateString()) {
-    const endTimeStr = formatTime(endDate, time24h);
-    return `${translations.endsTomorrow} ${translations.at} ${endTimeStr}`;
-  }
-
-  const endDay = endDate.getDate();
-  const endMonthName = translations.months[endDate.getMonth()];
-  const endWeekday = translations.fullDaysOfWeek[endDate.getDay()];
-  const endTimeStr = formatTime(endDate, time24h);
-  const formatStyle = Localize.getDateFormatStyle(language);
-
-  // Case 3: Today is after start date but before end date (middle day)
-  if (today.toDateString() !== startDate.toDateString() && today < endDate) {
-    // Create date format based on language style
+    // Format based on language style
     switch (formatStyle) {
       case 'day-dot-month':
-        return [
-          translations.multiDay,
-          endWeekday + ',',
-          `${endDay}.`,
-          endMonthName,
-          translations.at,
-          endTimeStr,
-        ].join(' ');
+        endPart = `${endWeekday}, ${endDay}. ${endMonthName} ${translations.at} ${endTimeStr}`;
+        break;
       case 'month-day':
-        return [
-          translations.multiDay,
-          endWeekday + ',',
-          endMonthName,
-          endDay,
-          translations.at,
-          endTimeStr,
-        ].join(' ');
+        endPart = `${endWeekday}, ${endMonthName} ${endDay} ${translations.at} ${endTimeStr}`;
+        break;
       case 'day-month':
       default:
-        return [
-          translations.multiDay,
-          endWeekday + ',',
-          endDay,
-          endMonthName,
-          translations.at,
-          endTimeStr,
-        ].join(' ');
+        endPart = `${endWeekday}, ${endDay} ${endMonthName} ${translations.at} ${endTimeStr}`;
+        break;
     }
   }
 
-  // Case 4: Default - Today is on start date (or before start)
-  const startTimeStr = formatTime(startDate, time24h);
-
-  // Use existing format with start time based on language style
-  switch (formatStyle) {
-    case 'day-dot-month':
-      return [
-        startTimeStr,
-        translations.multiDay,
-        endWeekday + ',',
-        `${endDay}.`,
-        endMonthName,
-        translations.at,
-        endTimeStr,
-      ].join(' ');
-    case 'month-day':
-      return [
-        startTimeStr,
-        translations.multiDay,
-        endWeekday + ',',
-        endMonthName,
-        endDay,
-        translations.at,
-        endTimeStr,
-      ].join(' ');
-    case 'day-month':
-    default:
-      return [
-        startTimeStr,
-        translations.multiDay,
-        endWeekday + ',',
-        endDay,
-        endMonthName,
-        translations.at,
-        endTimeStr,
-      ].join(' ');
+  // Check if today is on or before the start date
+  // If so, include the start time in the output
+  if (today.getTime() <= startDate.getTime()) {
+    const startTimeStr = formatTime(startDate, time24h);
+    return `${startTimeStr} ${translations.multiDay} ${endPart}`;
+  } else {
+    // Event has already started - check if it ends today or tomorrow
+    if (
+      endDate.toDateString() === today.toDateString() ||
+      endDate.toDateString() === tomorrow.toDateString()
+    ) {
+      // For "ends today" or "ends tomorrow", don't add "until" prefix
+      return endPart;
+    } else {
+      // For events ending beyond tomorrow, keep "until" prefix
+      return `${translations.multiDay} ${endPart}`;
+    }
   }
 }
 
