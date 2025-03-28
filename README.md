@@ -59,35 +59,35 @@ Built with **performance in mind**, the card leverages **intelligent refresh mec
 
 ## 2️⃣ What's New
 
-### 🚀 Latest Release: v2.2
+### Latest Release: v2.2
 
-- 🎨 **Customizable empty day styling** - Control how empty days appear with `empty_day_color`
-- 🔄 **Filter duplicate events** - Remove redundant events that appear in multiple calendars
-- ⚙️ **Advanced event filtering** - Include or exclude specific events with `blocklist` and `allowlist` patterns
-- 🏷️ **Enhanced calendar labels** - Use Material Design icons and custom images as calendar identifiers
-- 🌍 **Smarter location formatting** - Precise control over country name display in locations
+- ⚙️ **Advanced event filtering** - Include or exclude specific events with [`blocklist` and `allowlist` patterns](#filtering-by-event-name) per entity
+- 🔄 **Filter duplicate events** - [Remove redundant events](#filtering-duplicate-events) that appear in multiple calendars
+- 🌍 **Smart country filtering** - Precise control over [country name display in locations](#⏱️-time--location-information)
+- 🏷️ **Enhanced calendar labels** - In addition to emojis and text labels, you can now also use [Material Design icons and custom images](#🗂️-entity-configuration)
+- 🎨 **Customizable empty day styling** - Control how [empty days appear](#📅-calendar-events-display) with `empty_day_color`
 
-### ⭐ Previous Updates: v2.1
+### New Features v2.1
 
-- 📅 **Week numbers & visual separators** - Better visual organization with customizable separators
-- 📊 **Per-calendar event limits** - Control how many events appear from each calendar separately
-- 📏 **Fixed height control** - Set exact card height with improved scrolling behavior
+- 📅 **Week numbers & visual separators** - Better visual organization with [week number pills and customizable separators](#📅-week-numbers--visual-separators)
+- 📊 **Per-calendar event limits** - Control how many events appear from [each calendar separately](#managing-event-numbers)
+- 📏 **Fixed height control** - Set [exact card height](#📐-card-dimensions--scrolling) with improved scrolling behavior
 
-### 📚 Original v2.0 Features
+### New Features v2.0
 
-- 🌈 **Custom styling per calendar** - Vertical lines, backgrounds, and visual hierarchy
-- 🏷️ **Calendar labels** - Add emoji or text identifiers for each calendar source
-- 🔧 **Advanced display controls** - Per-calendar time and location display settings
-- 📆 **Custom start date** - View calendars from any date, not just today
-- 📱 **Fixed height with scrolling** - Maintain consistent card size with scrollable content
+- 🌈 **Custom styling per calendar** - Add [accent colors for vertical lines](#🎨-visual-styling--colors) and opaque backgrounds to create visual hierarchy
+- 🏷️ **Calendar labels** - Add [emoji or text identifiers](#🗂️-entity-configuration) for each calendar source
+- 🔧 **Advanced display controls** - [Per-calendar time and location display settings](#⏱️-time--location-information)
+- 📆 **Custom start date** - View calendars from [any date](#core-settings), not just today
+- 📱 **Maximum height with scrolling** - Set a [maximum card size](#📐-card-dimensions--scrolling) with scrollable content
 
-[View full features documentation](#5️⃣-features--configuration)
+<div style="background-color: rgba(3, 169, 244, 0.1); padding: 12px; margin: 20px 0;">
+  <h4 style="margin: 0; display: inline;">
+    ⬇️ <a href="#5️⃣-features--configuration">View Complete Features Documentation</a>
+  </h4>
+</div>
 
 <p align="right"><a href="#top">⬆️ back to top</a></p>
-
----
-
-<p>&nbsp;</p>
 
 ## 3️⃣ Installation
 
@@ -193,11 +193,10 @@ show_location: true
 
 ### 🚀 Next Steps
 
-# TO-DO: Update the bullet points below after restructuring the README => mention things like "check out config table for a full list of available options", "explore neat features in the features & configuration section", keep "check out examples" and "get involved".
-
-- Explore the [📚 Configuration Guide](#4️⃣-configuration-guide) for a **detailed list of options**.
-- Check out the [💡 Examples](#5️⃣-examples) section for **pre-configured setups**.
-- Get involved! Check out the [Contributing & Roadmap](#6️⃣-contributing--roadmap) section to learn **how to contribute** and see **upcoming features**.
+- Explore the [📚 Configuration Variables](#6️⃣-configuration-variables) for a **complete list of available options**.
+- Discover the [✨ Features & Configuration](#5️⃣-features--configuration) section to **learn about advanced capabilities**.
+- Check out the [💡 Examples](#7️⃣-examples) section for **pre-configured setups** to get inspired.
+- Get involved! Check out the [Contributing & Roadmap](#8️⃣-contributing--roadmap) section to learn **how to contribute** and see **upcoming features**.
 
 <p align="right"><a href="#top">⬆️ back to top</a></p>
 
@@ -280,6 +279,33 @@ This is especially useful for:
 - Shared household calendars
 - Work calendars with team events
 - Any scenario where you might see the same event in multiple calendars
+
+##### Advanced Filtering Techniques
+
+You can combine filtering features with labels and accent colors to create sophisticated displays. For example, to apply different styling to specific event types within the same calendar:
+
+```yaml
+entities:
+  - entity: calendar.family
+    allowlist: 'shopping|grocery' # Only show shopping-related events
+    label: '🛒' # Add shopping cart label to these events
+    accent_color: '#1e88e5' # Blue accent for shopping events
+  - entity: calendar.family
+    allowlist: 'birthday|anniversary' # Only show celebration events
+    label: '🎉' # Add celebration label to these events
+    accent_color: '#e91e63' # Pink accent for celebration events
+  - entity: calendar.family
+    blocklist: 'shopping|grocery|birthday|anniversary' # Show all other events
+    accent_color: '#607d8b' # Neutral accent for all other events
+    # No label for remaining events
+```
+
+This technique lets you:
+
+- Apply different labels and colors to different event types from the same calendar
+- Create category-based visual organization without needing multiple calendar sources
+- Use accent colors with backgrounds (when event_background_opacity > 0) for even more distinction
+- Avoid needing to create separate calendars for different event categories
 
 ##### Managing Event Numbers
 
@@ -496,8 +522,8 @@ remove_location_country: false
 # Option 2: Use built-in country detection
 remove_location_country: true
 
-# Option 3: Specify exactly which countries to remove
-remove_location_country: "USA|United States"
+# Option 3: Specify exactly which countries to remove (perfect for international users)
+remove_location_country: "USA|United States|Canada"
 ```
 
 These options provide significant flexibility:
@@ -506,7 +532,13 @@ These options provide significant flexibility:
 - **Option 2 (true)**: Apply smart country detection to clean up addresses (good for most users)
 - **Option 3 (regex pattern)**: Precisely control which countries to remove while keeping others visible (perfect for displaying domestic addresses without country while preserving international location details)
 
-This is especially useful when you want to keep foreign country names visible but remove your home country (which is implied when no country is shown).
+**Example scenario**: If you live in the USA but frequently have events in other countries, you could use:
+
+```yaml
+remove_location_country: 'USA|United States|U.S.A.|U.S.'
+```
+
+This would keep location details like "Paris, France" intact while simplifying domestic addresses to just city and state.
 
 #### 🕒 Past Events Display
 
@@ -542,13 +574,27 @@ When using expansion with both global and per-calendar limits:
 - Entity-specific limits are always respected in both views
 - The expand/collapse state persists until manually toggled or the page is reloaded
 
-Entity-specific limits are always respected, even in expanded view:
+**Example scenario**: If you have a configuration like this:
 
 ```yaml
 entities:
+  - entity: calendar.family
+    # No limit for family calendar
   - entity: calendar.work
-    max_events_to_show: 2 # Never show more than 2 work events, even in expanded view
+    max_events_to_show: 2
+    # Never show more than 2 work events
+  - entity: calendar.holidays
+    max_events_to_show: 1
+    # Only show 1 holiday event
+max_events_to_show: 4
+# Show at most 4 events total in compact mode
+
+tap_action:
+  action: expand
 ```
+
+In compact mode, you'll see at most 4 events total, with work showing at most 2 and holidays showing at most 1.
+In expanded mode after tapping, the global limit of 4 is removed, but you'll still only see 2 work events and 1 holiday event, while all family events within your configured `days_to_show` range will be visible.
 
 #### 👆 Custom Tap & Hold Actions
 
@@ -795,7 +841,53 @@ tap_action:
   action: expand # Tap to expand/collapse
 ```
 
-### 🎨 Complete Configuration with All Options
+### 🌈 Multiple Calendars with Custom Styling
+
+This example demonstrates how to use **accent colors** and **background opacity** to create visual distinction between different calendars. The accent colors are used for both the vertical line and a semi-transparent background.
+
+<img src="https://raw.githubusercontent.com/alexpfau/calendar-card-pro/main/.github/img/example_3_custom_styling.png" alt="Custom Styling" width="600">
+
+```yaml
+type: custom:calendar-card-pro
+entities:
+  - entity: calendar.family
+    accent_color: '#ff6c92'
+  - entity: calendar.work
+    accent_color: '#1e88e5'
+  - entity: calendar.personal
+    accent_color: '#43a047'
+days_to_show: 5
+max_events_to_show: 5
+event_background_opacity: 20
+vertical_line_width: 5px
+event_spacing: 6px
+```
+
+### 📆 Multiple Calendars with Week Numbers and Separators
+
+This configuration showcases the **week number display** and **visual separators** features. It creates a clear hierarchy with different separator widths for weeks and months.
+
+<img src="https://raw.githubusercontent.com/alexpfau/calendar-card-pro/main/.github/img/example_4_week_numbers.png" alt="Week Numbers and Separators" width="600">
+
+```yaml
+type: custom:calendar-card-pro
+entities:
+  - entity: calendar.personal
+    accent_color: '#03a9f4'
+  - entity: calendar.family
+    accent_color: '#ff6c92'
+days_to_show: 5
+max_events_to_show: 5
+vertical_line_width: 5px
+event_spacing: 5px
+show_week_numbers: iso
+week_separator_width: 1px
+week_separator_color: '#03a9f450'
+month_separator_width: 1.5px
+month_separator_color: var(--secondary-text-color)
+```
+
+### 🎨 Full Configuration
 
 A fully **customized** configuration demonstrating **all available options**, including **styling, layout, and interactions**. Though you could **go all out**—and I didn’t—and create a **completely different look** if you wanted. Screenshot using the beautiful **[Bubble Theme](https://github.com/Clooos/Bubble)**.
 
@@ -939,10 +1031,16 @@ For those interested in contributing code, I maintain detailed **[architecture d
 To add a new language:
 
 1. **Create a new file** in `src/translations/languages/[lang-code].json`
-2. **Copy the structure** from an existing language file.
-3. **Update the localize file** in `src/translations/localize.ts`
-4. **Translate all strings** to your language.
-5. **Submit a Pull Request** with your changes.
+2. **Copy the structure** from an existing language file (e.g., `en.json`)
+3. **Update the localize file** in `src/translations/localize.ts` to include your new language
+4. **Translate all strings** to your language
+5. **Submit a Pull Request** with your changes
+
+**Example**: To add German support, you would:
+
+1. Create `src/translations/languages/de.json`
+2. Copy the structure from `en.json` and translate all values (not keys)
+3. Add the import and mapping in `localize.ts`
 
 ### 🏆 Acknowledgements
 
