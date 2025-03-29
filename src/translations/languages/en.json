@@ -2,7 +2,7 @@
   "daysOfWeek": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
   "fullDaysOfWeek": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
   "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-  "allDay": "all-day",
+  "allDay": "all day",
   "multiDay": "until",
   "at": "at",
   "endsToday": "ends today",
