@@ -516,27 +516,38 @@ export function renderEvent(
     }
   }
 
-  // Get colors from config based on entity ID
+  // Get colors from config based on entity ID and matched config
   const entityColor = isEmptyDay
     ? 'var(--calendar-card-empty-day-color)'
-    : EventUtils.getEntityColor(event._entityId, config);
+    : EventUtils.getEntityColor(event._entityId, config, event);
 
   // Get line color (solid) and background color (with opacity)
-  const entityAccentColor = EventUtils.getEntityAccentColorWithOpacity(event._entityId, config);
+  const entityAccentColor = EventUtils.getEntityAccentColorWithOpacity(
+    event._entityId,
+    config,
+    undefined,
+    event,
+  );
 
   // Explicitly check if event_background_opacity is defined and greater than 0
   const backgroundOpacity =
     config.event_background_opacity > 0 ? config.event_background_opacity : 0;
   const entityAccentBackgroundColor =
     backgroundOpacity > 0
-      ? EventUtils.getEntityAccentColorWithOpacity(event._entityId, config, backgroundOpacity)
+      ? EventUtils.getEntityAccentColorWithOpacity(
+          event._entityId,
+          config,
+          backgroundOpacity,
+          event,
+        )
       : ''; // Empty string for no background
 
   // Get entity-specific settings with fallback to global settings
   const showTime =
-    EventUtils.getEntitySetting(event._entityId, 'show_time', config) ?? config.show_time;
+    EventUtils.getEntitySetting(event._entityId, 'show_time', config, event) ?? config.show_time;
   const showLocation =
-    EventUtils.getEntitySetting(event._entityId, 'show_location', config) ?? config.show_location;
+    EventUtils.getEntitySetting(event._entityId, 'show_location', config, event) ??
+    config.show_location;
 
   // Check if this is an all-day event
   const isAllDayEvent = !event.start.dateTime;
@@ -602,9 +613,9 @@ export function renderEvent(
             class="event-title ${isEmptyDay ? 'empty-day-title' : ''}"
             style="color: ${entityColor}"
           >
-            ${event._entityLabel ? renderLabel(event._entityLabel) : ''}${isEmptyDay
-              ? `✓ ${event.summary}`
-              : event.summary}
+            ${EventUtils.getEntityLabel(event._entityId, config, event)
+              ? renderLabel(EventUtils.getEntityLabel(event._entityId, config, event))
+              : ''}${isEmptyDay ? `✓ ${event.summary}` : event.summary}
           </div>
           <div class="time-location">
             ${shouldShowTime

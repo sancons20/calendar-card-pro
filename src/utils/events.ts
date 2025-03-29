@@ -61,21 +61,13 @@ export async function fetchEventData(
   const timeWindow = getTimeWindow(config.days_to_show, config.start_date);
   const fetchedEvents = await fetchEvents(hass, entities, timeWindow);
 
-  // Create a mutable copy of the events
-  const eventData = Array.from(fetchedEvents);
+  // Process events according to configuration rules
+  const processedEvents = processEvents(fetchedEvents, config);
 
-  // Apply list filtering first (blocklist/allowlist)
-  const listFilteredEvents = filterEventsByLists(eventData, config);
+  // Cache and return the processed results
+  cacheEvents(cacheKey, processedEvents);
 
-  // Then apply duplicate filtering if enabled
-  const filteredEvents = config.filter_duplicates
-    ? filterDuplicateEvents(listFilteredEvents, config)
-    : listFilteredEvents;
-
-  // Cache and return the filtered results
-  cacheEvents(cacheKey, filteredEvents);
-
-  return filteredEvents;
+  return processedEvents;
 }
 
 /**
@@ -216,7 +208,9 @@ export function groupEventsByDay(
       start: event.start,
       end: event.end,
       _entityId: event._entityId,
-      _entityLabel: getEntityLabel(event._entityId, config),
+      _entityLabel: getEntityLabel(event._entityId, config, event),
+      _matchedConfig: event._matchedConfig, // Add this line to preserve matched config
+      _isEmptyDay: event._isEmptyDay, // Preserve empty day flag
     });
   });
 
@@ -491,15 +485,174 @@ export function generateEmptyStateEvents(
   return days;
 }
 
+//-----------------------------------------------------------------------------
+// EVENT PROCESSING & FILTERING
+//-----------------------------------------------------------------------------
+
+/**
+ * Process events according to configuration - handles duplicates and applies filters
+ *
+ * @param events Raw calendar events fetched from API
+ * @param config Calendar card configuration
+ * @returns Processed events with filters and duplicate handling applied
+ */
+function processEvents(
+  events: ReadonlyArray<Types.CalendarEventData>,
+  config: Types.Config,
+): Types.CalendarEventData[] {
+  // Group events by their source calendar entity
+  const eventsByEntity: Record<string, Types.CalendarEventData[]> = {};
+  events.forEach((event) => {
+    if (!event?._entityId) return;
+
+    if (!eventsByEntity[event._entityId]) {
+      eventsByEntity[event._entityId] = [];
+    }
+
+    eventsByEntity[event._entityId].push({ ...event });
+  });
+
+  // Final array to hold all processed events
+  const processedEvents: Types.CalendarEventData[] = [];
+
+  // Set to track already handled events when filter_duplicates is true
+  const handledEventSignatures = config.filter_duplicates ? new Set<string>() : null;
+
+  // Process each entity configuration in order to maintain priority
+  for (const entityConfig of config.entities) {
+    const entityId = typeof entityConfig === 'string' ? entityConfig : entityConfig.entity;
+    const entityEvents = eventsByEntity[entityId] || [];
+
+    if (entityEvents.length === 0) continue;
+
+    // Filter events based on entity configuration
+    const matchedEvents = filterEventsForEntity(entityEvents, entityConfig);
+
+    // Process matched events
+    for (const event of matchedEvents) {
+      // Generate unique signature for duplicate detection
+      const signature = config.filter_duplicates ? generateEventSignature(event) : '';
+
+      // Skip this event if it's a duplicate and filter_duplicates is enabled
+      if (config.filter_duplicates && handledEventSignatures?.has(signature)) {
+        continue;
+      }
+
+      // Mark this event as handled if filter_duplicates is enabled
+      if (config.filter_duplicates) {
+        handledEventSignatures?.add(signature);
+      }
+
+      // Create a copy with matched configuration
+      const processedEvent = { ...event };
+
+      // Store the matched configuration for rendering
+      if (typeof entityConfig !== 'string') {
+        processedEvent._matchedConfig = entityConfig;
+      }
+
+      // Add to final result
+      processedEvents.push(processedEvent);
+    }
+  }
+
+  Logger.debug(`Processed ${processedEvents.length} events after filtering`);
+  return processedEvents;
+}
+
+/**
+ * Filter events for a specific entity configuration
+ * Applies allowlist/blocklist filters
+ */
+function filterEventsForEntity(
+  events: Types.CalendarEventData[],
+  entityConfig: string | Types.EntityConfig,
+): Types.CalendarEventData[] {
+  // Simple entity ID format has no filters
+  if (typeof entityConfig === 'string') {
+    return [...events];
+  }
+
+  // Start with all events
+  let matchedEvents = [...events];
+
+  // Apply allowlist if specified (has precedence over blocklist)
+  if (entityConfig.allowlist) {
+    try {
+      const allowPattern = new RegExp(entityConfig.allowlist, 'i');
+      matchedEvents = matchedEvents.filter(
+        (event) => event.summary && allowPattern.test(event.summary),
+      );
+    } catch (error) {
+      Logger.warn(`Invalid allowlist pattern: ${entityConfig.allowlist}`, error);
+    }
+  }
+  // Apply blocklist if no allowlist was specified
+  else if (entityConfig.blocklist) {
+    try {
+      const blockPattern = new RegExp(entityConfig.blocklist, 'i');
+      matchedEvents = matchedEvents.filter(
+        (event) => !(event.summary && blockPattern.test(event.summary)),
+      );
+    } catch (error) {
+      Logger.warn(`Invalid blocklist pattern: ${entityConfig.blocklist}`, error);
+    }
+  }
+
+  return matchedEvents;
+}
+
+/**
+ * Generate a unique signature for an event based on summary, time, and location
+ *
+ * @param event Calendar event to generate signature for
+ * @returns Unique string signature
+ */
+function generateEventSignature(event: Types.CalendarEventData): string {
+  const summary = event.summary || '';
+  const location = event.location || '';
+
+  // Different handling for all-day vs timed events
+  let timeSignature = '';
+
+  if (event.start.dateTime) {
+    // For timed events, use ISO string representation
+    const startTime = new Date(event.start.dateTime).getTime();
+    const endTime = event.end.dateTime ? new Date(event.end.dateTime).getTime() : 0;
+    timeSignature = `${startTime}|${endTime}`;
+  } else {
+    // For all-day events, use date strings directly
+    timeSignature = `${event.start.date || ''}|${event.end.date || ''}`;
+  }
+
+  // Combine summary, time signature, and location into a unique signature
+  return `${summary}|${timeSignature}|${location}`;
+}
+
+//-----------------------------------------------------------------------------
+// DATA ACCESS FUNCTIONS
+//-----------------------------------------------------------------------------
+
 /**
  * Get entity color from configuration based on entity ID
  *
  * @param entityId - The entity ID to find color for
  * @param config - Current card configuration
+ * @param event - Optional event data containing matched configuration
  * @returns Color string from entity config or default
  */
-export function getEntityColor(entityId: string | undefined, config: Types.Config): string {
+export function getEntityColor(
+  entityId: string | undefined,
+  config: Types.Config,
+  event?: Types.CalendarEventData,
+): string {
   if (!entityId) return 'var(--primary-text-color)';
+
+  // Check if we have a matched config stored directly on the event
+  if (event && event._matchedConfig) {
+    const matchedConfig = event._matchedConfig;
+    return matchedConfig.color || 'var(--primary-text-color)';
+  }
 
   const entityConfig = config.entities.find(
     (e) =>
@@ -520,20 +673,29 @@ export function getEntityColor(entityId: string | undefined, config: Types.Confi
  * @param entityId - The entity ID to find color for
  * @param config - Current card configuration
  * @param opacity - Opacity value (0-100), if omitted returns solid color
+ * @param event - Optional event data containing matched configuration
  * @returns Color string ready for use in CSS with opacity applied if requested
  */
 export function getEntityAccentColorWithOpacity(
   entityId: string | undefined,
   config: Types.Config,
   opacity?: number,
+  event?: Types.CalendarEventData,
 ): string {
   if (!entityId) return 'var(--calendar-card-line-color-vertical)';
 
-  // Find entity config
-  const entityConfig = config.entities.find(
-    (e) =>
-      (typeof e === 'string' && e === entityId) || (typeof e === 'object' && e.entity === entityId),
-  );
+  // Check if we have a matched config stored directly on the event
+  let entityConfig;
+  if (event && event._matchedConfig) {
+    entityConfig = event._matchedConfig;
+  } else {
+    // Find entity config the traditional way
+    entityConfig = config.entities.find(
+      (e) =>
+        (typeof e === 'string' && e === entityId) ||
+        (typeof e === 'object' && e.entity === entityId),
+    );
+  }
 
   // Get base color - whether from entity config or from vertical_line_color config
   const baseColor =
@@ -556,13 +718,20 @@ export function getEntityAccentColorWithOpacity(
  *
  * @param entityId - The entity ID to find label for
  * @param config - Current card configuration
+ * @param event - Optional event data containing matched configuration
  * @returns Label string or undefined if not set
  */
 export function getEntityLabel(
   entityId: string | undefined,
   config: Types.Config,
+  event?: Types.CalendarEventData,
 ): string | undefined {
   if (!entityId) return undefined;
+
+  // Check if we have a matched config stored directly on the event
+  if (event && event._matchedConfig) {
+    return event._matchedConfig.label;
+  }
 
   const entityConfig = config.entities.find(
     (e) =>
@@ -580,14 +749,21 @@ export function getEntityLabel(
  * @param entityId - The entity ID to check settings for
  * @param settingName - Name of the setting to retrieve
  * @param config - Current card configuration
+ * @param event - Optional event data containing matched configuration
  * @returns The entity-specific setting if available, or undefined if not set
  */
 export function getEntitySetting<K extends keyof Types.EntityConfig>(
   entityId: string | undefined,
   settingName: K,
   config: Types.Config,
+  event?: Types.CalendarEventData,
 ): Types.EntityConfig[K] | undefined {
   if (!entityId) return undefined;
+
+  // Check if we have a matched config stored directly on the event
+  if (event && event._matchedConfig) {
+    return event._matchedConfig[settingName];
+  }
 
   // Find entity configuration
   const entityConfig = config.entities.find(
@@ -602,33 +778,8 @@ export function getEntitySetting<K extends keyof Types.EntityConfig>(
   return entityConfig[settingName];
 }
 
-/**
- * Determine if this is likely a manual page reload rather than an automatic refresh
- * Uses performance API to check navigation type when available
- *
- * @returns True if this appears to be a manual page load/reload
- */
-export function isManualPageLoad(): boolean {
-  // Use the Performance Navigation API when available
-  if (window.performance && window.performance.navigation) {
-    // navigation.type: 0=navigate, 1=reload, 2=back/forward
-    return window.performance.navigation.type === 1; // reload
-  }
-
-  // For newer browsers using Navigation API
-  if (window.performance && window.performance.getEntriesByType) {
-    const navEntries = window.performance.getEntriesByType('navigation');
-    if (navEntries.length > 0 && 'type' in navEntries[0]) {
-      return (navEntries[0] as { type: string }).type === 'reload';
-    }
-  }
-
-  // Default to false if we can't determine
-  return false;
-}
-
 //-----------------------------------------------------------------------------
-// DATA FETCHING FUNCTIONS
+// DATA FETCHING & API FUNCTIONS
 //-----------------------------------------------------------------------------
 
 /**
@@ -642,10 +793,17 @@ export async function fetchEvents(
 ): Promise<ReadonlyArray<Types.CalendarEventData>> {
   const allEvents: Types.CalendarEventData[] = [];
 
+  // Create a Set to track which entity IDs we've already fetched
+  const fetchedEntityIds = new Set<string>();
+
   for (const entityConfig of entities) {
+    // Skip entities we already fetched
+    if (fetchedEntityIds.has(entityConfig.entity)) {
+      continue;
+    }
+
     try {
       const path = `calendars/${entityConfig.entity}?start=${timeWindow.start.toISOString()}&end=${timeWindow.end.toISOString()}`;
-
       Logger.info(`Fetching calendar events with path: ${path}`);
 
       const events = await hass.callApi('GET', path);
@@ -661,7 +819,11 @@ export async function fetchEvents(
           _entityId: entityConfig.entity,
         }),
       );
+
       allEvents.push(...processedEvents);
+
+      // Mark this entity as fetched
+      fetchedEntityIds.add(entityConfig.entity);
     } catch (error) {
       Logger.error(`Failed to fetch events for ${entityConfig.entity}:`, error);
 
@@ -747,136 +909,28 @@ export function getTimeWindow(daysToShow: number, startDate?: string): { start: 
 }
 
 /**
- * Filter duplicate events based on summary, start/end times, and location
- * Prioritizes events from entities that appear earlier in the config
+ * Determine if this is likely a manual page reload rather than an automatic refresh
+ * Uses performance API to check navigation type when available
  *
- * @param events Array of events to filter
- * @param config Card configuration
- * @returns Filtered array with duplicates removed
+ * @returns True if this appears to be a manual page load/reload
  */
-function filterDuplicateEvents(
-  events: Types.CalendarEventData[],
-  config: Types.Config,
-): Types.CalendarEventData[] {
-  // Skip filtering if not enabled or no events
-  if (!config.filter_duplicates || !events.length) return events;
-
-  // Create index map for entity priority based on config order
-  const entityIndexMap = new Map<string, number>();
-  config.entities.forEach((entity, index) => {
-    const entityId = typeof entity === 'string' ? entity : entity.entity;
-    entityIndexMap.set(entityId, index);
-  });
-
-  // Sort by entity priority
-  const sortedEvents = [...events].sort((a, b) => {
-    // Skip empty day events (they should never be duplicates)
-    if (a._isEmptyDay || b._isEmptyDay) return 0;
-
-    const aIndex = a._entityId ? (entityIndexMap.get(a._entityId) ?? Infinity) : Infinity;
-    const bIndex = b._entityId ? (entityIndexMap.get(b._entityId) ?? Infinity) : Infinity;
-    return aIndex - bIndex;
-  });
-
-  // Track seen event signatures
-  const seen = new Set<string>();
-
-  // Filter out duplicates
-  return sortedEvents.filter((event) => {
-    // Always keep empty day events
-    if (event._isEmptyDay) return true;
-
-    const signature = generateEventSignature(event);
-    if (seen.has(signature)) {
-      Logger.debug(`Filtered duplicate event: ${event.summary}`);
-      return false;
-    }
-
-    seen.add(signature);
-    return true;
-  });
-}
-
-/**
- * Filter events based on blocklist and allowlist patterns
- * Each calendar entity can have its own filtering rules
- */
-function filterEventsByLists(
-  events: Types.CalendarEventData[],
-  config: Types.Config,
-): Types.CalendarEventData[] {
-  // Group events by their source entity
-  const eventsByEntity: Record<string, Types.CalendarEventData[]> = {};
-  events.forEach((event) => {
-    if (!event?._entityId) return;
-
-    if (!eventsByEntity[event._entityId]) {
-      eventsByEntity[event._entityId] = [];
-    }
-
-    eventsByEntity[event._entityId].push(event);
-  });
-
-  // Process each entity's events with its specific filters
-  const filteredEvents: Types.CalendarEventData[] = [];
-
-  config.entities.forEach((entityConfig) => {
-    const entityId = typeof entityConfig === 'string' ? entityConfig : entityConfig.entity;
-    const entityEvents = eventsByEntity[entityId] || [];
-
-    // Simple string entities have no filtering
-    if (typeof entityConfig === 'string') {
-      filteredEvents.push(...entityEvents);
-      return;
-    }
-
-    // Apply filters based on configuration
-    let filteredEntityEvents = [...entityEvents];
-
-    // Allowlist takes precedence over blocklist
-    if (entityConfig.allowlist) {
-      const allowPattern = new RegExp(entityConfig.allowlist, 'i');
-      filteredEntityEvents = filteredEntityEvents.filter(
-        (event) => event.summary && allowPattern.test(event.summary),
-      );
-    } else if (entityConfig.blocklist) {
-      const blockPattern = new RegExp(entityConfig.blocklist, 'i');
-      filteredEntityEvents = filteredEntityEvents.filter(
-        (event) => !(event.summary && blockPattern.test(event.summary)),
-      );
-    }
-
-    filteredEvents.push(...filteredEntityEvents);
-  });
-
-  return filteredEvents;
-}
-
-/**
- * Generate a unique signature for an event based on summary, time, and location
- *
- * @param event Calendar event to generate signature for
- * @returns Unique string signature
- */
-function generateEventSignature(event: Types.CalendarEventData): string {
-  const summary = event.summary || '';
-  const location = event.location || '';
-
-  // Different handling for all-day vs timed events
-  let timeSignature = '';
-
-  if (event.start.dateTime) {
-    // For timed events, use ISO string representation
-    const startTime = new Date(event.start.dateTime).getTime();
-    const endTime = event.end.dateTime ? new Date(event.end.dateTime).getTime() : 0;
-    timeSignature = `${startTime}|${endTime}`;
-  } else {
-    // For all-day events, use date strings directly
-    timeSignature = `${event.start.date || ''}|${event.end.date || ''}`;
+export function isManualPageLoad(): boolean {
+  // Use the Performance Navigation API when available
+  if (window.performance && window.performance.navigation) {
+    // navigation.type: 0=navigate, 1=reload, 2=back/forward
+    return window.performance.navigation.type === 1; // reload
   }
 
-  // Combine summary, time signature, and location into a unique signature
-  return `${summary}|${timeSignature}|${location}`;
+  // For newer browsers using Navigation API
+  if (window.performance && window.performance.getEntriesByType) {
+    const navEntries = window.performance.getEntriesByType('navigation');
+    if (navEntries.length > 0 && 'type' in navEntries[0]) {
+      return (navEntries[0] as { type: string }).type === 'reload';
+    }
+  }
+
+  // Default to false if we can't determine
+  return false;
 }
 
 //-----------------------------------------------------------------------------
@@ -993,7 +1047,7 @@ export function getBaseCacheKey(
  * Helper function to ensure consistent cache validation
  *
  * @param key - Cache key
- * @param config - Card configuration for cache duration
+ * @param config - Card configuration
  * @param isManualPageReload - Whether this check is during a manual page reload
  * @returns Valid cache entry or null if invalid/expired
  */
