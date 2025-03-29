@@ -53,20 +53,26 @@ export function formatEventTime(
 
     // Check if it's a multi-day event
     if (startDate.toDateString() !== adjustedEndDate.toDateString()) {
-      return formatMultiDayAllDayTime(adjustedEndDate, language, translations);
+      return capitalizeFirstLetter(
+        formatMultiDayAllDayTime(adjustedEndDate, language, translations),
+      );
     }
 
     // Single day all-day event
-    return translations.allDay;
+    return capitalizeFirstLetter(translations.allDay);
   }
 
   // Handle multi-day events with start/end times
   if (startDate.toDateString() !== endDate.toDateString()) {
-    return formatMultiDayTime(startDate, endDate, language, translations, config.time_24h);
+    return capitalizeFirstLetter(
+      formatMultiDayTime(startDate, endDate, language, translations, config.time_24h),
+    );
   }
 
   // Single day event with start/end times
-  return formatSingleDayTime(startDate, endDate, config.show_end_time, config.time_24h);
+  return capitalizeFirstLetter(
+    formatSingleDayTime(startDate, endDate, config.show_end_time, config.time_24h),
+  );
 }
 
 /**
@@ -96,6 +102,17 @@ export function formatLocation(location: string, removeCountry: boolean | string
   }
 
   return locationText;
+}
+
+/**
+ * Capitalize the first letter of a string
+ *
+ * @param text String to capitalize
+ * @returns String with first letter capitalized
+ */
+export function capitalizeFirstLetter(text: string): string {
+  if (!text || text.length === 0) return text;
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 //-----------------------------------------------------------------------------
