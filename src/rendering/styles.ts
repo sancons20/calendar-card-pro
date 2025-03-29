@@ -334,6 +334,11 @@ export const cardStyles = css`
     border-radius: 0 0 var(--calendar-card-event-border-radius) 0;
   }
 
+  /* Past event styling */
+  .past-event .event-content {
+    opacity: 0.6;
+  }
+
   /* Event content */
   .event-content {
     display: flex;
@@ -346,11 +351,6 @@ export const cardStyles = css`
     line-height: 1.2;
     color: var(--calendar-card-color-event);
     padding-bottom: 2px;
-  }
-
-  /* Empty day specific styling - no longer needs opacity here */
-  .empty-day-title {
-    /* opacity property removed - now handled via CSS variable */
   }
 
   /* Text label styling */

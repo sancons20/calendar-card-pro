@@ -123,6 +123,7 @@ export interface CalendarEventData {
   _entityId?: string;
   _entityLabel?: string;
   _isEmptyDay?: boolean;
+  _matchedConfig?: EntityConfig;
   time?: string;
 }
 
