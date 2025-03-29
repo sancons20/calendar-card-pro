@@ -258,6 +258,13 @@ export function groupEventsByDay(
         bStart = b.start.dateTime ? new Date(b.start.dateTime).getTime() : 0;
       }
 
+      // If both events are all-day events with the same start date, sort by summary
+      if (aIsAllDay && bIsAllDay && aStart === bStart) {
+        // Sort alphabetically by summary (case insensitive)
+        return (a.summary || '').localeCompare(b.summary || '', undefined, { sensitivity: 'base' });
+      }
+
+      // Otherwise sort by start time
       return aStart - bStart;
     });
   });
