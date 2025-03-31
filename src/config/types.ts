@@ -64,6 +64,9 @@ export interface Config {
   show_month: boolean;
   month_font_size: string;
   month_color: string;
+  weekend_weekday_color: string;
+  weekend_day_color: string;
+  weekend_month_color: string;
 
   // Event column
   event_background_opacity: number;

@@ -67,6 +67,9 @@ export const DEFAULT_CONFIG: Types.Config = {
   show_month: true,
   month_font_size: '12px',
   month_color: 'var(--primary-text-color)',
+  weekend_weekday_color: 'var(--primary-text-color)',
+  weekend_day_color: 'var(--primary-text-color)',
+  weekend_month_color: 'var(--primary-text-color)',
 
   // Event column
   event_background_opacity: 0,

@@ -6,6 +6,7 @@
 import { css } from 'lit';
 import * as Config from '../config/config';
 import type * as Types from '../config/types';
+import * as Helpers from '../utils/helpers';
 
 /**
  * Generate CSS custom properties object based on card configuration
@@ -53,6 +54,11 @@ export function generateCustomPropertiesObject(config: Types.Config): Record<str
       config.empty_day_color === Config.DEFAULT_CONFIG.empty_day_color
         ? 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.6)'
         : config.empty_day_color,
+
+    // Weekend styling properties
+    '--calendar-card-color-weekend-weekday': config.weekend_weekday_color,
+    '--calendar-card-color-weekend-day': config.weekend_day_color,
+    '--calendar-card-color-weekend-month': config.weekend_month_color,
   };
 
   // Optional properties
@@ -307,6 +313,19 @@ export const cardStyles = css`
     line-height: var(--calendar-card-font-size-month);
     text-transform: uppercase;
     color: var(--calendar-card-color-month);
+  }
+
+  /* Weekend date component styling */
+  .weekend .weekday {
+    color: var(--calendar-card-color-weekend-weekday);
+  }
+
+  .weekend .day {
+    color: var(--calendar-card-color-weekend-day);
+  }
+
+  .weekend .month {
+    color: var(--calendar-card-color-weekend-month);
   }
 
   /* ===== EVENT STYLES ===== */
