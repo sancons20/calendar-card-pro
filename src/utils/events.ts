@@ -86,10 +86,15 @@ export function groupEventsByDay(
   language: string,
 ): Types.EventsByDay[] {
   const eventsByDay: Record<string, Types.EventsByDay> = {};
+
+  // Use reference date from configuration instead of hardcoded "today"
+  const referenceDate = getStartDateReference(config);
+  const referenceStart = new Date(referenceDate);
+  const referenceEnd = new Date(referenceStart);
+  referenceEnd.setHours(23, 59, 59, 999);
+
+  // Current time is still needed for past event filtering
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd = new Date(todayStart);
-  todayEnd.setHours(23, 59, 59, 999);
 
   const upcomingEvents = events.filter((event) => {
     if (!event?.start || !event?.end) return false;
@@ -117,15 +122,15 @@ export function groupEventsByDay(
 
     if (!startDate || !endDate) return false;
 
-    const isEventToday = startDate >= todayStart && startDate <= todayEnd;
-    const isFutureEvent = startDate > todayEnd;
-    // NEW: Check if event ends today or in the future (is still ongoing)
-    const isOngoingEvent = endDate >= todayStart;
+    // Use reference date instead of today for event filtering
+    const isEventOnOrAfterReference = startDate >= referenceStart && startDate <= referenceEnd;
+    const isFutureEvent = startDate > referenceEnd;
+    const isOngoingEvent = endDate >= referenceStart;
 
     // Include events that:
-    // 1. Start today or in the future, OR
-    // 2. Started in the past BUT are still ongoing
-    if (!(isEventToday || isFutureEvent || isOngoingEvent)) {
+    // 1. Start on or after the reference date, OR
+    // 2. Started before reference date BUT are still ongoing
+    if (!(isEventOnOrAfterReference || isFutureEvent || isOngoingEvent)) {
       return false;
     }
 
@@ -168,18 +173,19 @@ export function groupEventsByDay(
 
     if (!startDate || !endDate) return;
 
-    // NEW: Determine which day to display this event on
+    // Determine which day to display this event on, using reference date instead of today
     let displayDate: Date;
 
-    if (startDate >= todayStart) {
-      // Event starts today or in future: Display on start date
+    if (startDate >= referenceStart) {
+      // Event starts on or after reference date: Display on start date
       displayDate = startDate;
-    } else if (endDate.toDateString() === todayStart.toDateString()) {
-      // Event ends today: Display on today
-      displayDate = todayStart;
-    } else if (startDate < todayStart && endDate > todayStart) {
-      // Multi-day event that started in past and continues after today: Display on today
-      displayDate = todayStart;
+    } else if (endDate.toDateString() === referenceStart.toDateString()) {
+      // Event ends on reference date: Display on reference date
+      displayDate = referenceStart;
+    } else if (startDate < referenceStart && endDate > referenceStart) {
+      // Multi-day event that started before reference date and continues after:
+      // Display on reference date
+      displayDate = referenceStart;
     } else {
       // Fallback (shouldn't happen given our filter): Display on start date
       displayDate = startDate;
