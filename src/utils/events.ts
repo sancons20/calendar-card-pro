@@ -258,9 +258,18 @@ export function groupEventsByDay(
         bStart = b.start.dateTime ? new Date(b.start.dateTime).getTime() : 0;
       }
 
-      // If both events are all-day events with the same start date, sort by summary
+      // If both events are all-day events with the same start date, check entity order first
       if (aIsAllDay && bIsAllDay && aStart === bStart) {
-        // Sort alphabetically by summary (case insensitive)
+        // First, respect entity order from configuration
+        const aEntityIndex = getEntityIndex(a._entityId, config);
+        const bEntityIndex = getEntityIndex(b._entityId, config);
+
+        if (aEntityIndex !== bEntityIndex) {
+          // Sort by entity order first
+          return aEntityIndex - bEntityIndex;
+        }
+
+        // For events from the same entity, sort alphabetically by summary (case insensitive)
         return (a.summary || '').localeCompare(b.summary || '', undefined, { sensitivity: 'base' });
       }
 
@@ -435,6 +444,26 @@ export function groupEventsByDay(
   }
 
   return days;
+}
+
+/**
+ * Helper function to get the entity index from the configuration
+ * Used to maintain the order of events based on the entity order in the configuration
+ *
+ * @param entityId - Entity ID to find
+ * @param config - Card configuration
+ * @returns Numeric index of entity in the config (lower = higher priority)
+ */
+function getEntityIndex(entityId: string | undefined, config: Types.Config): number {
+  if (!entityId) return Number.MAX_SAFE_INTEGER;
+
+  // Find the entity in the configuration
+  const index = config.entities.findIndex((e) =>
+    typeof e === 'string' ? e === entityId : e.entity === entityId,
+  );
+
+  // Return the found index or a large number if not found
+  return index !== -1 ? index : Number.MAX_SAFE_INTEGER;
 }
 
 /**
