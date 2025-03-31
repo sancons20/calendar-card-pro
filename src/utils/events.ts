@@ -878,10 +878,48 @@ export async function fetchEvents(
 }
 
 /**
+ * Parse a relative date string like "today+7" or "today-3"
+ * Returns a Date object for the specified offset from today
+ *
+ * @param relativeDate - String in format "today+n" or "today-n" where n is number of days
+ * @returns Date object or null if invalid format
+ */
+function parseRelativeDate(relativeDate: string): Date | null {
+  // Check for simplified format: +7 or -3 (without "today" prefix)
+  const simplifiedMatch = relativeDate.match(/^([+-])(\d+)$/);
+  if (simplifiedMatch) {
+    const sign = simplifiedMatch[1] === '+' ? 1 : -1;
+    const days = parseInt(simplifiedMatch[2], 10);
+
+    if (!isNaN(days)) {
+      const date = new Date();
+      date.setHours(0, 0, 0, 0); // Normalize to start of day
+      date.setDate(date.getDate() + sign * days);
+      return date;
+    }
+    return null;
+  }
+
+  // Check for standard format: today+7 or today-3
+  const match = relativeDate.match(/^today([+-])(\d+)$/i);
+  if (!match) return null;
+
+  const sign = match[1] === '+' ? 1 : -1;
+  const days = parseInt(match[2], 10);
+
+  if (isNaN(days)) return null;
+
+  const date = new Date();
+  date.setHours(0, 0, 0, 0); // Normalize to start of day
+  date.setDate(date.getDate() + sign * days);
+  return date;
+}
+
+/**
  * Calculate time window for event fetching
  *
  * @param daysToShow - Number of days to show in the calendar
- * @param startDate - Optional start date in YYYY-MM-DD format or ISO format
+ * @param startDate - Optional start date in YYYY-MM-DD format, ISO format, or relative format "today+n"
  * @returns Object containing start and end dates for the calendar window
  */
 export function getTimeWindow(daysToShow: number, startDate?: string): { start: Date; end: Date } {
@@ -890,8 +928,13 @@ export function getTimeWindow(daysToShow: number, startDate?: string): { start: 
   // Parse custom start date if provided
   if (startDate && startDate.trim() !== '') {
     try {
+      // First try to parse as relative date (today+n or today-n)
+      const relativeDate = parseRelativeDate(startDate.trim());
+      if (relativeDate) {
+        start = relativeDate;
+      }
       // Check if it's an ISO date string (which HA converts to when saving)
-      if (startDate.includes('T')) {
+      else if (startDate.includes('T')) {
         // Handle ISO format (e.g. "2025-03-14T00:00:00.000Z")
         start = new Date(startDate);
 
