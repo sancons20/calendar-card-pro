@@ -1124,7 +1124,7 @@ export function getBaseCacheKey(
   const filterListPart =
     filterPatterns.length > 0 ? `_filters:${encodeURIComponent(filterPatterns.join('|'))}` : '';
 
-  return `${Constants.CACHE.EVENT_CACHE_KEY_PREFIX}${instanceId}_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}${startDatePart}${filterPart}${filterListPart}`;
+  return `${Constants.CACHE.EVENT_CACHE_KEY_PREFIX}${instanceId}_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}${startDatePart}${filterPart}${filterListPart}${Constants.VERSION.CURRENT}`;
 }
 
 /**
