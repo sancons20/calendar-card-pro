@@ -74,6 +74,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   // Event column
   event_background_opacity: 0,
   show_past_events: false,
+  show_countdown: false,
   event_font_size: '14px',
   event_color: 'var(--primary-text-color)',
   empty_day_color: 'var(--primary-text-color)',

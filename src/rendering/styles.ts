@@ -6,7 +6,6 @@
 import { css } from 'lit';
 import * as Config from '../config/config';
 import type * as Types from '../config/types';
-import * as Helpers from '../utils/helpers';
 
 /**
  * Generate CSS custom properties object based on card configuration
@@ -370,6 +369,7 @@ export const cardStyles = css`
     font-weight: 500;
     line-height: 1.2;
     color: var(--calendar-card-color-event);
+    margin-right: 12px;
     padding-bottom: 2px;
   }
 
@@ -408,6 +408,7 @@ export const cardStyles = css`
     align-items: center;
     line-height: 1.2;
     margin-top: 2px;
+    margin-right: 12px;
   }
 
   .time span,
@@ -419,6 +420,25 @@ export const cardStyles = css`
   .time {
     font-size: var(--calendar-card-font-size-time);
     color: var(--calendar-card-color-time);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .time-actual {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .time-countdown {
+    text-align: right;
+    color: var(--calendar-card-color-time);
+    font-size: var(--calendar-card-font-size-time);
+    margin-left: 8px;
+    margin-right: 12px;
+    white-space: nowrap;
   }
 
   .location {

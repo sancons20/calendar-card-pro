@@ -585,6 +585,12 @@ export function renderEvent(
     !(isAllDayEvent && !isMultiDayAllDayEvent && !config.show_single_allday_time) &&
     !isEmptyDay;
 
+  // Calculate countdown if enabled
+  let countdownStr: string | null = null;
+  if (config.show_countdown && !isEmptyDay && !isPastEvent) {
+    countdownStr = FormatUtils.getCountdownString(event, language);
+  }
+
   // Format event time and location
   const eventTime = FormatUtils.formatEventTime(event, config, language);
   const eventLocation =
@@ -636,11 +642,23 @@ export function renderEvent(
             ${shouldShowTime
               ? html`
                   <div class="time">
-                    <ha-icon icon="mdi:clock-outline"></ha-icon>
-                    <span>${eventTime}</span>
+                    <div class="time-actual">
+                      <ha-icon icon="mdi:clock-outline"></ha-icon>
+                      <span>${eventTime}</span>
+                    </div>
+                    ${countdownStr
+                      ? html`<div class="time-countdown">${countdownStr}</div>`
+                      : nothing}
                   </div>
                 `
-              : ''}
+              : countdownStr
+                ? html`
+                    <div class="time">
+                      <div class="time-actual"></div>
+                      <div class="time-countdown">${countdownStr}</div>
+                    </div>
+                  `
+                : nothing}
             ${eventLocation
               ? html`
                   <div class="location">
