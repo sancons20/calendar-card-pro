@@ -86,10 +86,15 @@ export function groupEventsByDay(
   language: string,
 ): Types.EventsByDay[] {
   const eventsByDay: Record<string, Types.EventsByDay> = {};
+
+  // Use reference date from configuration instead of hardcoded "today"
+  const referenceDate = getStartDateReference(config);
+  const referenceStart = new Date(referenceDate);
+  const referenceEnd = new Date(referenceStart);
+  referenceEnd.setHours(23, 59, 59, 999);
+
+  // Current time is still needed for past event filtering
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd = new Date(todayStart);
-  todayEnd.setHours(23, 59, 59, 999);
 
   const upcomingEvents = events.filter((event) => {
     if (!event?.start || !event?.end) return false;
@@ -117,15 +122,15 @@ export function groupEventsByDay(
 
     if (!startDate || !endDate) return false;
 
-    const isEventToday = startDate >= todayStart && startDate <= todayEnd;
-    const isFutureEvent = startDate > todayEnd;
-    // NEW: Check if event ends today or in the future (is still ongoing)
-    const isOngoingEvent = endDate >= todayStart;
+    // Use reference date instead of today for event filtering
+    const isEventOnOrAfterReference = startDate >= referenceStart && startDate <= referenceEnd;
+    const isFutureEvent = startDate > referenceEnd;
+    const isOngoingEvent = endDate >= referenceStart;
 
     // Include events that:
-    // 1. Start today or in the future, OR
-    // 2. Started in the past BUT are still ongoing
-    if (!(isEventToday || isFutureEvent || isOngoingEvent)) {
+    // 1. Start on or after the reference date, OR
+    // 2. Started before reference date BUT are still ongoing
+    if (!(isEventOnOrAfterReference || isFutureEvent || isOngoingEvent)) {
       return false;
     }
 
@@ -168,18 +173,19 @@ export function groupEventsByDay(
 
     if (!startDate || !endDate) return;
 
-    // NEW: Determine which day to display this event on
+    // Determine which day to display this event on, using reference date instead of today
     let displayDate: Date;
 
-    if (startDate >= todayStart) {
-      // Event starts today or in future: Display on start date
+    if (startDate >= referenceStart) {
+      // Event starts on or after reference date: Display on start date
       displayDate = startDate;
-    } else if (endDate.toDateString() === todayStart.toDateString()) {
-      // Event ends today: Display on today
-      displayDate = todayStart;
-    } else if (startDate < todayStart && endDate > todayStart) {
-      // Multi-day event that started in past and continues after today: Display on today
-      displayDate = todayStart;
+    } else if (endDate.toDateString() === referenceStart.toDateString()) {
+      // Event ends on reference date: Display on reference date
+      displayDate = referenceStart;
+    } else if (startDate < referenceStart && endDate > referenceStart) {
+      // Multi-day event that started before reference date and continues after:
+      // Display on reference date
+      displayDate = referenceStart;
     } else {
       // Fallback (shouldn't happen given our filter): Display on start date
       displayDate = startDate;
@@ -258,9 +264,18 @@ export function groupEventsByDay(
         bStart = b.start.dateTime ? new Date(b.start.dateTime).getTime() : 0;
       }
 
-      // If both events are all-day events with the same start date, sort by summary
+      // If both events are all-day events with the same start date, check entity order first
       if (aIsAllDay && bIsAllDay && aStart === bStart) {
-        // Sort alphabetically by summary (case insensitive)
+        // First, respect entity order from configuration
+        const aEntityIndex = getEntityIndex(a._entityId, config);
+        const bEntityIndex = getEntityIndex(b._entityId, config);
+
+        if (aEntityIndex !== bEntityIndex) {
+          // Sort by entity order first
+          return aEntityIndex - bEntityIndex;
+        }
+
+        // For events from the same entity, sort alphabetically by summary (case insensitive)
         return (a.summary || '').localeCompare(b.summary || '', undefined, { sensitivity: 'base' });
       }
 
@@ -435,6 +450,26 @@ export function groupEventsByDay(
   }
 
   return days;
+}
+
+/**
+ * Helper function to get the entity index from the configuration
+ * Used to maintain the order of events based on the entity order in the configuration
+ *
+ * @param entityId - Entity ID to find
+ * @param config - Card configuration
+ * @returns Numeric index of entity in the config (lower = higher priority)
+ */
+function getEntityIndex(entityId: string | undefined, config: Types.Config): number {
+  if (!entityId) return Number.MAX_SAFE_INTEGER;
+
+  // Find the entity in the configuration
+  const index = config.entities.findIndex((e) =>
+    typeof e === 'string' ? e === entityId : e.entity === entityId,
+  );
+
+  // Return the found index or a large number if not found
+  return index !== -1 ? index : Number.MAX_SAFE_INTEGER;
 }
 
 /**
@@ -849,10 +884,48 @@ export async function fetchEvents(
 }
 
 /**
+ * Parse a relative date string like "today+7" or "today-3"
+ * Returns a Date object for the specified offset from today
+ *
+ * @param relativeDate - String in format "today+n" or "today-n" where n is number of days
+ * @returns Date object or null if invalid format
+ */
+function parseRelativeDate(relativeDate: string): Date | null {
+  // Check for simplified format: +7 or -3 (without "today" prefix)
+  const simplifiedMatch = relativeDate.match(/^([+-])(\d+)$/);
+  if (simplifiedMatch) {
+    const sign = simplifiedMatch[1] === '+' ? 1 : -1;
+    const days = parseInt(simplifiedMatch[2], 10);
+
+    if (!isNaN(days)) {
+      const date = new Date();
+      date.setHours(0, 0, 0, 0); // Normalize to start of day
+      date.setDate(date.getDate() + sign * days);
+      return date;
+    }
+    return null;
+  }
+
+  // Check for standard format: today+7 or today-3
+  const match = relativeDate.match(/^today([+-])(\d+)$/i);
+  if (!match) return null;
+
+  const sign = match[1] === '+' ? 1 : -1;
+  const days = parseInt(match[2], 10);
+
+  if (isNaN(days)) return null;
+
+  const date = new Date();
+  date.setHours(0, 0, 0, 0); // Normalize to start of day
+  date.setDate(date.getDate() + sign * days);
+  return date;
+}
+
+/**
  * Calculate time window for event fetching
  *
  * @param daysToShow - Number of days to show in the calendar
- * @param startDate - Optional start date in YYYY-MM-DD format or ISO format
+ * @param startDate - Optional start date in YYYY-MM-DD format, ISO format, or relative format "today+n"
  * @returns Object containing start and end dates for the calendar window
  */
 export function getTimeWindow(daysToShow: number, startDate?: string): { start: Date; end: Date } {
@@ -861,8 +934,13 @@ export function getTimeWindow(daysToShow: number, startDate?: string): { start: 
   // Parse custom start date if provided
   if (startDate && startDate.trim() !== '') {
     try {
+      // First try to parse as relative date (today+n or today-n)
+      const relativeDate = parseRelativeDate(startDate.trim());
+      if (relativeDate) {
+        start = relativeDate;
+      }
       // Check if it's an ISO date string (which HA converts to when saving)
-      if (startDate.includes('T')) {
+      else if (startDate.includes('T')) {
         // Handle ISO format (e.g. "2025-03-14T00:00:00.000Z")
         start = new Date(startDate);
 
@@ -1046,7 +1124,7 @@ export function getBaseCacheKey(
   const filterListPart =
     filterPatterns.length > 0 ? `_filters:${encodeURIComponent(filterPatterns.join('|'))}` : '';
 
-  return `${Constants.CACHE.EVENT_CACHE_KEY_PREFIX}${instanceId}_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}${startDatePart}${filterPart}${filterListPart}`;
+  return `${Constants.CACHE.EVENT_CACHE_KEY_PREFIX}${instanceId}_${entityIds}_${daysToShow}_${showPastEvents ? 1 : 0}${startDatePart}${filterPart}${filterListPart}${Constants.VERSION.CURRENT}`;
 }
 
 /**

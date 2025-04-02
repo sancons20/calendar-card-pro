@@ -314,6 +314,17 @@ function renderLabel(label: string | undefined): TemplateResult | typeof nothing
 //-----------------------------------------------------------------------------
 
 /**
+ * Check if a given date is a weekend day (Saturday or Sunday)
+ *
+ * @param date - Date to check
+ * @returns True if the date is a weekend day
+ */
+function isWeekend(date: Date): boolean {
+  const day = date.getDay();
+  return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
+}
+
+/**
  * Render a single day with its events
  *
  * @param day - Day data containing events
@@ -479,6 +490,10 @@ export function renderEvent(
   // Add CSS class for empty days
   const isEmptyDay = Boolean(event._isEmptyDay);
 
+  // Check if this is a weekend day
+  const dayDate = new Date(day.timestamp);
+  const isWeekendDay = isWeekend(dayDate);
+
   // Check if this is a past event (already ended)
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -570,6 +585,12 @@ export function renderEvent(
     !(isAllDayEvent && !isMultiDayAllDayEvent && !config.show_single_allday_time) &&
     !isEmptyDay;
 
+  // Calculate countdown if enabled
+  let countdownStr: string | null = null;
+  if (config.show_countdown && !isEmptyDay && !isPastEvent) {
+    countdownStr = FormatUtils.getCountdownString(event, language);
+  }
+
   // Format event time and location
   const eventTime = FormatUtils.formatEventTime(event, config, language);
   const eventLocation =
@@ -595,7 +616,7 @@ export function renderEvent(
     <tr>
       ${index === 0
         ? html`
-            <td class="date-column" rowspan="${day.events.length}">
+            <td class="date-column ${isWeekendDay ? 'weekend' : ''}" rowspan="${day.events.length}">
               <div class="date-content">
                 <div class="weekday">${day.weekday}</div>
                 <div class="day">${day.day}</div>
@@ -621,11 +642,23 @@ export function renderEvent(
             ${shouldShowTime
               ? html`
                   <div class="time">
-                    <ha-icon icon="mdi:clock-outline"></ha-icon>
-                    <span>${eventTime}</span>
+                    <div class="time-actual">
+                      <ha-icon icon="mdi:clock-outline"></ha-icon>
+                      <span>${eventTime}</span>
+                    </div>
+                    ${countdownStr
+                      ? html`<div class="time-countdown">${countdownStr}</div>`
+                      : nothing}
                   </div>
                 `
-              : ''}
+              : countdownStr
+                ? html`
+                    <div class="time">
+                      <div class="time-actual"></div>
+                      <div class="time-countdown">${countdownStr}</div>
+                    </div>
+                  `
+                : nothing}
             ${eventLocation
               ? html`
                   <div class="location">

@@ -64,10 +64,14 @@ export interface Config {
   show_month: boolean;
   month_font_size: string;
   month_color: string;
+  weekend_weekday_color: string;
+  weekend_day_color: string;
+  weekend_month_color: string;
 
   // Event column
   event_background_opacity: number;
   show_past_events: boolean;
+  show_countdown: boolean;
   event_font_size: string;
   event_color: string;
   empty_day_color: string;
@@ -194,13 +198,11 @@ export interface InteractionConfig {
  */
 export interface Hass {
   states: Record<string, { state: string }>;
-  // Fix API call method signature to match what Home Assistant actually provides
   callApi: (method: string, path: string, parameters?: object) => Promise<unknown>;
   callService: (domain: string, service: string, serviceData?: object) => void;
   locale?: {
     language: string;
   };
-  // Add connection property that may be needed
   connection?: {
     subscribeEvents: (callback: (event: unknown) => void, eventType: string) => Promise<() => void>;
   };

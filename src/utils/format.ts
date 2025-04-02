@@ -8,6 +8,7 @@
 import * as Types from '../config/types';
 import * as Localize from '../translations/localize';
 import * as Constants from '../config/constants';
+import { getRelativeTimeString } from '../translations/dayjs';
 
 //-----------------------------------------------------------------------------
 // HIGH-LEVEL PUBLIC APIs
@@ -73,6 +74,35 @@ export function formatEventTime(
   return capitalizeFirstLetter(
     formatSingleDayTime(startDate, endDate, config.show_end_time, config.time_24h),
   );
+}
+
+/**
+ * Generates a localized countdown string for an event
+ * Uses dayjs for consistent, localized relative time formatting
+ *
+ * @param event Calendar event to generate countdown for
+ * @param hass Home Assistant instance (used to extract language)
+ * @param config Card configuration options
+ * @returns Countdown string or null if event is past or empty day
+ */
+export function getCountdownString(
+  event: Types.CalendarEventData,
+  language: string = 'en',
+): string | null {
+  // Skip for empty days or events without start times
+  if (event._isEmptyDay || !event.start) return null;
+
+  const now = new Date();
+  const startDate = event.start.dateTime
+    ? new Date(event.start.dateTime)
+    : event.start.date
+      ? parseAllDayDate(event.start.date)
+      : null;
+
+  if (!startDate || startDate <= now) return null;
+
+  // Use dayjs for relative time formatting
+  return getRelativeTimeString(startDate, language);
 }
 
 /**

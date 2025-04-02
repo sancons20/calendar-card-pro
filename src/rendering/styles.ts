@@ -53,6 +53,11 @@ export function generateCustomPropertiesObject(config: Types.Config): Record<str
       config.empty_day_color === Config.DEFAULT_CONFIG.empty_day_color
         ? 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.6)'
         : config.empty_day_color,
+
+    // Weekend styling properties
+    '--calendar-card-color-weekend-weekday': config.weekend_weekday_color,
+    '--calendar-card-color-weekend-day': config.weekend_day_color,
+    '--calendar-card-color-weekend-month': config.weekend_month_color,
   };
 
   // Optional properties
@@ -116,6 +121,7 @@ export const cardStyles = css`
     height: var(--calendar-card-height, auto);
     overflow-y: auto;
     padding-bottom: 1px;
+    hyphens:auto
 
     /* Hide scrollbars across browsers */
     scrollbar-width: none; /* Firefox */
@@ -308,6 +314,19 @@ export const cardStyles = css`
     color: var(--calendar-card-color-month);
   }
 
+  /* Weekend date component styling */
+  .weekend .weekday {
+    color: var(--calendar-card-color-weekend-weekday);
+  }
+
+  .weekend .day {
+    color: var(--calendar-card-color-weekend-day);
+  }
+
+  .weekend .month {
+    color: var(--calendar-card-color-weekend-month);
+  }
+
   /* ===== EVENT STYLES ===== */
 
   /* Base event */
@@ -350,6 +369,7 @@ export const cardStyles = css`
     font-weight: 500;
     line-height: 1.2;
     color: var(--calendar-card-color-event);
+    margin-right: 12px;
     padding-bottom: 2px;
   }
 
@@ -388,6 +408,7 @@ export const cardStyles = css`
     align-items: center;
     line-height: 1.2;
     margin-top: 2px;
+    margin-right: 12px;
   }
 
   .time span,
@@ -399,6 +420,25 @@ export const cardStyles = css`
   .time {
     font-size: var(--calendar-card-font-size-time);
     color: var(--calendar-card-color-time);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .time-actual {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .time-countdown {
+    text-align: right;
+    color: var(--calendar-card-color-time);
+    font-size: var(--calendar-card-font-size-time);
+    margin-left: 8px;
+    margin-right: 12px;
+    white-space: nowrap;
   }
 
   .location {
