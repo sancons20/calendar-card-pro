@@ -1,7 +1,7 @@
 {
-  "daysOfWeek": ["Ne", "Po", "Ut", "St", "Št", "Pa", "So"],
+  "daysOfWeek": ["Ne", "Po", "Ut", "St", "Št", "Pi", "So"],
   "fullDaysOfWeek": ["Nedeľa", "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota"],
-  "months": ["Jan", "Feb", "Mar", "Apr", "Maj", "Jún", "Júl", "Aug", "Sep", "Okt", "Nov", "Dec"],
+  "months": ["Jan", "Feb", "Mar", "Apr", "Máj", "Jún", "Júl", "Aug", "Sep", "Okt", "Nov", "Dec"],
   "allDay": "celý den",
   "multiDay": "do",
   "at": "v",
@@ -9,5 +9,5 @@
   "endsTomorrow": "končí zajtra",
   "noEvents": "Žiadna udalosť",
   "loading": "Načítanie udalostí z kalendára...",
-  "error": "Chyba: Entita kalendára nebola nájdená, alebo je nesprávne nakonfigurovaná"
+  "error": "Chyba: Entita kalendára nebola nájdená alebo je nesprávne nakonfigurovaná"
 }
