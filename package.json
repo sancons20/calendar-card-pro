@@ -1,6 +1,6 @@
 {
   "name": "calendar-card-pro-dev",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "Custom Home Assistant calendar card",
   "main": "dist/calendar-card-pro.js",
   "scripts": {
