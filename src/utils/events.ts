@@ -820,6 +820,55 @@ export function getEntitySetting<K extends keyof Types.EntityConfig>(
   return entityConfig[settingName];
 }
 
+/**
+ * Check if an event is currently running (started but not yet ended)
+ *
+ * @param event Calendar event to check
+ * @returns True if the event is currently running
+ */
+export function isEventCurrentlyRunning(event: Types.CalendarEventData): boolean {
+  if (!event || event._isEmptyDay) return false;
+
+  const now = new Date();
+  const isAllDayEvent = !event.start.dateTime;
+
+  // All-day events don't show a progress bar
+  if (isAllDayEvent) return false;
+
+  const startDateTime = event.start.dateTime ? new Date(event.start.dateTime) : null;
+  const endDateTime = event.end.dateTime ? new Date(event.end.dateTime) : null;
+
+  if (!startDateTime || !endDateTime) return false;
+
+  // Event is running if current time is between start and end
+  return now >= startDateTime && now < endDateTime;
+}
+
+/**
+ * Calculate progress percentage for a running event
+ *
+ * @param event Calendar event to calculate progress for
+ * @returns Progress percentage (0-100) or null if event is not running
+ */
+export function calculateEventProgress(event: Types.CalendarEventData): number | null {
+  if (!isEventCurrentlyRunning(event)) return null;
+
+  const now = new Date();
+  const startDateTime = new Date(event.start.dateTime!);
+  const endDateTime = new Date(event.end.dateTime!);
+
+  const totalDuration = endDateTime.getTime() - startDateTime.getTime();
+  const elapsedTime = now.getTime() - startDateTime.getTime();
+
+  // Calculate percentage and ensure it's between 0-100
+  const progressPercentage = Math.min(
+    100,
+    Math.max(0, Math.floor((elapsedTime / totalDuration) * 100)),
+  );
+
+  return progressPercentage;
+}
+
 //-----------------------------------------------------------------------------
 // DATA FETCHING & API FUNCTIONS
 //-----------------------------------------------------------------------------

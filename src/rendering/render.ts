@@ -591,6 +591,11 @@ export function renderEvent(
     countdownStr = FormatUtils.getCountdownString(event, language);
   }
 
+  // Check if event is currently running and calculate progress percentage for progress bar
+  const isRunning = EventUtils.isEventCurrentlyRunning(event);
+  const progressPercentage =
+    isRunning && config.show_progress_bar ? EventUtils.calculateEventProgress(event) : null;
+
   // Format event time and location
   const eventTime = FormatUtils.formatEventTime(event, config, language);
   const eventLocation =
@@ -648,7 +653,16 @@ export function renderEvent(
                     </div>
                     ${countdownStr
                       ? html`<div class="time-countdown">${countdownStr}</div>`
-                      : nothing}
+                      : progressPercentage !== null && config.show_progress_bar
+                        ? html`
+                            <div class="progress-bar">
+                              <div
+                                class="progress-bar-filled"
+                                style="width: ${progressPercentage}%"
+                              ></div>
+                            </div>
+                          `
+                        : nothing}
                   </div>
                 `
               : countdownStr
@@ -658,7 +672,19 @@ export function renderEvent(
                       <div class="time-countdown">${countdownStr}</div>
                     </div>
                   `
-                : nothing}
+                : progressPercentage !== null && config.show_progress_bar
+                  ? html`
+                      <div class="time">
+                        <div class="time-actual"></div>
+                        <div class="progress-bar">
+                          <div
+                            class="progress-bar-filled"
+                            style="width: ${progressPercentage}%"
+                          ></div>
+                        </div>
+                      </div>
+                    `
+                  : nothing}
             ${eventLocation
               ? html`
                   <div class="location">

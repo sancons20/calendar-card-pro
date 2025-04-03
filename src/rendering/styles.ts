@@ -33,6 +33,9 @@ export function generateCustomPropertiesObject(config: Types.Config): Record<str
     '--calendar-card-spacing-additional': config.additional_card_spacing,
     '--calendar-card-height': config.height || 'auto',
     '--calendar-card-max-height': config.max_height,
+    '--calendar-card-progress-bar-color': config.progress_bar_color,
+    '--calendar-card-progress-bar-height': config.progress_bar_height,
+    '--calendar-card-progress-bar-width': config.progress_bar_width,
     '--calendar-card-icon-size-time': config.time_icon_size || '14px',
     '--calendar-card-icon-size-location': config.location_icon_size || '14px',
     '--calendar-card-date-column-width': `${parseFloat(config.day_font_size) * 1.75}px`,
@@ -444,6 +447,24 @@ export const cardStyles = css`
   .location {
     font-size: var(--calendar-card-font-size-location);
     color: var(--calendar-card-color-location);
+  }
+
+  /* ===== PROGRESS BAR STYLES ===== */
+
+  .progress-bar {
+    width: var(--calendar-card-progress-bar-width);
+    height: var(--calendar-card-progress-bar-height);
+    background-color: color-mix(in srgb, var(--calendar-card-progress-bar-color) 20%, transparent);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-left: 8px;
+    margin-right: 12px;
+  }
+
+  .progress-bar-filled {
+    height: 100%;
+    background-color: var(--calendar-card-progress-bar-color);
+    border-radius: 999px 0 0 999px;
   }
 
   /* ===== ICON STYLES ===== */
