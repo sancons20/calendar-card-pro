@@ -96,6 +96,7 @@ export function groupEventsByDay(
   // Current time is still needed for past event filtering
   const now = new Date();
 
+  // Process events into initial days structure
   const upcomingEvents = events.filter((event) => {
     if (!event?.start || !event?.end) return false;
 
@@ -215,8 +216,8 @@ export function groupEventsByDay(
       end: event.end,
       _entityId: event._entityId,
       _entityLabel: getEntityLabel(event._entityId, config, event),
-      _matchedConfig: event._matchedConfig, // Add this line to preserve matched config
-      _isEmptyDay: event._isEmptyDay, // Preserve empty day flag
+      _matchedConfig: event._matchedConfig,
+      _isEmptyDay: event._isEmptyDay,
     });
   });
 
@@ -284,64 +285,15 @@ export function groupEventsByDay(
     });
   });
 
-  // Sort days and limit to configured number of days
+  // Sort days and determine effective days to show based on mode
+  const effectiveDaysToShow = isExpanded
+    ? config.days_to_show
+    : config.compact_days_to_show || config.days_to_show;
+
+  // Get days in chronological order limited to effective days to show
   let days = Object.values(eventsByDay)
     .sort((a, b) => a.timestamp - b.timestamp)
-    .slice(0, config.days_to_show || 3);
-
-  // Add empty days if configured
-  if (config.show_empty_days) {
-    const translations = Localize.getTranslations(language);
-    // Use the reference date based on configuration instead of hardcoding today
-    const referenceDate = getStartDateReference(config);
-
-    // Create an array of all days in the configured range
-    const allDays: Types.EventsByDay[] = [];
-
-    for (let i = 0; i < (config.days_to_show || 3); i++) {
-      const currentDate = new Date(referenceDate);
-      currentDate.setDate(referenceDate.getDate() + i);
-
-      // Create date key for this day
-      const dateKey = FormatUtils.getLocalDateKey(currentDate);
-
-      // If we already have events for this day, use those
-      if (eventsByDay[dateKey]) {
-        allDays.push(eventsByDay[dateKey]);
-      } else {
-        // Use helper function to calculate week number with majority rule
-        const weekNumber = calculateWeekNumberWithMajorityRule(currentDate, config, firstDayOfWeek);
-
-        // Otherwise create an empty day with a "fake" event that can use the regular rendering path
-        const dayObj: Types.EventsByDay = {
-          weekday: translations.daysOfWeek[currentDate.getDay()],
-          day: currentDate.getDate(),
-          month: translations.months[currentDate.getMonth()],
-          timestamp: currentDate.getTime(),
-          events: [
-            {
-              summary: translations.noEvents,
-              start: { date: FormatUtils.getLocalDateKey(currentDate) },
-              end: { date: FormatUtils.getLocalDateKey(currentDate) },
-              _entityId: '_empty_day_',
-              _isEmptyDay: true,
-              location: '',
-            },
-          ],
-          // Add week and month metadata with properly calculated week number
-          weekNumber,
-          monthNumber: currentDate.getMonth(),
-          isFirstDayOfMonth: currentDate.getDate() === 1,
-          isFirstDayOfWeek: currentDate.getDay() === firstDayOfWeek,
-        };
-
-        allDays.push(dayObj);
-      }
-    }
-
-    // Replace our days array with the complete one
-    days = allDays;
-  }
+    .slice(0, effectiveDaysToShow || 3);
 
   // Apply entity-specific event limits first (pre-filtering)
   // This happens before the global max_events_to_show limit is applied
@@ -383,7 +335,9 @@ export function groupEventsByDay(
 
         // Get entity-specific max_events_to_show (if set)
         const entityMaxEvents =
-          typeof entityConfig === 'object' ? entityConfig.max_events_to_show : undefined;
+          typeof entityConfig === 'object'
+            ? (entityConfig.compact_events_to_show ?? entityConfig.max_events_to_show)
+            : undefined;
 
         // If no entity-specific limit, include the event
         if (entityMaxEvents === undefined) {
@@ -408,48 +362,171 @@ export function groupEventsByDay(
     }
   }
 
-  // Apply max_events_to_show limit if configured and not expanded (global limit)
-  if (config.max_events_to_show && !isExpanded) {
-    let eventsShown = 0;
-    const maxEvents = config.max_events_to_show ?? 0;
-    const limitedDays: Types.EventsByDay[] = [];
+  // Apply events limit if configured and not expanded (compact mode event limiting)
+  // Consider both max_events_to_show (legacy) and compact_events_to_show (new)
+  if (!isExpanded) {
+    // Get the effective max events setting (compact_events_to_show takes precedence over max_events_to_show)
+    const maxEvents = config.compact_events_to_show ?? config.max_events_to_show;
 
-    for (const day of days) {
-      // If we've already hit the limit, stop adding days
-      if (eventsShown >= maxEvents) {
-        break;
+    if (maxEvents !== undefined) {
+      let filteredDays: Types.EventsByDay[] = [];
+      let totalEventsShown = 0;
+
+      // Handle soft limit (complete days) mode
+      if (config.compact_events_complete_days) {
+        const daysStarted = new Set<string>();
+
+        // First pass - identify which days have at least one event that would be shown
+        for (const day of days) {
+          // Skip empty days for counting purposes
+          if (day.events.length === 1 && day.events[0]._isEmptyDay) {
+            continue;
+          }
+
+          // If we can show at least one event from this day
+          if (totalEventsShown < maxEvents && day.events.length > 0) {
+            // Calculate how many events we would show from this day
+            const eventsToShow = Math.min(day.events.length, maxEvents - totalEventsShown);
+
+            if (eventsToShow > 0) {
+              // Mark this day as "started" and update our event counter
+              daysStarted.add(FormatUtils.getLocalDateKey(new Date(day.timestamp)));
+              totalEventsShown += eventsToShow;
+            }
+          }
+        }
+
+        // Second pass - keep only the days we've started showing
+        filteredDays = days.filter((day) => {
+          const dayKey = FormatUtils.getLocalDateKey(new Date(day.timestamp));
+          return daysStarted.has(dayKey);
+        });
+      }
+      // Handle hard limit mode (standard behavior)
+      else {
+        filteredDays = [];
+
+        // Process days until we hit our event limit
+        for (const day of days) {
+          // If already at limit and this isn't an empty day, skip
+          if (
+            totalEventsShown >= maxEvents &&
+            !(day.events.length === 1 && day.events[0]._isEmptyDay)
+          ) {
+            break;
+          }
+
+          // If this is an empty day with just a placeholder event, add it without counting
+          if (day.events.length === 1 && day.events[0]._isEmptyDay) {
+            filteredDays.push(day);
+            continue;
+          }
+
+          // Calculate how many more events we can show
+          const remainingEvents = maxEvents - totalEventsShown;
+
+          // If we can show at least some events from this day
+          if (remainingEvents > 0 && day.events.length > 0) {
+            // Create a copy of the day with only the events we can show
+            const limitedDay: Types.EventsByDay = {
+              ...day,
+              events: day.events.slice(0, remainingEvents),
+            };
+
+            // Add the limited day to our result and update our counter
+            filteredDays.push(limitedDay);
+            totalEventsShown += limitedDay.events.length;
+          }
+        }
       }
 
-      // For empty days, always include them without counting toward the max_events_to_show limit
-      if (day.events.length === 1 && day.events[0]._isEmptyDay) {
-        limitedDays.push(day);
-        continue;
-      }
+      // Replace our days array with the filtered version
+      days = filteredDays;
+    }
+  }
 
-      // Calculate how many events we can still add from this day
-      const remainingEvents = maxEvents - eventsShown;
+  // Only add empty days AFTER we've filtered events in compact mode
+  // This ensures empty days are only added for days that would actually be shown
+  if (config.show_empty_days) {
+    const translations = Localize.getTranslations(language);
 
-      // If this day has events to show (considering our remaining limit)
-      if (remainingEvents > 0 && day.events.length > 0) {
-        // Create a new day object with limited events
-        const limitedDay: Types.EventsByDay = {
-          ...day,
-          events: day.events.slice(0, remainingEvents),
+    // Determine the date range to add empty days for
+    // In compact mode: only add empty days for the date range of days we're already showing
+    // In expanded mode: add empty days for the full date range (up to effectiveDaysToShow)
+
+    let startDateForEmptyDays = new Date(referenceDate);
+    let endDateForEmptyDays: Date;
+
+    if (!isExpanded && days.length > 0) {
+      // In compact mode with existing days: only fill empty days within the range of days we're showing
+      const minTimestamp = Math.min(...days.map((d) => d.timestamp));
+      const maxTimestamp = Math.max(...days.map((d) => d.timestamp));
+
+      startDateForEmptyDays = new Date(minTimestamp);
+      // Set to end of the day
+      endDateForEmptyDays = new Date(maxTimestamp);
+    } else {
+      // In expanded mode or when no days: use full range from reference date
+      endDateForEmptyDays = new Date(referenceDate);
+      endDateForEmptyDays.setDate(endDateForEmptyDays.getDate() + effectiveDaysToShow - 1);
+    }
+
+    // Create a set of existing day keys for quick lookup
+    const existingDayKeys = new Set(
+      days.map((day) => FormatUtils.getLocalDateKey(new Date(day.timestamp))),
+    );
+
+    // Create a combined array with both existing days and new empty days
+    const allDays: Types.EventsByDay[] = [...days];
+
+    // Calculate the number of days between start and end dates
+    const dayDiff = Math.floor(
+      (endDateForEmptyDays.getTime() - startDateForEmptyDays.getTime()) / (24 * 60 * 60 * 1000),
+    );
+
+    // Generate empty days for any missing dates in the range
+    for (let i = 0; i <= dayDiff; i++) {
+      const currentDate = new Date(startDateForEmptyDays);
+      currentDate.setDate(startDateForEmptyDays.getDate() + i);
+
+      // Create a date key for this day
+      const dateKey = FormatUtils.getLocalDateKey(currentDate);
+
+      // Only add if we don't already have events for this day
+      if (!existingDayKeys.has(dateKey)) {
+        // Create an empty day with a "fake" event
+        const dayObj: Types.EventsByDay = {
+          weekday: translations.daysOfWeek[currentDate.getDay()],
+          day: currentDate.getDate(),
+          month: translations.months[currentDate.getMonth()],
+          timestamp: currentDate.getTime(),
+          events: [
+            {
+              summary: translations.noEvents,
+              start: { date: dateKey },
+              end: { date: dateKey },
+              _entityId: '_empty_day_',
+              _isEmptyDay: true,
+              location: '',
+            },
+          ],
+          weekNumber: calculateWeekNumberWithMajorityRule(currentDate, config, firstDayOfWeek),
+          monthNumber: currentDate.getMonth(),
+          isFirstDayOfMonth: currentDate.getDate() === 1,
+          isFirstDayOfWeek: currentDate.getDay() === firstDayOfWeek,
         };
 
-        // Add this day to our result
-        limitedDays.push(limitedDay);
-
-        // Update our counter
-        eventsShown += limitedDay.events.length;
+        allDays.push(dayObj);
       }
     }
 
-    // Replace the original days array with our limited version
-    days = limitedDays;
+    // Sort the combined days and limit to the effective days to show
+    allDays.sort((a, b) => a.timestamp - b.timestamp);
+    days = allDays;
   }
 
-  return days;
+  // Final limit to ensure we don't exceed effectiveDaysToShow
+  return days.slice(0, effectiveDaysToShow);
 }
 
 /**

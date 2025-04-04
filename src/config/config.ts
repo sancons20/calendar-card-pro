@@ -19,10 +19,15 @@ export const DEFAULT_CONFIG: Types.Config = {
   entities: [],
   start_date: undefined,
   days_to_show: 3,
-  max_events_to_show: undefined,
+  compact_days_to_show: undefined,
+  compact_events_to_show: undefined,
+  compact_events_complete_days: false,
   show_empty_days: false,
   filter_duplicates: false,
   language: undefined,
+
+  /** @deprecated Use compact_events_to_show instead. Will be removed in v3.0 */
+  max_events_to_show: undefined,
 
   // Header
   title: undefined,
@@ -121,9 +126,12 @@ export function normalizeEntities(
         accent_color?: string;
         show_time?: boolean;
         show_location?: boolean;
-        max_events_to_show?: number;
+        compact_events_to_show?: number;
         blocklist?: string;
         allowlist?: string;
+
+        /** @deprecated Use compact_events_to_show instead. Will be removed in v3.0 */
+        max_events_to_show?: number;
       }
   >,
 ): Array<Types.EntityConfig> {
@@ -148,9 +156,10 @@ export function normalizeEntities(
           accent_color: item.accent_color || 'var(--calendar-card-line-color-vertical)',
           show_time: item.show_time,
           show_location: item.show_location,
-          max_events_to_show: item.max_events_to_show,
+          compact_events_to_show: item.compact_events_to_show,
           blocklist: item.blocklist,
           allowlist: item.allowlist,
+          max_events_to_show: item.max_events_to_show,
         };
       }
       return null;

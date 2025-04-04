@@ -16,10 +16,15 @@ export interface Config {
   entities: Array<string | EntityConfig>;
   start_date?: string;
   days_to_show: number;
-  max_events_to_show?: number;
+  compact_days_to_show?: number;
+  compact_events_to_show?: number;
+  compact_events_complete_days?: boolean;
   show_empty_days: boolean;
   filter_duplicates: boolean;
   language?: string;
+
+  /** @deprecated Use compact_events_to_show instead. Will be removed in v3.0 */
+  max_events_to_show?: number;
 
   // Header
   title?: string;
@@ -111,9 +116,12 @@ export interface EntityConfig {
   accent_color?: string;
   show_time?: boolean;
   show_location?: boolean;
-  max_events_to_show?: number;
+  compact_events_to_show?: number;
   blocklist?: string;
   allowlist?: string;
+
+  /** @deprecated Use compact_events_to_show instead. Will be removed in v3.0 */
+  max_events_to_show?: number;
 }
 
 // -----------------------------------------------------------------------------
