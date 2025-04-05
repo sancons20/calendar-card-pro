@@ -675,8 +675,193 @@ function processEvents(
     }
   }
 
-  Logger.debug(`Processed ${processedEvents.length} events after filtering`);
-  return processedEvents;
+  // Split multi-day events after all processing is complete
+  const finalEvents = processMultiDayEvents(processedEvents, config);
+
+  Logger.debug(`Processed ${finalEvents.length} events after filtering and splitting`);
+  return finalEvents;
+}
+
+/**
+ * Process and split multi-day events based on configuration
+ */
+function processMultiDayEvents(
+  events: Types.CalendarEventData[],
+  config: Types.Config,
+): Types.CalendarEventData[] {
+  const result: Types.CalendarEventData[] = [];
+
+  for (const event of events) {
+    // Skip if we shouldn't split this event
+    if (!shouldSplitEvent(event, config)) {
+      result.push(event);
+      continue;
+    }
+
+    // Skip if not a multi-day event
+    if (!isMultiDayEvent(event)) {
+      result.push(event);
+      continue;
+    }
+
+    // Split multi-day event into segments
+    const segments = splitMultiDayEvent(event);
+    result.push(...segments);
+  }
+
+  return result;
+}
+
+/**
+ * Check if an event spans multiple days
+ */
+function isMultiDayEvent(event: Types.CalendarEventData): boolean {
+  if (!event.start || !event.end) return false;
+
+  // Handle all-day events
+  if (event.start.date && event.end.date) {
+    const startDate = new Date(event.start.date);
+    // For all-day events, end date is exclusive in iCal format
+    const endDate = new Date(event.end.date);
+    endDate.setDate(endDate.getDate() - 1);
+
+    return startDate.toDateString() !== endDate.toDateString();
+  }
+
+  // Handle timed events
+  if (event.start.dateTime && event.end.dateTime) {
+    const startDate = new Date(event.start.dateTime);
+    const endDate = new Date(event.end.dateTime);
+
+    return startDate.toDateString() !== endDate.toDateString();
+  }
+
+  return false;
+}
+
+/**
+ * Check if event splitting should be applied based on configuration
+ */
+function shouldSplitEvent(event: Types.CalendarEventData, config: Types.Config): boolean {
+  // Check entity-specific setting if available
+  if (
+    event._entityId &&
+    event._matchedConfig &&
+    typeof event._matchedConfig.split_multiday_events !== 'undefined'
+  ) {
+    return event._matchedConfig.split_multiday_events;
+  }
+
+  // Otherwise use global setting
+  return config.split_multiday_events;
+}
+
+/**
+ * Format a Date object to YYYY-MM-DD string format
+ * This is the inverse of parseAllDayDate and preserves local date values
+ */
+function formatAllDayDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Split a multi-day event into daily segments
+ */
+function splitMultiDayEvent(event: Types.CalendarEventData): Types.CalendarEventData[] {
+  const segments: Types.CalendarEventData[] = [];
+
+  // Handle all-day events
+  if (event.start.date && event.end.date) {
+    // Parse dates using the helper function that handles local dates properly
+    const startDate = FormatUtils.parseAllDayDate(event.start.date);
+    const endDate = FormatUtils.parseAllDayDate(event.end.date);
+    endDate.setDate(endDate.getDate() - 1); // Adjust end date (exclusive in iCal)
+
+    // For each day in the range, create a segment
+    for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
+      // Format dates using our local-aware formatter
+      const currentDateStr = formatAllDayDate(date);
+
+      // Create the next day for end date (exclusive end date)
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + 1);
+      const nextDateStr = formatAllDayDate(nextDate);
+
+      // Create segment with proper all-day format
+      const segment: Types.CalendarEventData = {
+        ...event,
+        start: { date: currentDateStr },
+        end: { date: nextDateStr },
+      };
+
+      segments.push(segment);
+    }
+  }
+  // Handle timed events
+  else if (event.start.dateTime && event.end.dateTime) {
+    const startDateTime = new Date(event.start.dateTime);
+    const endDateTime = new Date(event.end.dateTime);
+
+    // First day: start time to end of day
+    const firstDayDate = new Date(startDateTime);
+    const firstDayEnd = new Date(startDateTime);
+    firstDayEnd.setHours(23, 59, 59, 999);
+
+    if (firstDayEnd < endDateTime) {
+      // First day segment
+      const firstDaySegment: Types.CalendarEventData = {
+        ...event,
+        start: { dateTime: startDateTime.toISOString() },
+        end: { dateTime: firstDayEnd.toISOString() },
+      };
+      segments.push(firstDaySegment);
+
+      // Middle days: full days (if any)
+      const middleStart = new Date(startDateTime);
+      middleStart.setDate(middleStart.getDate() + 1);
+      middleStart.setHours(0, 0, 0, 0);
+
+      const lastDayStart = new Date(endDateTime);
+      lastDayStart.setHours(0, 0, 0, 0);
+
+      for (
+        let date = new Date(middleStart);
+        date < lastDayStart;
+        date.setDate(date.getDate() + 1)
+      ) {
+        // Format middle days as all-day events using our local-aware formatter
+        const currentDateStr = formatAllDayDate(date);
+        const nextDate = new Date(date);
+        nextDate.setDate(nextDate.getDate() + 1);
+        const nextDateStr = formatAllDayDate(nextDate);
+
+        const middleDaySegment: Types.CalendarEventData = {
+          ...event,
+          // Create all-day event for middle days
+          start: { date: currentDateStr },
+          end: { date: nextDateStr },
+        };
+
+        segments.push(middleDaySegment);
+      }
+
+      // Last day: start of day to end time
+      const lastDaySegment: Types.CalendarEventData = {
+        ...event,
+        start: { dateTime: lastDayStart.toISOString() },
+        end: { dateTime: endDateTime.toISOString() },
+      };
+      segments.push(lastDaySegment);
+    } else {
+      // Event doesn't cross midnight, keep as is
+      segments.push({ ...event });
+    }
+  }
+
+  return segments;
 }
 
 /**

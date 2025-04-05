@@ -61,9 +61,10 @@ Built with **performance in mind**, the card leverages **intelligent refresh mec
 
 ### Latest Release v2.4
 
-- **[Enhanced Compact View Control](#enhanced-compact-view-control)**: Precisely control how many days and events are shown in compact mode
-- **Progress Bar Display**: Visualize the [completion percentage](#progress-bar-display) of currently running events
-- ...
+- ➡️ [**Progress Bars for Running Events**](#progress-bars-for-running-events): See at a glance how far along your current events are
+- ➡️ [**Split Multi-Day Events**](#split-multi-day-events): Display multi-day events on every day they cover
+- ➡️ [**Enhanced Compact Mode Controls**](#enhanced-compact-mode-controls): More precise control over what's displayed in compact vs expanded views
+- ➡️ [**Improved Parameter Naming**](#improved-parameter-naming): Clearer names for configuration parameters
 
 ### v2.3
 
@@ -393,6 +394,38 @@ These flexible view controls allow you to:
 - **Prevent overwhelming views**: Limit verbose calendars (like school schedules)
 - **Provide complete context**: Ensure users can see all events for any shown day
 - **Support easy expansion**: Allow users to see the full calendar with a single tap
+
+### Split Multi-Day Events
+
+Calendar Card Pro can display multi-day events on each day they cover, making it easier to see all ongoing events and potential conflicts:
+
+```yaml
+# Global setting for all calendars
+split_multiday_events: true
+
+# Entity-specific settings
+entities:
+  - entity: calendar.family
+    split_multiday_events: true # Show family events on each day
+  - entity: calendar.work
+    split_multiday_events: false # Show work events only on first day (default)
+```
+
+When enabled, multi-day events are split in a way that preserves their original properties:
+
+- **All-day events** appear as single-day all-day events on each day they cover
+- **Timed multi-day events** are split into:
+  - First day: Event from start time to end of day (e.g., 10:00-23:59)
+  - Middle days: Full all-day events
+  - Last day: Event from start of day to end time (e.g., 00:00-15:00)
+
+This feature is especially useful for:
+
+- Visualizing event conflicts across multiple days
+- Seeing all active events for a given day at a glance
+- Getting a clearer picture of on-call schedules, multi-day conferences, or travel
+
+The setting can be applied globally to all calendars or controlled separately for each calendar entity.
 
 ### Dynamic Start Date with Relative Offsets
 
@@ -887,6 +920,7 @@ These examples demonstrate how Calendar Card Pro can be customized to match any 
 | max_events_to_show                         | number                       | -                                                                           | Maximum number of events to show in compact mode                                                                                                                                                                                                            |
 | show_empty_days                            | boolean                      | `false`                                                                     | Whether to show days with no events (with "No events" message)                                                                                                                                                                                              |
 | filter_duplicates                          | boolean                      | `false`                                                                     | Remove duplicate events that appear in multiple calendars                                                                                                                                                                                                   |
+| split_multiday_events                      | boolean                      | `false`                                                                     | Display multi-day events on each day they cover                                                                                                                                                                                                             |
 | language                                   | string                       | `System`, fallback `en`                                                     | Interface language (auto-detects from HA)                                                                                                                                                                                                                   |
 | **Header**                                 |                              |                                                                             |                                                                                                                                                                                                                                                             |
 | title                                      | string                       | -                                                                           | Card title                                                                                                                                                                                                                                                  |

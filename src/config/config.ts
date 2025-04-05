@@ -24,6 +24,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   compact_events_complete_days: false,
   show_empty_days: false,
   filter_duplicates: false,
+  split_multiday_events: false,
   language: undefined,
 
   /** @deprecated Use compact_events_to_show instead. Will be removed in v3.0 */
@@ -129,6 +130,7 @@ export function normalizeEntities(
         compact_events_to_show?: number;
         blocklist?: string;
         allowlist?: string;
+        split_multiday_events?: boolean;
 
         /** @deprecated Use compact_events_to_show instead. Will be removed in v3.0 */
         max_events_to_show?: number;
@@ -159,6 +161,7 @@ export function normalizeEntities(
           compact_events_to_show: item.compact_events_to_show,
           blocklist: item.blocklist,
           allowlist: item.allowlist,
+          split_multiday_events: item.split_multiday_events,
           max_events_to_show: item.max_events_to_show,
         };
       }

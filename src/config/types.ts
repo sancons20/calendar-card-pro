@@ -21,6 +21,7 @@ export interface Config {
   compact_events_complete_days?: boolean;
   show_empty_days: boolean;
   filter_duplicates: boolean;
+  split_multiday_events: boolean;
   language?: string;
 
   /** @deprecated Use compact_events_to_show instead. Will be removed in v3.0 */
@@ -119,6 +120,7 @@ export interface EntityConfig {
   compact_events_to_show?: number;
   blocklist?: string;
   allowlist?: string;
+  split_multiday_events?: boolean;
 
   /** @deprecated Use compact_events_to_show instead. Will be removed in v3.0 */
   max_events_to_show?: number;
