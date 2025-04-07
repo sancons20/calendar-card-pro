@@ -61,15 +61,15 @@ Built with **performance in mind**, the card leverages **intelligent refresh mec
 
 ### Latest Release v2.4
 
-- ➡️ [**Today Indicator**](#today-indicator): New visual highlighting to easily identify the current day
-- ➡️ [**Progress Bars for Running Events**](#progress-bars-for-running-events): See at a glance how far along your current events are
-- ➡️ [**Split Multi-Day Events**](#split-multi-day-events): Display multi-day events on every day they cover
-- ➡️ [**Enhanced Compact Mode Controls**](#enhanced-compact-mode-controls): More precise control over what's displayed in compact vs expanded views
-- ➡️ [**Improved Parameter Naming**](#improved-parameter-naming): Clearer names for configuration parameters
+- 🌟 **Today Indicator**: Highlight today with [customizable dot, pulse, glow effect, emoji, or custom icon](#-today-indicator)
+- 🎨 **Today's Date Styling**: Customize the [appearance of today's date](#-date-column-customization) in the calendar with dedicated color options (`today_weekday_color`, `today_day_color`, `today_month_color`)
+- 🚦 **Event Progress Bars**: Visualize how far an event has progressed with optional [progress bars](#progress-bar-display)
+- ✂️ **Split Multi-Day Events**: Display [multi-day events on every day they cover](#split-multi-day-events)
+- 🧠 **Enhanced Compact Mode Controls**: More precise control over [what's displayed in compact vs expanded views](#-compact-view-management--event-limits)
 
 ### v2.3
 
-- ⏳ **Countdown Display** - [Show how much time remains](#countdown-display) until an event starts with the new `show_countdown` option
+- ⏳ **Countdown Display** - [Show how much time remains](#-countdown-display) until an event starts with the new `show_countdown` option
 - 🌅 **Weekend Day Styling** - [Style weekend days](#weekend-day-styling) differently with dedicated color options
 - 📆 **Relative Date Offsets** - Define a [floating start date](#dynamic-start-date-with-relative-offsets) relative to the current day instead of fixed dates
 
@@ -77,23 +77,23 @@ Built with **performance in mind**, the card leverages **intelligent refresh mec
 
 - ⚙️ **Advanced event filtering** - Include or exclude specific events with [`blocklist` and `allowlist` patterns](#filtering-by-event-name) per entity
 - 🔄 **Filter duplicate events** - [Remove redundant events](#filtering-duplicate-events) that appear in multiple calendars
-- 🌍 **Smart country filtering** - Precise control over [country name display in locations](#time--location-information)
-- 🏷️ **Enhanced calendar labels** - In addition to emojis and text labels, you can now also use [Material Design icons and custom images](#entity-configuration)
-- 🎨 **Customizable empty day styling** - Control how [empty days appear](#calendar-events-display) with `empty_day_color`
+- 🌍 **Smart country filtering** - Precise control over [country name display in locations](#-time--location-information)
+- 🏷️ **Enhanced calendar labels** - In addition to emojis and text labels, you can now also use [Material Design icons and custom images](#-entity-configuration)
+- 🎨 **Customizable empty day styling** - Control how [empty days appear](#-calendar-events-display) with `empty_day_color`
 
 ### v2.1
 
-- 📅 **Week numbers & visual separators** - Better visual organization with [week number pills and customizable separators](#week-numbers--visual-separators)
-- 📊 **Per-calendar event limits** - Control how many events appear from [each calendar separately](#managing-event-numbers)
-- 📏 **Fixed height control** - Set [exact card height](#card-dimensions--scrolling) with improved scrolling behavior
+- 📅 **Week numbers & visual separators** - Better visual organization with [week number pills and customizable separators](#-week-numbers--visual-separators)
+- 📊 **Per-calendar event limits** - Control how many events appear from [each calendar separately](#-managing-event-numbers)
+- 📏 **Fixed height control** - Set [exact card height](#-card-dimensions--scrolling) with improved scrolling behavior
 
 ### v2.0
 
-- 🌈 **Custom styling per calendar** - Add [accent colors for vertical lines](#visual-styling--colors) and opaque backgrounds to create visual hierarchy
-- 🏷️ **Calendar labels** - Add [emoji or text identifiers](#entity-configuration) for each calendar source
-- 🔧 **Advanced display controls** - [Per-calendar time and location display settings](#time--location-information)
+- 🌈 **Custom styling per calendar** - Add [accent colors for vertical lines](#-visual-styling--colors) and opaque backgrounds to create visual hierarchy
+- 🏷️ **Calendar labels** - Add [emoji or text identifiers](#-entity-configuration) for each calendar source
+- 🔧 **Advanced display controls** - [Per-calendar time and location display settings](#-time--location-information)
 - 📆 **Custom start date** - View calendars from [any date](#core-settings), not just today
-- 📱 **Maximum height with scrolling** - Set a [maximum card size](#card-dimensions--scrolling) with scrollable content
+- 📱 **Maximum height with scrolling** - Set a [maximum card size](#-card-dimensions--scrolling) with scrollable content
 
 <div style="background-color: rgba(3, 169, 244, 0.1); padding: 12px; margin: 20px 0;">
   <h4 style="margin: 0; display: inline;">
@@ -582,34 +582,33 @@ Week numbers can be displayed using either:
 Control the appearance of the date column for a personalized calendar view:
 
 ```yaml
-# Weekday name (Mon, Tue, etc.)
+# Base date column styling
 weekday_font_size: '14px'
 weekday_color: 'var(--primary-text-color)'
-weekend_weekday_color: '#e67c73' # Special color for weekend day names
-
-# Day number (1, 2, 3, etc.)
 day_font_size: '26px'
 day_color: 'var(--primary-text-color)'
-weekend_day_color: '#e67c73' # Special color for weekend day numbers
-
-# Month name display
-show_month: true
 month_font_size: '12px'
 month_color: 'var(--primary-text-color)'
-weekend_month_color: '#e67c73' # Special color for weekend month names
+
+# Special styling for weekends (inherits from base when not specified)
+weekend_weekday_color: '#e67c73' # Weekend day names
+weekend_day_color: '#e67c73' # Weekend day numbers
+weekend_month_color: '#e67c73' # Weekend month names
+
+# Special styling for today (inherits from base/weekend when not specified)
+today_weekday_color: '#03a9f4' # Today's weekday name
+today_day_color: '#03a9f4' # Today's day number
+today_month_color: '#03a9f4' # Today's month name
 ```
 
-The date column appears on the left side of each day's events and helps users quickly identify when events occur. By default, it shows:
+The date column appears on the left side of each day's events and helps users quickly identify when events occur. By default, all dates use the base styling, but you can apply special styling to:
 
-1. The weekday name (abbreviated to 3 letters)
-2. The day number (1-31)
-3. The month name (if the day is the first of a month or `show_month: true`)
+- **Weekend days** (Saturday and Sunday) using the `weekend_*` parameters
+- **Today's date** using the `today_*` parameters
 
-You can control the visibility of months with `show_month` - when set to `false`, months only appear on the first day of each month.
+When special styling parameters are not specified, they will inherit from the base styling. If today falls on a weekend, today styling takes precedence over weekend styling.
 
-Weekend days (Saturday and Sunday) can be styled differently with dedicated color options to make them visually distinct from weekdays.
-
-#### ★ Today Indicator
+#### 🌟 Today Indicator
 
 Calendar Card Pro provides a sophisticated way to highlight the current day with a customizable indicator:
 
@@ -1003,6 +1002,9 @@ These examples demonstrate how Calendar Card Pro can be customized to match any 
 | `weekend_weekday_color`                    | string            | `var(--primary-text-color)`                        | Color for the weekday name (e.g., "Sat", "Sun") on weekend days                                                                                                                                                                                             |
 | `weekend_day_color`                        | string            | `var(--primary-text-color)`                        | Color for the day number on weekend days                                                                                                                                                                                                                    |
 | `weekend_month_color`                      | string            | `var(--primary-text-color)`                        | Color for the month name on weekend days                                                                                                                                                                                                                    |
+| `today_weekday_color`                      | string            | `var(--primary-text-color)`                        | Color for the weekday name (e.g., "Sat", "Sun") on today's date                                                                                                                                                                                             |
+| `today_day_color`                          | string            | `var(--primary-text-color)`                        | Color for the day number on today's date                                                                                                                                                                                                                    |
+| `today_month_color`                        | string            | `var(--primary-text-color)`                        | Color for the month name on today's date                                                                                                                                                                                                                    |
 | **Event Column**                           |                   |                                                    |                                                                                                                                                                                                                                                             |
 | `event_background_opacity`                 | number            | `0`                                                | Background opacity (0-100) for events using entity accent color                                                                                                                                                                                             |
 | `show_past_events`                         | boolean           | `false`                                            | Whether to show today's events that have already ended                                                                                                                                                                                                      |

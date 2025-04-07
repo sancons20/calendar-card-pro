@@ -60,11 +60,6 @@ export function generateCustomPropertiesObject(config: Types.Config): Record<str
       config.empty_day_color === Config.DEFAULT_CONFIG.empty_day_color
         ? 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.6)'
         : config.empty_day_color,
-
-    // Weekend styling properties
-    '--calendar-card-color-weekend-weekday': config.weekend_weekday_color,
-    '--calendar-card-color-weekend-day': config.weekend_day_color,
-    '--calendar-card-color-weekend-month': config.weekend_month_color,
   };
 
   // Optional properties
@@ -297,10 +292,10 @@ export const cardStyles = css`
     max-width: var(--calendar-card-date-column-width);
     vertical-align: var(--calendar-card-date-column-vertical-alignment);
     text-align: center;
-    padding-left: 8px;
     position: relative;
 
     /* Borders & Spacing */
+    padding-left: 8px;
     padding-right: 12px;
   }
 
@@ -341,19 +336,6 @@ export const cardStyles = css`
     line-height: var(--calendar-card-font-size-month);
     text-transform: uppercase;
     color: var(--calendar-card-color-month);
-  }
-
-  /* Weekend date component styling */
-  .weekend .weekday {
-    color: var(--calendar-card-color-weekend-weekday);
-  }
-
-  .weekend .day {
-    color: var(--calendar-card-color-weekend-day);
-  }
-
-  .weekend .month {
-    color: var(--calendar-card-color-weekend-month);
   }
 
   /* Today indicator styling */

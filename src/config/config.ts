@@ -79,9 +79,12 @@ export const DEFAULT_CONFIG: Types.Config = {
   show_month: true,
   month_font_size: '12px',
   month_color: 'var(--primary-text-color)',
-  weekend_weekday_color: 'var(--primary-text-color)',
-  weekend_day_color: 'var(--primary-text-color)',
-  weekend_month_color: 'var(--primary-text-color)',
+  weekend_weekday_color: undefined, // Inherit from weekday_color
+  weekend_day_color: undefined, // Inherit from day_color
+  weekend_month_color: undefined, // Inherit from month_color
+  today_weekday_color: undefined, // Inherit from weekday_color or weekend_weekday_color
+  today_day_color: undefined, // Inherit from day_color or weekend_day_color
+  today_month_color: undefined, // Inherit from month_color or weekend_month_color,
 
   // Event column
   event_background_opacity: 0,

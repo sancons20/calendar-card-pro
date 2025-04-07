@@ -456,6 +456,79 @@ function renderIndicatorByType(
 }
 
 /**
+ * Render a date column for the given date with appropriate styling
+ *
+ * @param date Date to display
+ * @param config Card configuration
+ * @param isToday Whether the date is today
+ * @returns Rendered date column
+ */
+function renderDateColumn(date: Date, config: Types.Config, isToday: boolean): TemplateResult {
+  const isWeekendDay = date.getDay() === 0 || date.getDay() === 6;
+
+  // Start with base colors
+  let weekdayColor = config.weekday_color;
+  let dayColor = config.day_color;
+  let monthColor = config.month_color;
+
+  // Apply weekend styling if applicable and defined
+  if (isWeekendDay) {
+    weekdayColor = config.weekend_weekday_color || weekdayColor;
+    dayColor = config.weekend_day_color || dayColor;
+    monthColor = config.weekend_month_color || monthColor;
+  }
+
+  // Apply today styling if applicable and defined (takes precedence)
+  if (isToday) {
+    weekdayColor = config.today_weekday_color || weekdayColor;
+    dayColor = config.today_day_color || dayColor;
+    monthColor = config.today_month_color || monthColor;
+  }
+
+  // Get translations for the current language
+  const translations = Localize.getTranslations(config.language || 'en');
+
+  // Get formatted date parts from translations
+  const weekday = translations.daysOfWeek[date.getDay()];
+  const day = date.getDate();
+  const month = translations.months[date.getMonth()];
+
+  return html`
+    <div
+      class="weekday"
+      style=${styleMap({
+        'font-size': config.weekday_font_size,
+        color: weekdayColor,
+      })}
+    >
+      ${weekday}
+    </div>
+    <div
+      class="day"
+      style=${styleMap({
+        'font-size': config.day_font_size,
+        color: dayColor,
+      })}
+    >
+      ${day}
+    </div>
+    ${config.show_month
+      ? html`
+          <div
+            class="month"
+            style=${styleMap({
+              'font-size': config.month_font_size,
+              color: monthColor,
+            })}
+          >
+            ${month}
+          </div>
+        `
+      : nothing}
+  `;
+}
+
+/**
  * Render a single day with its events
  *
  * @param day - Day data containing events
@@ -760,12 +833,7 @@ export function renderEvent(
               rowspan="${day.events.length}"
               style="position: relative;"
             >
-              <div class="date-content">
-                <div class="weekday">${day.weekday}</div>
-                <div class="day">${day.day}</div>
-                ${config.show_month ? html`<div class="month">${day.month}</div>` : ''}
-              </div>
-              ${renderTodayIndicator(config, isToday)}
+              ${renderDateColumn(dayDate, config, isToday)} ${renderTodayIndicator(config, isToday)}
             </td>
           `
         : ''}
