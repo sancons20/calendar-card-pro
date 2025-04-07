@@ -806,7 +806,6 @@ function splitMultiDayEvent(event: Types.CalendarEventData): Types.CalendarEvent
     const endDateTime = new Date(event.end.dateTime);
 
     // First day: start time to end of day
-    const firstDayDate = new Date(startDateTime);
     const firstDayEnd = new Date(startDateTime);
     firstDayEnd.setHours(23, 59, 59, 999);
 

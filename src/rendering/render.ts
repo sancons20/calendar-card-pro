@@ -585,9 +585,6 @@ export function renderDay(
     daySeparator = html`<div class="separator" style=${styleMap(separatorStyle)}></div>`;
   }
 
-  // Check if this is a weekend day
-  const isWeekendDay = isWeekend(dayDate);
-
   return html`
     ${daySeparator}
     <table class="day-table ${isToday ? 'today' : 'future-day'}">
