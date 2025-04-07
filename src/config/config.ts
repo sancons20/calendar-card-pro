@@ -19,10 +19,16 @@ export const DEFAULT_CONFIG: Types.Config = {
   entities: [],
   start_date: undefined,
   days_to_show: 3,
-  max_events_to_show: undefined,
+  compact_days_to_show: undefined,
+  compact_events_to_show: undefined,
+  compact_events_complete_days: false,
   show_empty_days: false,
   filter_duplicates: false,
+  split_multiday_events: false,
   language: undefined,
+
+  /** @deprecated Use compact_events_to_show instead. Will be removed in v3.0 */
+  max_events_to_show: undefined,
 
   // Header
   title: undefined,
@@ -58,6 +64,12 @@ export const DEFAULT_CONFIG: Types.Config = {
   month_separator_width: '0px',
   month_separator_color: 'var(--primary-text-color)',
 
+  // Today indicator
+  today_indicator: false,
+  today_indicator_position: '15% 50%',
+  today_indicator_color: '#03a9f4',
+  today_indicator_size: '6px',
+
   // Date column
   date_vertical_alignment: 'middle',
   weekday_font_size: '14px',
@@ -67,14 +79,21 @@ export const DEFAULT_CONFIG: Types.Config = {
   show_month: true,
   month_font_size: '12px',
   month_color: 'var(--primary-text-color)',
-  weekend_weekday_color: 'var(--primary-text-color)',
-  weekend_day_color: 'var(--primary-text-color)',
-  weekend_month_color: 'var(--primary-text-color)',
+  weekend_weekday_color: undefined, // Inherit from weekday_color
+  weekend_day_color: undefined, // Inherit from day_color
+  weekend_month_color: undefined, // Inherit from month_color
+  today_weekday_color: undefined, // Inherit from weekday_color or weekend_weekday_color
+  today_day_color: undefined, // Inherit from day_color or weekend_day_color
+  today_month_color: undefined, // Inherit from month_color or weekend_month_color,
 
   // Event column
   event_background_opacity: 0,
   show_past_events: false,
   show_countdown: false,
+  show_progress_bar: false,
+  progress_bar_color: 'var(--secondary-text-color)',
+  progress_bar_height: 'calc(var(--calendar-card-font-size-time) * 0.75)',
+  progress_bar_width: '60px',
   event_font_size: '14px',
   event_color: 'var(--primary-text-color)',
   empty_day_color: 'var(--primary-text-color)',
@@ -117,9 +136,13 @@ export function normalizeEntities(
         accent_color?: string;
         show_time?: boolean;
         show_location?: boolean;
-        max_events_to_show?: number;
+        compact_events_to_show?: number;
         blocklist?: string;
         allowlist?: string;
+        split_multiday_events?: boolean;
+
+        /** @deprecated Use compact_events_to_show instead. Will be removed in v3.0 */
+        max_events_to_show?: number;
       }
   >,
 ): Array<Types.EntityConfig> {
@@ -144,9 +167,11 @@ export function normalizeEntities(
           accent_color: item.accent_color || 'var(--calendar-card-line-color-vertical)',
           show_time: item.show_time,
           show_location: item.show_location,
-          max_events_to_show: item.max_events_to_show,
+          compact_events_to_show: item.compact_events_to_show,
           blocklist: item.blocklist,
           allowlist: item.allowlist,
+          split_multiday_events: item.split_multiday_events,
+          max_events_to_show: item.max_events_to_show,
         };
       }
       return null;

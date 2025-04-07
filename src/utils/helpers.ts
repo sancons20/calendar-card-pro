@@ -59,6 +59,57 @@ export function convertToRGBA(color: string, opacity: number): string {
 }
 
 //-----------------------------------------------------------------------------
+// INDICATOR TYPE DETECTION
+//-----------------------------------------------------------------------------
+
+/**
+ * Checks if a string is an emoji
+ *
+ * @param str String to check
+ * @returns True if the string is an emoji
+ */
+export function isEmoji(str: string): boolean {
+  // Basic emoji detection using Unicode ranges
+  const emojiRegex = /[\u{1F300}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
+  return str.length <= 2 && emojiRegex.test(str);
+}
+
+/**
+ * Determine the type of today indicator based on the value
+ *
+ * @param value The today_indicator value from config
+ * @returns Type of indicator ('dot', 'pulse', 'glow', 'mdi', 'image', 'emoji', 'none')
+ */
+export function getTodayIndicatorType(value: string | boolean): string {
+  // Boolean values
+  if (value === false) return 'none';
+  if (value === true) return 'dot';
+
+  // String values
+  if (typeof value === 'string') {
+    // Check for built-in types
+    if (value === 'dot') return 'dot';
+    if (value === 'pulse') return 'pulse';
+    if (value === 'glow') return 'glow';
+
+    // Check if value is an MDI icon path
+    if (value.startsWith('mdi:')) return 'mdi';
+
+    // Check if value is an image path
+    if (value.startsWith('/') || /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(value)) return 'image';
+
+    // Assume emoji if it's a short string (typically 1-2 characters)
+    if (value.length <= 2) return 'emoji';
+
+    // Default to dot if unrecognized
+    return 'dot';
+  }
+
+  // Default to none for unexpected types
+  return 'none';
+}
+
+//-----------------------------------------------------------------------------
 // ID GENERATION FUNCTIONS
 //-----------------------------------------------------------------------------
 

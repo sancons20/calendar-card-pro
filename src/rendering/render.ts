@@ -16,6 +16,7 @@ import * as Types from '../config/types';
 import * as Localize from '../translations/localize';
 import * as FormatUtils from '../utils/format';
 import * as EventUtils from '../utils/events';
+import * as Helpers from '../utils/helpers';
 
 //-----------------------------------------------------------------------------
 // MAIN CARD STRUCTURE RENDERING
@@ -325,6 +326,209 @@ function isWeekend(date: Date): boolean {
 }
 
 /**
+ * Parse position from CSS-like syntax (e.g., "10% 50%")
+ * and convert to absolute positioning styles with centering transform
+ *
+ * @param position Position in CSS-like syntax ("x y" format)
+ * @returns Style object with positioning properties
+ */
+function parseIndicatorPosition(position: string): Record<string, string> {
+  // Default positioning styles
+  const positionStyles: Record<string, string> = {
+    position: 'absolute',
+    transform: 'translate(-50%, -50%)',
+  };
+
+  // Split the position string by whitespace
+  const parts = position.trim().split(/\s+/);
+
+  // Parse horizontal position (x)
+  if (parts.length >= 1) {
+    positionStyles.left = parts[0];
+  }
+
+  // Parse vertical position (y)
+  if (parts.length >= 2) {
+    positionStyles.top = parts[1];
+  } else {
+    // Default to vertically centered if only one value provided
+    positionStyles.top = '50%';
+  }
+
+  return positionStyles;
+}
+
+/**
+ * Render the today indicator based on configuration
+ *
+ * @param config Calendar card configuration
+ * @param isToday Whether the current day is today
+ * @returns TemplateResult or nothing
+ */
+function renderTodayIndicator(
+  config: Types.Config,
+  isToday: boolean,
+): TemplateResult | typeof nothing {
+  // Don't render anything if indicator is disabled or this isn't today
+  if (!config.today_indicator || !isToday) {
+    return nothing;
+  }
+
+  const indicatorValue = config.today_indicator;
+  const indicatorType = Helpers.getTodayIndicatorType(indicatorValue);
+
+  // If type is none, don't render anything
+  if (indicatorType === 'none') {
+    return nothing;
+  }
+
+  // Get position styles using CSS-like syntax
+  const positionStyles = parseIndicatorPosition(config.today_indicator_position);
+
+  // Render indicator based on type
+  return html`
+    <div class="today-indicator-container">
+      ${renderIndicatorByType(indicatorType, indicatorValue, positionStyles)}
+    </div>
+  `;
+}
+
+/**
+ * Render specific indicator based on type
+ */
+function renderIndicatorByType(
+  type: string,
+  value: string | boolean,
+  positionStyles: Record<string, string>,
+): TemplateResult | typeof nothing {
+  // Determine which icon to use based on type
+  let icon = '';
+
+  switch (type) {
+    case 'dot':
+      icon = 'mdi:circle';
+      break;
+    case 'pulse':
+      icon = 'mdi:circle';
+      break;
+    case 'glow':
+      icon = 'mdi:circle';
+      break;
+    case 'mdi':
+      // For custom MDI icons, use the value directly
+      icon = typeof value === 'string' ? value : 'mdi:circle';
+      break;
+    case 'image':
+      // For images, render an img tag instead
+      if (typeof value === 'string') {
+        return html`
+          <img 
+            src="${value}" 
+            class="today-indicator image"
+            style=${styleMap(positionStyles)}
+            alt="Today">
+          </img>`;
+      }
+      return nothing;
+    case 'emoji':
+      // For emojis, render a span with the emoji
+      if (typeof value === 'string') {
+        return html` <span class="today-indicator emoji" style=${styleMap(positionStyles)}>
+          ${value}
+        </span>`;
+      }
+      return nothing;
+    default:
+      return nothing;
+  }
+
+  // For all MDI-based indicators, render with the appropriate class
+  if (icon) {
+    return html` <ha-icon
+      icon="${icon}"
+      class="today-indicator ${type}"
+      style=${styleMap(positionStyles)}
+    >
+    </ha-icon>`;
+  }
+
+  return nothing;
+}
+
+/**
+ * Render a date column for the given date with appropriate styling
+ *
+ * @param date Date to display
+ * @param config Card configuration
+ * @param isToday Whether the date is today
+ * @returns Rendered date column
+ */
+function renderDateColumn(date: Date, config: Types.Config, isToday: boolean): TemplateResult {
+  const isWeekendDay = date.getDay() === 0 || date.getDay() === 6;
+
+  // Start with base colors
+  let weekdayColor = config.weekday_color;
+  let dayColor = config.day_color;
+  let monthColor = config.month_color;
+
+  // Apply weekend styling if applicable and defined
+  if (isWeekendDay) {
+    weekdayColor = config.weekend_weekday_color || weekdayColor;
+    dayColor = config.weekend_day_color || dayColor;
+    monthColor = config.weekend_month_color || monthColor;
+  }
+
+  // Apply today styling if applicable and defined (takes precedence)
+  if (isToday) {
+    weekdayColor = config.today_weekday_color || weekdayColor;
+    dayColor = config.today_day_color || dayColor;
+    monthColor = config.today_month_color || monthColor;
+  }
+
+  // Get translations for the current language
+  const translations = Localize.getTranslations(config.language || 'en');
+
+  // Get formatted date parts from translations
+  const weekday = translations.daysOfWeek[date.getDay()];
+  const day = date.getDate();
+  const month = translations.months[date.getMonth()];
+
+  return html`
+    <div
+      class="weekday"
+      style=${styleMap({
+        'font-size': config.weekday_font_size,
+        color: weekdayColor,
+      })}
+    >
+      ${weekday}
+    </div>
+    <div
+      class="day"
+      style=${styleMap({
+        'font-size': config.day_font_size,
+        color: dayColor,
+      })}
+    >
+      ${day}
+    </div>
+    ${config.show_month
+      ? html`
+          <div
+            class="month"
+            style=${styleMap({
+              'font-size': config.month_font_size,
+              color: monthColor,
+            })}
+          >
+            ${month}
+          </div>
+        `
+      : nothing}
+  `;
+}
+
+/**
  * Render a single day with its events
  *
  * @param day - Day data containing events
@@ -387,7 +591,7 @@ export function renderDay(
       ${repeat(
         day.events,
         (event, index) => `${event._entityId}-${event.summary}-${index}`,
-        (event, index) => renderEvent(event, day, index, config, language),
+        (event, index) => renderEvent(event, day, index, config, language, isToday),
       )}
     </table>
   `;
@@ -486,6 +690,7 @@ export function renderEvent(
   index: number,
   config: Types.Config,
   language: string,
+  isToday: boolean,
 ): TemplateResult {
   // Add CSS class for empty days
   const isEmptyDay = Boolean(event._isEmptyDay);
@@ -495,8 +700,7 @@ export function renderEvent(
   const isWeekendDay = isWeekend(dayDate);
 
   // Check if this is a past event (already ended)
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -527,7 +731,7 @@ export function renderEvent(
     } else {
       // Regular event with time - use end time to determine if it's past
       const endDateTime = event.end.dateTime ? new Date(event.end.dateTime) : null;
-      isPastEvent = endDateTime !== null && now > endDateTime;
+      isPastEvent = endDateTime !== null && today > endDateTime;
     }
   }
 
@@ -591,6 +795,11 @@ export function renderEvent(
     countdownStr = FormatUtils.getCountdownString(event, language);
   }
 
+  // Check if event is currently running and calculate progress percentage for progress bar
+  const isRunning = EventUtils.isEventCurrentlyRunning(event);
+  const progressPercentage =
+    isRunning && config.show_progress_bar ? EventUtils.calculateEventProgress(event) : null;
+
   // Format event time and location
   const eventTime = FormatUtils.formatEventTime(event, config, language);
   const eventLocation =
@@ -616,12 +825,12 @@ export function renderEvent(
     <tr>
       ${index === 0
         ? html`
-            <td class="date-column ${isWeekendDay ? 'weekend' : ''}" rowspan="${day.events.length}">
-              <div class="date-content">
-                <div class="weekday">${day.weekday}</div>
-                <div class="day">${day.day}</div>
-                ${config.show_month ? html`<div class="month">${day.month}</div>` : ''}
-              </div>
+            <td
+              class="date-column ${isWeekendDay ? 'weekend' : ''}"
+              rowspan="${day.events.length}"
+              style="position: relative;"
+            >
+              ${renderDateColumn(dayDate, config, isToday)} ${renderTodayIndicator(config, isToday)}
             </td>
           `
         : ''}
@@ -648,7 +857,16 @@ export function renderEvent(
                     </div>
                     ${countdownStr
                       ? html`<div class="time-countdown">${countdownStr}</div>`
-                      : nothing}
+                      : progressPercentage !== null && config.show_progress_bar
+                        ? html`
+                            <div class="progress-bar">
+                              <div
+                                class="progress-bar-filled"
+                                style="width: ${progressPercentage}%"
+                              ></div>
+                            </div>
+                          `
+                        : nothing}
                   </div>
                 `
               : countdownStr
@@ -658,7 +876,19 @@ export function renderEvent(
                       <div class="time-countdown">${countdownStr}</div>
                     </div>
                   `
-                : nothing}
+                : progressPercentage !== null && config.show_progress_bar
+                  ? html`
+                      <div class="time">
+                        <div class="time-actual"></div>
+                        <div class="progress-bar">
+                          <div
+                            class="progress-bar-filled"
+                            style="width: ${progressPercentage}%"
+                          ></div>
+                        </div>
+                      </div>
+                    `
+                  : nothing}
             ${eventLocation
               ? html`
                   <div class="location">

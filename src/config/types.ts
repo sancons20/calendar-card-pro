@@ -16,10 +16,16 @@ export interface Config {
   entities: Array<string | EntityConfig>;
   start_date?: string;
   days_to_show: number;
-  max_events_to_show?: number;
+  compact_days_to_show?: number;
+  compact_events_to_show?: number;
+  compact_events_complete_days?: boolean;
   show_empty_days: boolean;
   filter_duplicates: boolean;
+  split_multiday_events: boolean;
   language?: string;
+
+  /** @deprecated Use compact_events_to_show instead. Will be removed in v3.0 */
+  max_events_to_show?: number;
 
   // Header
   title?: string;
@@ -55,6 +61,12 @@ export interface Config {
   month_separator_width: string;
   month_separator_color: string;
 
+  // Today indicator
+  today_indicator: string | boolean;
+  today_indicator_position: string;
+  today_indicator_color: string;
+  today_indicator_size: string;
+
   // Date column
   date_vertical_alignment: string;
   weekday_font_size: string;
@@ -64,14 +76,21 @@ export interface Config {
   show_month: boolean;
   month_font_size: string;
   month_color: string;
-  weekend_weekday_color: string;
-  weekend_day_color: string;
-  weekend_month_color: string;
+  weekend_weekday_color?: string;
+  weekend_day_color?: string;
+  weekend_month_color?: string;
+  today_weekday_color?: string;
+  today_day_color?: string;
+  today_month_color?: string;
 
   // Event column
   event_background_opacity: number;
   show_past_events: boolean;
   show_countdown: boolean;
+  show_progress_bar: boolean;
+  progress_bar_color: string;
+  progress_bar_height: string;
+  progress_bar_width: string;
   event_font_size: string;
   event_color: string;
   empty_day_color: string;
@@ -107,9 +126,13 @@ export interface EntityConfig {
   accent_color?: string;
   show_time?: boolean;
   show_location?: boolean;
-  max_events_to_show?: number;
+  compact_events_to_show?: number;
   blocklist?: string;
   allowlist?: string;
+  split_multiday_events?: boolean;
+
+  /** @deprecated Use compact_events_to_show instead. Will be removed in v3.0 */
+  max_events_to_show?: number;
 }
 
 // -----------------------------------------------------------------------------
