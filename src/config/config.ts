@@ -64,6 +64,12 @@ export const DEFAULT_CONFIG: Types.Config = {
   month_separator_width: '0px',
   month_separator_color: 'var(--primary-text-color)',
 
+  // Today indicator
+  today_indicator: false,
+  today_indicator_position: '15% 50%',
+  today_indicator_color: '#03a9f4',
+  today_indicator_size: '6px',
+
   // Date column
   date_vertical_alignment: 'middle',
   weekday_font_size: '14px',

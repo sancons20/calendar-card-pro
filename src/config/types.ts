@@ -61,6 +61,12 @@ export interface Config {
   month_separator_width: string;
   month_separator_color: string;
 
+  // Today indicator
+  today_indicator: string | boolean;
+  today_indicator_position: string;
+  today_indicator_color: string;
+  today_indicator_size: string;
+
   // Date column
   date_vertical_alignment: string;
   weekday_font_size: string;

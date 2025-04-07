@@ -46,6 +46,10 @@ export function generateCustomPropertiesObject(config: Types.Config): Record<str
     '--ha-ripple-pressed-opacity': '0.12',
     '--ha-ripple-pressed-color': config.vertical_line_color,
 
+    // Today indicator settings
+    '--calendar-card-today-indicator-color': config.today_indicator_color,
+    '--calendar-card-today-indicator-size': config.today_indicator_size,
+
     // Week and month separator properties
     '--calendar-card-week-number-font-size': config.week_number_font_size,
     '--calendar-card-week-number-color': config.week_number_color,
@@ -96,7 +100,8 @@ export const cardStyles = css`
 
     /* Box model */
     box-sizing: border-box;
-    padding: calc(var(--calendar-card-spacing-additional) + 16px) 16px;
+    padding: calc(var(--calendar-card-spacing-additional) + 16px) 16px
+      calc(var(--calendar-card-spacing-additional) + 16px) 8px;
 
     /* Visual */
     background: var(--calendar-card-background-color, var(--card-background-color));
@@ -149,7 +154,7 @@ export const cardStyles = css`
     float: left;
 
     /* Spacing */
-    margin: 0 0 16px 0;
+    margin: 0 0 16px 8px;
     padding: 0;
 
     /* Typography */
@@ -174,6 +179,7 @@ export const cardStyles = css`
     height: calc(var(--calendar-card-week-number-font-size) * 1.5);
     width: 100%;
     table-layout: fixed;
+    padding-left: 8px;
     border-spacing: 0;
     border: none !important;
   }
@@ -238,6 +244,7 @@ export const cardStyles = css`
    * Used when days aren't at week or month boundaries */
   .separator {
     width: 100%;
+    margin-left: 8px;
   }
 
   /* Week separator (full-width) - Used when show_week_numbers is null
@@ -245,6 +252,7 @@ export const cardStyles = css`
    * Margins are applied dynamically in createSeparatorStyle in render.ts */
   .week-separator {
     width: 100%;
+    margin-left: 8px;
     border-top-style: solid; /* Ensure line is visible */
   }
 
@@ -253,6 +261,7 @@ export const cardStyles = css`
    * Margins are applied dynamically in createSeparatorStyle in render.ts */
   .month-separator {
     width: 100%;
+    margin-left: 8px;
     border-top-style: solid; /* Ensure line is visible */
   }
 
@@ -284,8 +293,12 @@ export const cardStyles = css`
   .date-column {
     /* Layout */
     width: var(--calendar-card-date-column-width);
+    min-width: var(--calendar-card-date-column-width);
+    max-width: var(--calendar-card-date-column-width);
     vertical-align: var(--calendar-card-date-column-vertical-alignment);
     text-align: center;
+    padding-left: 8px;
+    position: relative;
 
     /* Borders & Spacing */
     padding-right: 12px;
@@ -294,6 +307,19 @@ export const cardStyles = css`
   .date-content {
     display: flex;
     flex-direction: column;
+    position: relative;
+    z-index: 2; /* Ensure date content is above indicator */
+  }
+
+  /* Today indicator styling */
+  .today-indicator-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
   }
 
   /* Date components */
@@ -328,6 +354,62 @@ export const cardStyles = css`
 
   .weekend .month {
     color: var(--calendar-card-color-weekend-month);
+  }
+
+  /* Today indicator styling */
+  .today-indicator-container {
+    position: absolute;
+    color: var(--calendar-card-today-indicator-color);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Set proper sizing for icon-based indicators */
+  ha-icon.today-indicator {
+    --mdc-icon-size: var(--calendar-card-today-indicator-size);
+  }
+
+  /* Special styling for image type */
+  img.today-indicator.image {
+    width: var(--calendar-card-today-indicator-size);
+    height: auto;
+    max-height: var(--calendar-card-today-indicator-size);
+    object-fit: contain;
+  }
+
+  /* Special styling for emoji type */
+  span.today-indicator.emoji {
+    font-size: var(--calendar-card-today-indicator-size);
+    line-height: 1;
+  }
+
+  /* Animation for pulse indicator */
+  ha-icon.today-indicator.pulse {
+    animation: pulse-animation 2s infinite ease-in-out;
+  }
+
+  /* Special styling for glow effect */
+  ha-icon.today-indicator.glow {
+    filter: drop-shadow(
+      0 0 calc(var(--calendar-card-today-indicator-size) * 0.5)
+        var(--calendar-card-today-indicator-color)
+    );
+  }
+
+  /* Pulse animation keyframes */
+  @keyframes pulse-animation {
+    0% {
+      transform: scale(0.95);
+      opacity: 0.7;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(0.95);
+      opacity: 0.7;
+    }
   }
 
   /* ===== EVENT STYLES ===== */
