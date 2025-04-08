@@ -122,6 +122,7 @@ export const cardStyles = css`
   .content-container {
     max-height: var(--calendar-card-max-height, none);
     height: var(--calendar-card-height, auto);
+    overflow-x: hidden;
     overflow-y: auto;
     padding-bottom: 1px;
     hyphens: auto;

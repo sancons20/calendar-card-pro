@@ -627,6 +627,8 @@ today_indicator_position: "15% 15%" # Top left
 today_indicator_position: "85% 15%" # Top right
 ```
 
+<img src="https://raw.githubusercontent.com/alexpfau/calendar-card-pro/main/.github/img/example_today_indicator.png" alt="Today Indicator" width="600"><br>
+
 The indicator is precisely positioned and always properly centered on the coordinates specified, making it ideal for creating visual emphasis on today's date.
 
 Available indicator types:
