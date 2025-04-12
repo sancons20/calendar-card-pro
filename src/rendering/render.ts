@@ -850,13 +850,13 @@ export function renderEvent(
               ? renderLabel(EventUtils.getEntityLabel(event._entityId, config, event))
               : ''}${isEmptyDay ? `✓ ${event.summary}` : event.summary}
           </div>
-          <div class="time-location">
+          <div class="time-location" style="color: ${timeColor};">
             ${shouldShowTime
               ? html`
                   <div class="time">
                     <div class="time-actual">
                       <ha-icon icon="mdi:clock-outline"></ha-icon>
-                      <span style="color: ${timeColor};">${eventTime}</span>
+                      <span>${eventTime}</span>
                     </div>
                     ${countdownStr
                       ? html`<div class="time-countdown">${countdownStr}</div>`

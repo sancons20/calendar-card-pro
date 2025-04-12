@@ -608,12 +608,12 @@ let be;{const e=globalThis.litIssuedWarnings??=new Set;be=(t,n)=>{n+=` See https
           >
             ${Un(e._entityId,a,e)?(N=Un(e._entityId,a,e),N?N.startsWith("mdi:")?Q`<ha-icon icon="${N}" class="label-icon"> </ha-icon>`:N.startsWith("/local/")||/\.(jpg|jpeg|png|gif|svg|webp)$/i.test(N)?Q`<img src="${N}" class="label-image"> </img>`:Q`<span class="calendar-label">${N}</span>`:te):""}${_?`✓ ${e.summary}`:e.summary}
           </div>
-          <div class="time-location">
+          <div class="time-location" style="color: ${j};">
             ${S?Q`
                   <div class="time">
                     <div class="time-actual">
                       <ha-icon icon="mdi:clock-outline"></ha-icon>
-                      <span style="color: ${j};">${x}</span>
+                      <span>${x}</span>
                     </div>
                     ${$?Q`<div class="time-countdown">${$}</div>`:null!==L&&a.show_progress_bar?Q`
                             <div class="progress-bar">
