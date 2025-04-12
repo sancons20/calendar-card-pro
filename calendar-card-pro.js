@@ -565,7 +565,7 @@ let be;{const e=globalThis.litIssuedWarnings??=new Set;be=(t,n)=>{n+=` See https
   `}function Da(e,t,n,a,r){const i=new Date,o=new Date(i.getFullYear(),i.getMonth(),i.getDate()),s=new Date(e.timestamp).toDateString()===o.toDateString();let d=te;const l=(null==r?void 0:r.isNewMonth)||!1,c=(null==r?void 0:r.isNewWeek)||!1,u=l&&"0px"!==t.month_separator_width,_=c&&(null!==t.show_week_numbers||"0px"!==t.week_separator_width),m=t.day_separator_width||t.horizontal_line_width,h=t.day_separator_color||t.horizontal_line_color;if(a&&"0px"!==m&&!u&&!_){const e=va(m,h,t,"day");d=Q`<div class="separator" style=${da(e)}></div>`}return Q`
     ${d}
     <table class="day-table ${s?"today":"future-day"}">
-      ${ga(e.events,((e,t)=>`${e._entityId}-${e.summary}-${t}`),((a,r)=>function(e,t,n,a,r,i){var o,s,d,l,c,u;const _=Boolean(e._isEmptyDay),m=new Date(t.timestamp),h=function(e){const t=e.getDay();return 0===t||6===t}(m),p=new Date,f=new Date(p);f.setDate(f.getDate()+1);let g=!1;if(!_){if(!e.start.dateTime){let t=e.end.date?Sn(e.end.date):null;if(t){const e=new Date(t);e.setDate(e.getDate()-1),t=e}g=null!==t&&p>t}else{const t=e.end.dateTime?new Date(e.end.dateTime):null;g=null!==t&&p>t}}const y=_?"var(--calendar-card-empty-day-color)":function(e,t,n){if(!e)return"var(--primary-text-color)";if(n&&n._matchedConfig)return n._matchedConfig.color||"var(--primary-text-color)";const a=t.entities.find((t=>"string"==typeof t&&t===e||"object"==typeof t&&t.entity===e));return a?"string"==typeof a?"var(--primary-text-color)":a.color||"var(--primary-text-color)":"var(--primary-text-color)"}(e._entityId,a,e),v=Fn(e._entityId,a,void 0,e),w=a.event_background_opacity>0?a.event_background_opacity:0,M=w>0?Fn(e._entityId,a,w,e):"",b=null!==(o=Vn(e._entityId,"show_time",a,e))&&void 0!==o?o:a.show_time,k=null!==(s=Vn(e._entityId,"show_location",a,e))&&void 0!==s?s:a.show_location,D=!e.start.dateTime,Y=D&&e.time&&(e.time.includes(_t(r).multiDay)||e.time.includes(_t(r).endsTomorrow)||e.time.includes(_t(r).endsToday)),S=b&&!(D&&!Y&&!a.show_single_allday_time)&&!_;let $=null;!a.show_countdown||_||g||($=kn(e,r));const T=Rn(e),L=T&&a.show_progress_bar?function(e){if(!Rn(e))return null;const t=new Date,n=new Date(e.start.dateTime),a=new Date(e.end.dateTime).getTime()-n.getTime(),r=t.getTime()-n.getTime();return Math.min(100,Math.max(0,Math.floor(r/a*100)))}(e):null,x=bn(e,a,r),j=null!==(l=null===(d=e._matchedConfig)||void 0===d?void 0:d.time_color)&&void 0!==l?l:a.time_color,z=e.location&&k?Dn(e.location,a.remove_location_country):"",H=null!==(u=null===(c=e._matchedConfig)||void 0===c?void 0:c.location_color)&&void 0!==u?u:a.location_color,O=0===n,E=n===t.events.length-1,C={event:!0,"event-first":O,"event-middle":!O&&!E,"event-last":E,"past-event":g};return Q`
+      ${ga(e.events,((e,t)=>`${e._entityId}-${e.summary}-${t}`),((a,r)=>function(e,t,n,a,r,i){var o,s,d,l,c,u;const _=Boolean(e._isEmptyDay),m=new Date(t.timestamp),h=function(e){const t=e.getDay();return 0===t||6===t}(m),p=new Date,f=new Date(p);f.setDate(f.getDate()+1);let g=!1;if(!_){if(!e.start.dateTime){let t=e.end.date?Sn(e.end.date):null;if(t){const e=new Date(t);e.setDate(e.getDate()-1),t=e}g=null!==t&&p>t}else{const t=e.end.dateTime?new Date(e.end.dateTime):null;g=null!==t&&p>t}}const y=_?"var(--calendar-card-empty-day-color)":function(e,t,n){if(!e)return"var(--primary-text-color)";if(n&&n._matchedConfig)return n._matchedConfig.color||"var(--primary-text-color)";const a=t.entities.find((t=>"string"==typeof t&&t===e||"object"==typeof t&&t.entity===e));return a?"string"==typeof a?"var(--primary-text-color)":a.color||"var(--primary-text-color)":"var(--primary-text-color)"}(e._entityId,a,e),v=Fn(e._entityId,a,void 0,e),w=a.event_background_opacity>0?a.event_background_opacity:0,M=w>0?Fn(e._entityId,a,w,e):"",b=null!==(o=Vn(e._entityId,"show_time",a,e))&&void 0!==o?o:a.show_time,k=null!==(s=Vn(e._entityId,"show_location",a,e))&&void 0!==s?s:a.show_location,D=!e.start.dateTime,Y=D&&e.time&&(e.time.includes(_t(r).multiDay)||e.time.includes(_t(r).endsTomorrow)||e.time.includes(_t(r).endsToday)),S=b&&!(D&&!Y&&!a.show_single_allday_time)&&!_;let $=null;!a.show_countdown||_||g||($=kn(e,r));const T=Rn(e),L=T&&a.show_progress_bar?function(e){if(!Rn(e))return null;const t=new Date,n=new Date(e.start.dateTime),a=new Date(e.end.dateTime).getTime()-n.getTime(),r=t.getTime()-n.getTime();return Math.min(100,Math.max(0,Math.floor(r/a*100)))}(e):null,x=bn(e,a,r),j=null!==(l=null===(d=e._matchedConfig)||void 0===d?void 0:d.time_color)&&void 0!==l?l:a.time_color,z=e.location&&k?Dn(e.location,a.remove_location_country):"";null!==(u=null===(c=e._matchedConfig)||void 0===c?void 0:c.location_color)&&void 0!==u||a.location_color;const H=0===n,O=n===t.events.length-1,E={event:!0,"event-first":H,"event-middle":!H&&!O,"event-last":O,"past-event":g};return Q`
     <tr>
       ${0===n?Q`
             <td
@@ -598,7 +598,7 @@ let be;{const e=globalThis.litIssuedWarnings??=new Set;be=(t,n)=>{n+=` See https
             </td>
           `:""}
       <td
-        class=${ia(C)}
+        class=${ia(E)}
         style="border-left: var(--calendar-card-line-width-vertical) solid ${v}; background-color: ${M};"
       >
         <div class="event-content">
@@ -606,7 +606,7 @@ let be;{const e=globalThis.litIssuedWarnings??=new Set;be=(t,n)=>{n+=` See https
             class="event-title ${_?"empty-day-title":""}"
             style="color: ${y}"
           >
-            ${Un(e._entityId,a,e)?(N=Un(e._entityId,a,e),N?N.startsWith("mdi:")?Q`<ha-icon icon="${N}" class="label-icon"> </ha-icon>`:N.startsWith("/local/")||/\.(jpg|jpeg|png|gif|svg|webp)$/i.test(N)?Q`<img src="${N}" class="label-image"> </img>`:Q`<span class="calendar-label">${N}</span>`:te):""}${_?`✓ ${e.summary}`:e.summary}
+            ${Un(e._entityId,a,e)?(C=Un(e._entityId,a,e),C?C.startsWith("mdi:")?Q`<ha-icon icon="${C}" class="label-icon"> </ha-icon>`:C.startsWith("/local/")||/\.(jpg|jpeg|png|gif|svg|webp)$/i.test(C)?Q`<img src="${C}" class="label-image"> </img>`:Q`<span class="calendar-label">${C}</span>`:te):""}${_?`✓ ${e.summary}`:e.summary}
           </div>
           <div class="time-location">
             ${S?Q`
@@ -642,8 +642,8 @@ let be;{const e=globalThis.litIssuedWarnings??=new Set;be=(t,n)=>{n+=` See https
                     `:te}
                   ${z?Q`
                         <div class="location">
-                          <ha-icon icon="mdi:map-marker" style="color: ${H};"></ha-icon>
-                          <span style="color: ${H};">${z}</span>
+                          <ha-icon icon="mdi:map-marker" style="color: red !important;"></ha-icon>
+                          <span style="color: red !important;">${z}</span>
                         </div>
 
                       `:""}
@@ -651,7 +651,7 @@ let be;{const e=globalThis.litIssuedWarnings??=new Set;be=(t,n)=>{n+=` See https
         </div>
       </td>
     </tr>
-  `;var N}
+  `;var C}
 /**
  * Calendar Card Pro
  *
