@@ -850,13 +850,13 @@ export function renderEvent(
               ? renderLabel(EventUtils.getEntityLabel(event._entityId, config, event))
               : ''}${isEmptyDay ? `✓ ${event.summary}` : event.summary}
           </div>
-          <div class="time-location" style="color: ${timeColor};">
+          <div class="time-location">
             ${shouldShowTime
               ? html`
                   <div class="time">
                     <div class="time-actual">
-                      <ha-icon icon="mdi:clock-outline"></ha-icon>
-                      <span>${eventTime}</span>
+                      <ha-icon icon="mdi:clock-outline" style="color: ${timeColor};"></ha-icon>
+                      <span style="color: ${timeColor};">${eventTime}</span>
                     </div>
                     ${countdownStr
                       ? html`<div class="time-countdown">${countdownStr}</div>`
@@ -892,14 +892,14 @@ export function renderEvent(
                       </div>
                     `
                   : nothing}
-            ${eventLocation
-              ? html`
-                  <div class="location">
-                    <ha-icon icon="mdi:map-marker"></ha-icon>
-                    <span style="color: ${locationColor};">${eventLocation}</span>
-                  </div>
-                `
-              : ''}
+                  ${eventLocation
+                    ? html`
+                        <div class="location">
+                          <ha-icon icon="mdi:map-marker" style="color: ${locationColor};"></ha-icon>
+                          <span style="color: ${locationColor};">${eventLocation}</span>
+                        </div>
+                      `
+                    : ''}
           </div>
         </div>
       </td>
