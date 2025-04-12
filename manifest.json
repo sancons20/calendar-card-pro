@@ -1,0 +1,12 @@
+{
+    "name": "Calendar Card Pro Custom",
+    "description": "Customized version of Calendar Card Pro",
+    "version": "1.0.1-custom",
+    "resources": [
+      {
+        "url": "dist/calendar-card-pro.js",
+        "type": "module"
+      }
+    ]
+  }
+  

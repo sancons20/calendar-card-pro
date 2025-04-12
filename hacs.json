@@ -1,4 +1,18 @@
+#{
+#  "name": "Calendar Card Pro",
+#  "filename": "calendar-card-pro.js"
+#}
+
+
 {
-  "name": "Calendar Card Pro",
-  "filename": "calendar-card-pro.js"
+  "name": "Calendar Card Pro Custom",
+  "description": "My personalized fork of Calendar Card Pro",
+  "version": "1.0.1-custom",
+  "resources": [
+    {
+      "url": "dist/calendar-card-pro.js",
+      "type": "module"
+    }
+  ],
+  "type": "plugin"
 }
