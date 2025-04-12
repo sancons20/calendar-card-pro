@@ -643,7 +643,7 @@ let be;{const e=globalThis.litIssuedWarnings??=new Set;be=(t,n)=>{n+=` See https
                   ${z?Q`
                         <div class="location">
                           <ha-icon icon="mdi:map-marker" style="color: ${H};"></ha-icon>
-                          <span style="color: ${H};">${z}</span>
+                          <span style="color: red;">${z}</span>
                         </div>
                       `:""}
           </div>
