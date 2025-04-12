@@ -802,10 +802,13 @@ export function renderEvent(
 
   // Format event time and location
   const eventTime = FormatUtils.formatEventTime(event, config, language);
+  const timeColor = event._matchedConfig?.time_color ?? config.time_color;
   const eventLocation =
     event.location && showLocation
       ? FormatUtils.formatLocation(event.location, config.remove_location_country)
       : '';
+  
+  const locationColor = event._matchedConfig?.location_color ?? config.location_color;
 
   // Determine event position for styling
   const isFirst = index === 0;
@@ -853,7 +856,7 @@ export function renderEvent(
                   <div class="time">
                     <div class="time-actual">
                       <ha-icon icon="mdi:clock-outline"></ha-icon>
-                      <span>${eventTime}</span>
+                      <span style="color: ${timeColor};">${eventTime}</span>
                     </div>
                     ${countdownStr
                       ? html`<div class="time-countdown">${countdownStr}</div>`
@@ -893,7 +896,7 @@ export function renderEvent(
               ? html`
                   <div class="location">
                     <ha-icon icon="mdi:map-marker"></ha-icon>
-                    <span>${eventLocation}</span>
+                    <span style="color: ${locationColor};">${eventLocation}</span>
                   </div>
                 `
               : ''}

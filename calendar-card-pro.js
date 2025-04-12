@@ -565,11 +565,11 @@ let be;{const e=globalThis.litIssuedWarnings??=new Set;be=(t,n)=>{n+=` See https
   `}function Da(e,t,n,a,r){const i=new Date,o=new Date(i.getFullYear(),i.getMonth(),i.getDate()),s=new Date(e.timestamp).toDateString()===o.toDateString();let d=te;const l=(null==r?void 0:r.isNewMonth)||!1,c=(null==r?void 0:r.isNewWeek)||!1,u=l&&"0px"!==t.month_separator_width,_=c&&(null!==t.show_week_numbers||"0px"!==t.week_separator_width),m=t.day_separator_width||t.horizontal_line_width,h=t.day_separator_color||t.horizontal_line_color;if(a&&"0px"!==m&&!u&&!_){const e=va(m,h,t,"day");d=Q`<div class="separator" style=${da(e)}></div>`}return Q`
     ${d}
     <table class="day-table ${s?"today":"future-day"}">
-      ${ga(e.events,((e,t)=>`${e._entityId}-${e.summary}-${t}`),((a,r)=>function(e,t,n,a,r,i){var o,s;const d=Boolean(e._isEmptyDay),l=new Date(t.timestamp),c=function(e){const t=e.getDay();return 0===t||6===t}(l),u=new Date,_=new Date(u);_.setDate(_.getDate()+1);let m=!1;if(!d){if(!e.start.dateTime){let t=e.end.date?Sn(e.end.date):null;if(t){const e=new Date(t);e.setDate(e.getDate()-1),t=e}m=null!==t&&u>t}else{const t=e.end.dateTime?new Date(e.end.dateTime):null;m=null!==t&&u>t}}const h=d?"var(--calendar-card-empty-day-color)":function(e,t,n){if(!e)return"var(--primary-text-color)";if(n&&n._matchedConfig)return n._matchedConfig.color||"var(--primary-text-color)";const a=t.entities.find((t=>"string"==typeof t&&t===e||"object"==typeof t&&t.entity===e));return a?"string"==typeof a?"var(--primary-text-color)":a.color||"var(--primary-text-color)":"var(--primary-text-color)"}(e._entityId,a,e),p=Fn(e._entityId,a,void 0,e),f=a.event_background_opacity>0?a.event_background_opacity:0,g=f>0?Fn(e._entityId,a,f,e):"",y=null!==(o=Vn(e._entityId,"show_time",a,e))&&void 0!==o?o:a.show_time,v=null!==(s=Vn(e._entityId,"show_location",a,e))&&void 0!==s?s:a.show_location,w=!e.start.dateTime,M=w&&e.time&&(e.time.includes(_t(r).multiDay)||e.time.includes(_t(r).endsTomorrow)||e.time.includes(_t(r).endsToday)),b=y&&!(w&&!M&&!a.show_single_allday_time)&&!d;let k=null;!a.show_countdown||d||m||(k=kn(e,r));const D=Rn(e),Y=D&&a.show_progress_bar?function(e){if(!Rn(e))return null;const t=new Date,n=new Date(e.start.dateTime),a=new Date(e.end.dateTime).getTime()-n.getTime(),r=t.getTime()-n.getTime();return Math.min(100,Math.max(0,Math.floor(r/a*100)))}(e):null,S=bn(e,a,r),$=e.location&&v?Dn(e.location,a.remove_location_country):"",T=0===n,L=n===t.events.length-1,x={event:!0,"event-first":T,"event-middle":!T&&!L,"event-last":L,"past-event":m};return Q`
+      ${ga(e.events,((e,t)=>`${e._entityId}-${e.summary}-${t}`),((a,r)=>function(e,t,n,a,r,i){var o,s,d,l,c,u;const _=Boolean(e._isEmptyDay),m=new Date(t.timestamp),h=function(e){const t=e.getDay();return 0===t||6===t}(m),p=new Date,f=new Date(p);f.setDate(f.getDate()+1);let g=!1;if(!_){if(!e.start.dateTime){let t=e.end.date?Sn(e.end.date):null;if(t){const e=new Date(t);e.setDate(e.getDate()-1),t=e}g=null!==t&&p>t}else{const t=e.end.dateTime?new Date(e.end.dateTime):null;g=null!==t&&p>t}}const y=_?"var(--calendar-card-empty-day-color)":function(e,t,n){if(!e)return"var(--primary-text-color)";if(n&&n._matchedConfig)return n._matchedConfig.color||"var(--primary-text-color)";const a=t.entities.find((t=>"string"==typeof t&&t===e||"object"==typeof t&&t.entity===e));return a?"string"==typeof a?"var(--primary-text-color)":a.color||"var(--primary-text-color)":"var(--primary-text-color)"}(e._entityId,a,e),v=Fn(e._entityId,a,void 0,e),w=a.event_background_opacity>0?a.event_background_opacity:0,M=w>0?Fn(e._entityId,a,w,e):"",b=null!==(o=Vn(e._entityId,"show_time",a,e))&&void 0!==o?o:a.show_time,k=null!==(s=Vn(e._entityId,"show_location",a,e))&&void 0!==s?s:a.show_location,D=!e.start.dateTime,Y=D&&e.time&&(e.time.includes(_t(r).multiDay)||e.time.includes(_t(r).endsTomorrow)||e.time.includes(_t(r).endsToday)),S=b&&!(D&&!Y&&!a.show_single_allday_time)&&!_;let $=null;!a.show_countdown||_||g||($=kn(e,r));const T=Rn(e),L=T&&a.show_progress_bar?function(e){if(!Rn(e))return null;const t=new Date,n=new Date(e.start.dateTime),a=new Date(e.end.dateTime).getTime()-n.getTime(),r=t.getTime()-n.getTime();return Math.min(100,Math.max(0,Math.floor(r/a*100)))}(e):null,x=bn(e,a,r),j=null!==(l=null===(d=e._matchedConfig)||void 0===d?void 0:d.time_color)&&void 0!==l?l:a.time_color,z=e.location&&k?Dn(e.location,a.remove_location_country):"",H=null!==(u=null===(c=e._matchedConfig)||void 0===c?void 0:c.location_color)&&void 0!==u?u:a.location_color,O=0===n,E=n===t.events.length-1,C={event:!0,"event-first":O,"event-middle":!O&&!E,"event-last":E,"past-event":g};return Q`
     <tr>
       ${0===n?Q`
             <td
-              class="date-column ${c?"weekend":""}"
+              class="date-column ${h?"weekend":""}"
               rowspan="${t.events.length}"
               style="position: relative;"
             >
@@ -594,63 +594,63 @@ let be;{const e=globalThis.litIssuedWarnings??=new Set;be=(t,n)=>{n+=` See https
             ${c}
           </div>
         `:te}
-  `}(l,a,i)} ${ka(a,i)}
+  `}(m,a,i)} ${ka(a,i)}
             </td>
           `:""}
       <td
-        class=${ia(x)}
-        style="border-left: var(--calendar-card-line-width-vertical) solid ${p}; background-color: ${g};"
+        class=${ia(C)}
+        style="border-left: var(--calendar-card-line-width-vertical) solid ${v}; background-color: ${M};"
       >
         <div class="event-content">
           <div
-            class="event-title ${d?"empty-day-title":""}"
-            style="color: ${h}"
+            class="event-title ${_?"empty-day-title":""}"
+            style="color: ${y}"
           >
-            ${Un(e._entityId,a,e)?(j=Un(e._entityId,a,e),j?j.startsWith("mdi:")?Q`<ha-icon icon="${j}" class="label-icon"> </ha-icon>`:j.startsWith("/local/")||/\.(jpg|jpeg|png|gif|svg|webp)$/i.test(j)?Q`<img src="${j}" class="label-image"> </img>`:Q`<span class="calendar-label">${j}</span>`:te):""}${d?`✓ ${e.summary}`:e.summary}
+            ${Un(e._entityId,a,e)?(N=Un(e._entityId,a,e),N?N.startsWith("mdi:")?Q`<ha-icon icon="${N}" class="label-icon"> </ha-icon>`:N.startsWith("/local/")||/\.(jpg|jpeg|png|gif|svg|webp)$/i.test(N)?Q`<img src="${N}" class="label-image"> </img>`:Q`<span class="calendar-label">${N}</span>`:te):""}${_?`✓ ${e.summary}`:e.summary}
           </div>
           <div class="time-location">
-            ${b?Q`
+            ${S?Q`
                   <div class="time">
                     <div class="time-actual">
                       <ha-icon icon="mdi:clock-outline"></ha-icon>
-                      <span>${S}</span>
+                      <span style="color: ${j};">${x}</span>
                     </div>
-                    ${k?Q`<div class="time-countdown">${k}</div>`:null!==Y&&a.show_progress_bar?Q`
+                    ${$?Q`<div class="time-countdown">${$}</div>`:null!==L&&a.show_progress_bar?Q`
                             <div class="progress-bar">
                               <div
                                 class="progress-bar-filled"
-                                style="width: ${Y}%"
+                                style="width: ${L}%"
                               ></div>
                             </div>
                           `:te}
                   </div>
-                `:k?Q`
+                `:$?Q`
                     <div class="time">
                       <div class="time-actual"></div>
-                      <div class="time-countdown">${k}</div>
+                      <div class="time-countdown">${$}</div>
                     </div>
-                  `:null!==Y&&a.show_progress_bar?Q`
+                  `:null!==L&&a.show_progress_bar?Q`
                       <div class="time">
                         <div class="time-actual"></div>
                         <div class="progress-bar">
                           <div
                             class="progress-bar-filled"
-                            style="width: ${Y}%"
+                            style="width: ${L}%"
                           ></div>
                         </div>
                       </div>
                     `:te}
-            ${$?Q`
+            ${z?Q`
                   <div class="location">
                     <ha-icon icon="mdi:map-marker"></ha-icon>
-                    <span>${$}</span>
+                    <span style="color: ${H};">${z}</span>
                   </div>
                 `:""}
           </div>
         </div>
       </td>
     </tr>
-  `;var j}
+  `;var N}
 /**
  * Calendar Card Pro
  *
