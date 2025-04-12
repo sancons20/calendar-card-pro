@@ -36,6 +36,7 @@ import viTranslations from './languages/vi.json';
 import thTranslations from './languages/th.json';
 import zhCNTranslations from './languages/zh-CN.json';
 import zhTWTranslations from './languages/zh-TW.json';
+import custTranslatins from './languages/custom.json';
 
 /**
  * Available translations keyed by language code
@@ -68,12 +69,13 @@ export const TRANSLATIONS: Record<string, Types.Translations> = {
   th: thTranslations,
   'zh-cn': zhCNTranslations,
   'zh-tw': zhTWTranslations,
+  cust: custTranslatins,
 };
 
 /**
  * Default language to use if requested language is not available
  */
-export const DEFAULT_LANGUAGE = 'en';
+export const DEFAULT_LANGUAGE = 'cust';
 
 //-----------------------------------------------------------------------------
 // HIGH-LEVEL API FUNCTIONS
