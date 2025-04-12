@@ -23,6 +23,7 @@ export interface Config {
   filter_duplicates: boolean;
   split_multiday_events: boolean;
   language?: string;
+  no_events_text?: string;
 
   /** @deprecated Use compact_events_to_show instead. Will be removed in v3.0 */
   max_events_to_show?: number;

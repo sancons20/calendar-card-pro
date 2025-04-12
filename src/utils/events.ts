@@ -497,7 +497,7 @@ export function groupEventsByDay(
           timestamp: currentDate.getTime(),
           events: [
             {
-              summary: translations.noEvents,
+              summary: config.no_events_text ?? translations.noEvents,
               start: { date: dateKey },
               end: { date: dateKey },
               _entityId: '_empty_day_',
@@ -581,7 +581,7 @@ export function generateEmptyStateEvents(
       timestamp: currentDate.getTime(),
       events: [
         {
-          summary: translations.noEvents,
+          summary: config.no_events_text ?? translations.noEvents,
           start: { date: FormatUtils.getLocalDateKey(currentDate) },
           end: { date: FormatUtils.getLocalDateKey(currentDate) },
           _entityId: '_empty_day_',
