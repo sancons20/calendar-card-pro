@@ -141,6 +141,7 @@ export function normalizeEntities(
         blocklist?: string;
         allowlist?: string;
         split_multiday_events?: boolean;
+        time_color?: string;
 
         /** @deprecated Use compact_events_to_show instead. Will be removed in v3.0 */
         max_events_to_show?: number;
@@ -173,6 +174,7 @@ export function normalizeEntities(
           allowlist: item.allowlist,
           split_multiday_events: item.split_multiday_events,
           max_events_to_show: item.max_events_to_show,
+          time_color: item.time_color,
         };
       }
       return null;
