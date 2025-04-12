@@ -4,7 +4,7 @@
     "version": "1.0.1-custom",
     "resources": [
       {
-        "url": "dist/calendar-card-pro.js",
+        "url": "calendar-card-pro.js",
         "type": "module"
       }
     ]
