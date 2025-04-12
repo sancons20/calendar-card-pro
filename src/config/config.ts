@@ -43,7 +43,7 @@ export const DEFAULT_CONFIG: Types.Config = {
   height: 'auto',
   max_height: 'none',
   vertical_line_width: '2px',
-  vertical_line_color: '#03a9f4',
+  vertical_line_color: '#888888',
 
   /** @deprecated Use day_separator_width instead. Will be removed in v3.0 */
   horizontal_line_width: '0px',
