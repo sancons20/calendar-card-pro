@@ -131,6 +131,7 @@ export interface EntityConfig {
   blocklist?: string;
   allowlist?: string;
   split_multiday_events?: boolean;
+  time_color?: string;
 
   /** @deprecated Use compact_events_to_show instead. Will be removed in v3.0 */
   max_events_to_show?: number;
