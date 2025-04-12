@@ -174,7 +174,7 @@ export function normalizeEntities(
           allowlist: item.allowlist,
           split_multiday_events: item.split_multiday_events,
           max_events_to_show: item.max_events_to_show,
-          time_color: item.time_color,
+          time_color: item.time_color || 'var(--secondary-text-color)',
         };
       }
       return null;
