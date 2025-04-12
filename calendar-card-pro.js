@@ -608,12 +608,12 @@ let be;{const e=globalThis.litIssuedWarnings??=new Set;be=(t,n)=>{n+=` See https
           >
             ${Un(e._entityId,a,e)?(N=Un(e._entityId,a,e),N?N.startsWith("mdi:")?Q`<ha-icon icon="${N}" class="label-icon"> </ha-icon>`:N.startsWith("/local/")||/\.(jpg|jpeg|png|gif|svg|webp)$/i.test(N)?Q`<img src="${N}" class="label-image"> </img>`:Q`<span class="calendar-label">${N}</span>`:te):""}${_?`✓ ${e.summary}`:e.summary}
           </div>
-          <div class="time-location" style="color: ${j};">
+          <div class="time-location">
             ${S?Q`
                   <div class="time">
                     <div class="time-actual">
-                      <ha-icon icon="mdi:clock-outline"></ha-icon>
-                      <span>${x}</span>
+                      <ha-icon icon="mdi:clock-outline" style="color: ${j};"></ha-icon>
+                      <span style="color: ${j};">${x}</span>
                     </div>
                     ${$?Q`<div class="time-countdown">${$}</div>`:null!==L&&a.show_progress_bar?Q`
                             <div class="progress-bar">
@@ -640,12 +640,12 @@ let be;{const e=globalThis.litIssuedWarnings??=new Set;be=(t,n)=>{n+=` See https
                         </div>
                       </div>
                     `:te}
-            ${z?Q`
-                  <div class="location">
-                    <ha-icon icon="mdi:map-marker"></ha-icon>
-                    <span style="color: ${H};">${z}</span>
-                  </div>
-                `:""}
+                  ${z?Q`
+                        <div class="location">
+                          <ha-icon icon="mdi:map-marker" style="color: ${H};"></ha-icon>
+                          <span style="color: ${H};">${z}</span>
+                        </div>
+                      `:""}
           </div>
         </div>
       </td>
